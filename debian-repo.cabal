@@ -1,0 +1,159 @@
+Name:           debian-repo
+Version:        5.64
+License:        BSD3
+License-File:	debian/copyright
+Author:         David Fox
+Category:	System
+Maintainer:     david@seereason.com
+Homepage:       http://src.seereason.com/debian-tools/debian-repo
+Build-Type:	Simple
+Synopsis:       Modules for working with Debian repositories
+Description:
+  This library includes modules covering the management of Debian
+  package repositories, local caches of remote debian repositories,
+  and Debian build environments.
+Cabal-version:  >= 1.9
+Data-Files:
+        demos/Versions.hs debian/changelog
+        debian/compat debian/control debian/copyright
+        debian/rules
+
+flag local-cabal-debian
+  Description: Link directly to the source of the cabal-debian library
+  Default: False
+  Manual: True
+
+flag local-debian
+  Description: Link directly to the source of the debian library
+  Default: False
+  Manual: True
+
+Library
+  Buildable: True
+  ghc-options: -O2 -threaded -Wall
+
+  if flag(local-cabal-debian)
+    if flag(local-debian)
+      Hs-Source-Dirs: ., ../cabal-debian/src, ../../haskell-debian
+      Build-Depends: hsemail, memoize, syb
+    else
+      Hs-Source-Dirs: ., ../cabal-debian/src
+      Build-Depends: debian >= 3.80, hsemail, memoize, syb
+  else
+    Build-Depends: cabal-debian >= 4.5, debian >= 3.80
+
+  Build-Depends:
+        applicative-extras,
+        base,
+        bytestring,
+        bzlib,
+        Cabal,
+        containers,
+        data-lens,
+        data-lens-template,
+        deepseq,
+        directory,
+        exceptions >= 0.6,
+        filepath,
+        HaXml,
+        MIME,
+        mtl,
+        network,
+        old-locale,
+        old-time,
+        parsec >= 3,
+        process,
+        process-listlike >= 0.6,
+        process-progress >= 0.9,
+        pureMD5,
+        regex-compat,
+        regex-tdfa,
+        template-haskell,
+        text,
+        time,
+        unix,
+        Unixutils >= 1.52.3,
+        utf8-string,
+        zlib
+  Exposed-modules:
+        Debian.Repo,
+        Debian.Repo.AptImage,
+        Debian.Repo.Changes,
+        Debian.Repo.Dependencies,
+        Debian.Repo.EnvPath,
+        Debian.Repo.LocalRepository,
+        Debian.Repo.Internal.Apt,
+        Debian.Repo.Internal.IO,
+        Debian.Repo.Internal.Repos,
+        Debian.Repo.MonadOS,
+        Debian.Repo.OSImage,
+        Debian.Repo.Package,
+        Debian.Repo.PackageID,
+        Debian.Repo.PackageIndex,
+        Debian.Repo.Prelude,
+        Debian.Repo.Prelude.Bool,
+        Debian.Repo.Prelude.Files,
+        Debian.Repo.Prelude.GPGSign,
+        Debian.Repo.Prelude.List,
+        Debian.Repo.Prelude.Lock,
+        Debian.Repo.Prelude.Misc,
+        Debian.Repo.Prelude.SSH,
+        Debian.Repo.Prelude.Time,
+        Debian.Repo.RemoteRepository,
+        Debian.Repo.Release,
+        Debian.Repo.Repo,
+        Debian.Repo.Slice,
+        Debian.Repo.SourceTree,
+        Debian.Repo.State.AptImage,
+        Debian.Repo.State.OSImage,
+        Debian.Repo.State.Package,
+        Debian.Repo.State.PackageIndex,
+        Debian.Repo.State.Release,
+        Debian.Repo.State.Repository,
+        Debian.Repo.State.Slice,
+        Debian.Repo.Top,
+        Debian.VersionPolicy
+
+Executable debian-versions
+  Hs-Source-Dirs: demos
+  Build-Depends: base, debian-repo >= 5.60, mtl
+  Buildable: True
+  Main-is: Versions.hs
+  ghc-options: -O2 -threaded -Wall
+  if flag(local-debian)
+    Hs-Source-Dirs: ., ../../haskell-debian
+  else
+    Build-Depends: debian >= 3.80
+
+Executable newdist
+  Hs-Source-Dirs: Debian/NewDist
+  Build-Depends: base, Cabal, containers, debian-repo >= 5.60, directory, filepath, MIME, mtl, process-progress, regex-compat, template-haskell, text
+  Buildable: True
+  Main-is: Main.hs
+  ghc-options: -O2 -threaded -Wall -rtsopts
+  if flag(local-debian)
+    Hs-Source-Dirs: ., ../../haskell-debian
+  else
+    Build-Depends: debian >= 3.80
+
+Executable speedtest
+  Hs-Source-Dirs: Test
+  Build-Depends: base, bytestring, containers, debian-repo >= 5.60, deepseq, filepath, mtl, network, process-listlike, process-progress, text
+  Buildable: True
+  Main-is: Speed.hs
+  ghc-options: -O2 -threaded -Wall -rtsopts
+  if flag(local-debian)
+    Hs-Source-Dirs: ., ../../haskell-debian
+  else
+    Build-Depends: debian >= 3.80
+
+Executable speedtest2
+  Hs-Source-Dirs: Test
+  Build-Depends: base, bytestring, debian-repo >= 5.60, deepseq, parsec, text
+  Buildable: True
+  Main-is: Speed2.hs
+  ghc-options: -O2 -threaded -Wall -rtsopts
+  if flag(local-debian)
+    Hs-Source-Dirs: ., ../../haskell-debian
+  else
+    Build-Depends: debian >= 3.80

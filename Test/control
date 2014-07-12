@@ -1,0 +1,63 @@
+Source: haskell-happstack-data
+Priority: optional
+Section: misc
+Maintainer: David Fox <david@seereason.com>
+Build-Depends: ghc6-prof (>= 6.13) | libghc6-binary-prof,
+               libghc6-binary-doc | ghc6-doc (>= 6.13)
+Standards-Version: 3.7.2.2
+Homepage: http://happstack.com
+
+Package: libghc6-happstack-data-dev
+Architecture: any
+Section: libdevel
+Depends: ${haskell:Depends}
+Description: HAppS data manipulation libraries
+  This package provides libraries for:
+  .
+  * Deriving instances for your datatypes.
+  .
+  * Producing default values of Haskell datatypes.
+  .
+  * Normalizing values of Haskell datatypes.
+  .
+  * Marshalling Haskell values to and from XML.
+  .
+  * Marshalling Haskell values to and from HTML forms.
+  .
+  Author: Happstack team, HAppS LLC
+  Upstream-Maintainer: Happstack team <happs@googlegroups.com>
+  .
+  This package contains the normal library files.
+
+Package: libghc6-happstack-data-prof
+Architecture: any
+Section: libdevel
+Depends: ${haskell:Depends},
+         libghc6-happstack-data-dev
+Description: HAppS data manipulation libraries
+  This package provides libraries for:
+  .
+  * Deriving instances for your datatypes.
+  .
+  * Producing default values of Haskell datatypes.
+  .
+  * Normalizing values of Haskell datatypes.
+  .
+  * Marshalling Haskell values to and from XML.
+  .
+  * Marshalling Haskell values to and from HTML forms.
+  .
+  Author: Happstack team, HAppS LLC
+  Upstream-Maintainer: Happstack team <happs@googlegroups.com>
+  .
+  This package contains the libraries compiled with profiling enabled.
+
+Package: haskell-happstack-data-doc
+Conflicts: libghc6-happstack-data-doc
+Replaces: libghc6-happstack-data-doc
+Architecture: all
+Section: libdevel
+Depends: ${haskell:Depends}, ghc6-doc
+Description: Web framework
+  .
+  This package contains the documentation files.

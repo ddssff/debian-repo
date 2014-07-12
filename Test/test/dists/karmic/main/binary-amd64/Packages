@@ -1,0 +1,269 @@
+Package: ghc6
+Priority: optional
+Section: universe/devel
+Installed-Size: 212112
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Kari Pahula <kaol@debian.org>
+Architecture: amd64
+Version: 6.10.4-1ubuntu2
+Provides: ghc, haskell-compiler, libghc6-array-dev, libghc6-base-dev, libghc6-bytestring-dev, libghc6-cabal-dev, libghc6-containers-dev, libghc6-directory-dev, libghc6-extensible-exceptions-dev, libghc6-filepath-dev, libghc6-ghc-prim-dev, libghc6-haskell98-dev, libghc6-hpc-dev, libghc6-integer-dev, libghc6-old-locale-dev, libghc6-old-time-dev, libghc6-packedstring-dev, libghc6-pretty-dev, libghc6-process-dev, libghc6-random-dev, libghc6-rts-dev, libghc6-syb-dev, libghc6-template-haskell-dev, libghc6-unix-dev
+Depends: perl | perl5, gcc (>= 4:4.2), libgmp3-dev, libffi-dev, libc6 (>= 2.4), libffi5 (>= 3.0.4), libgmp3c2
+Suggests: ghc6-prof, ghc6-doc, haskell-doc
+Conflicts: ghc4 (<= 4.08.1-4)
+Filename: pool/universe/g/ghc6/ghc6_6.10.4-1ubuntu2_amd64.deb
+Size: 33762650
+MD5sum: 7a9618835fcb37e110abc2642cbc2009
+SHA1: 1c853b713d0db8c129f1ed01cb5ee7caacdc59fe
+SHA256: 5b88c9bd59d16cb77b057c46675f243669eb2d2055bb495e3831fa79c8f768b6
+Description: GHC - the Glasgow Haskell Compilation system
+ Version 6 of the Glorious Glasgow Haskell Compilation system (GHC).  GHC is
+ a compiler for Haskell98.
+ .
+ Haskell is "the" standard lazy functional programming language. Haskell98
+ is the current version of the language. The language definition and
+ additional documentation can be found in the `haskell-doc' package.
+ Alternatively, there is an online version at
+ http://haskell.org/onlinereport/.
+Homepage: http://haskell.org/ghc/
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Origin: Ubuntu
+
+Package: ghc6-doc
+Priority: optional
+Section: universe/doc
+Installed-Size: 25940
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Kari Pahula <kaol@debian.org>
+Architecture: all
+Source: ghc6
+Version: 6.10.4-1ubuntu2
+Provides: libghc6-array-doc, libghc6-base-doc, libghc6-bytestring-doc, libghc6-cabal-doc, libghc6-containers-doc, libghc6-directory-doc, libghc6-extensible-exceptions-doc, libghc6-filepath-doc, libghc6-ghc-prim-doc, libghc6-haskell98-doc, libghc6-hpc-doc, libghc6-integer-doc, libghc6-old-locale-doc, libghc6-old-time-doc, libghc6-packedstring-doc, libghc6-pretty-doc, libghc6-process-doc, libghc6-random-doc, libghc6-rts-doc, libghc6-syb-doc, libghc6-template-haskell-doc, libghc6-unix-doc
+Depends: haddock (>= 2.4.2)
+Suggests: haskell-doc
+Filename: pool/universe/g/ghc6/ghc6-doc_6.10.4-1ubuntu2_all.deb
+Size: 2691936
+MD5sum: 56d870a9442e6a0b7721f05939139307
+SHA1: 5844f59d862fafd53c6f854b14463b15b710b27f
+SHA256: 0a38ce91ac328953028f292baaf87c2c397b9d7c14b9acae0ea5aed64f3864ee
+Description: Documentation for the Glasgow Haskell Compilation system
+ Version 6 of the Glorious Glasgow Haskell Compilation system (GHC).  GHC is
+ a compiler for Haskell98.
+ .
+ Haskell is "the" standard lazy functional programming language. Haskell98
+ is the current version of the language. The language definition and
+ additional documentation can be found in the `haskell-doc' package.
+ Alternatively, there is an online version at
+ http://haskell.org/onlinereport/.
+ .
+ This package includes HTML, DVI and PS versions of the SGML-based
+ documentation around GHC.
+Homepage: http://haskell.org/ghc/
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Origin: Ubuntu
+
+Package: ghc6-prof
+Priority: optional
+Section: universe/devel
+Installed-Size: 204908
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Kari Pahula <kaol@debian.org>
+Architecture: amd64
+Source: ghc6
+Version: 6.10.4-1ubuntu2
+Provides: ghc-prof, libghc6-array-prof, libghc6-base-prof, libghc6-bytestring-prof, libghc6-cabal-prof, libghc6-containers-prof, libghc6-directory-prof, libghc6-extensible-exceptions-prof, libghc6-filepath-prof, libghc6-ghc-prim-prof, libghc6-haskell98-prof, libghc6-hpc-prof, libghc6-integer-prof, libghc6-old-locale-prof, libghc6-old-time-prof, libghc6-packedstring-prof, libghc6-pretty-prof, libghc6-process-prof, libghc6-random-prof, libghc6-rts-prof, libghc6-syb-prof, libghc6-template-haskell-prof, libghc6-unix-prof
+Depends: ghc6 (= 6.10.4-1ubuntu2)
+Filename: pool/universe/g/ghc6/ghc6-prof_6.10.4-1ubuntu2_amd64.deb
+Size: 28316686
+MD5sum: 202d3d26836c6a679c4dbbe15d879a6a
+SHA1: c028db59f89186a6d52a6271f6f9dce6c6d849af
+SHA256: bb8801c7fa1964d57a405e55d404c6fd04f954808c9bce0354d19a22f842245b
+Description: Profiling libraries for the Glasgow Haskell Compilation system
+ Version 6 of the Glorious Glasgow Haskell Compilation system (GHC).  GHC is
+ a compiler for Haskell98.
+ .
+ Haskell is "the" standard lazy functional programming language. Haskell98
+ is the current version of the language. The language definition and
+ additional documentation can be found in the `haskell-doc' package.
+ Alternatively, there is an online version at
+ http://haskell.org/onlinereport/.
+ .
+ This package contains additional profiling libraries. They are only needed,
+ if you want to take a closer look on where exactly your program burns CPU
+ cycles.
+Homepage: http://haskell.org/ghc/
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Origin: Ubuntu
+
+Package: libghc6-binary-dev
+Priority: optional
+Section: universe/devel
+Installed-Size: 1280
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Kari Pahula <kaol@debian.org>
+Architecture: amd64
+Source: haskell-binary
+Version: 0.5.0.1-1ubuntu1
+Depends: libc6 (>= 2.4), libffi5 (>= 3.0.4), libgmp3c2, ghc6 (>= 6.10.4-1ubuntu2), ghc6 (<< 6.10.4+)
+Suggests: libghc6-binary-doc, libghc6-binary-prof
+Filename: pool/universe/h/haskell-binary/libghc6-binary-dev_0.5.0.1-1ubuntu1_amd64.deb
+Size: 201180
+MD5sum: 80ab69f93ccb7283e1ab83e754acc287
+SHA1: 389abf7a9eaffb9b21b6ad519625bc1f40e846bf
+SHA256: b2e43cd611a24d3e5ad9aa384423c5ec9f9ca046e672af20ccd9643090accf48
+Description: Haskell library for binary serialisation using lazy ByteStrings
+ Binary serialisation of Haskell values to and from lazy ByteStrings.
+ The Binary library provides methods for encoding Haskell values as
+ streams of bytes directly in memory. The resulting ByteString can
+ then be written to disk, sent over the network, or futher processed
+ (for example, compressed with gzip).
+ .
+ The 'Binary' package is notable in that it provides both pure, and
+ high performance serialisation.
+ .
+ Values are always encoded in network order (big endian) form, and
+ encoded data should be portable across machine endianess, word size,
+ or compiler version. For example, data encoded using the Binary class
+ could be written from GHC, and read back in Hugs.
+Homepage: http://code.haskell.org/binary/
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Origin: Ubuntu
+
+Package: libghc6-binary-doc
+Priority: optional
+Section: universe/doc
+Installed-Size: 676
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Kari Pahula <kaol@debian.org>
+Architecture: all
+Source: haskell-binary
+Version: 0.5.0.1-1ubuntu1
+Recommends: ghc6-doc
+Suggests: libghc6-binary-dev
+Filename: pool/universe/h/haskell-binary/libghc6-binary-doc_0.5.0.1-1ubuntu1_all.deb
+Size: 73648
+MD5sum: 8d5a7b8379b3ebc0bd113a13090f9b96
+SHA1: 217d565e0fa979211bc2b5a03930427aac99df48
+SHA256: 56322fe7b8c6d258080f73902ef6043d41b513fa852da797fb2d26d84e574f5a
+Description: Haskell library for binary serialisation; documentation
+ This package provides documentation for Data.Binary Haskell module.
+ .
+ Binary serialisation of Haskell values to and from lazy ByteStrings.
+ The Binary library provides methods for encoding Haskell values as
+ streams of bytes directly in memory. The resulting ByteString can
+ then be written to disk, sent over the network, or futher processed
+ (for example, compressed with gzip).
+Homepage: http://code.haskell.org/binary/
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Origin: Ubuntu
+
+Package: libghc6-binary-prof
+Priority: optional
+Section: universe/devel
+Installed-Size: 1404
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Kari Pahula <kaol@debian.org>
+Architecture: amd64
+Source: haskell-binary
+Version: 0.5.0.1-1ubuntu1
+Depends: libghc6-binary-dev (= 0.5.0.1-1ubuntu1), ghc6-prof (>= 6.10.4-1ubuntu2), ghc6-prof (<< 6.10.4+)
+Filename: pool/universe/h/haskell-binary/libghc6-binary-prof_0.5.0.1-1ubuntu1_amd64.deb
+Size: 209224
+MD5sum: 146837ef6ee9fc27df76dd26e35e3474
+SHA1: 6c9181f722af3f14fbc978fc41e01634575dd9d3
+SHA256: dd9bc9da71ab2afdf6be5fc3f702b61ce3320a3ccf2837dcb965ba74a6eb9927
+Description: Haskell library for binary serialisation; profiling library
+ This package provides a library for the Haskell programming language,
+ compiled for profiling.
+ .
+ Binary serialisation of Haskell values to and from lazy ByteStrings.
+ The Binary library provides methods for encoding Haskell values as
+ streams of bytes directly in memory. The resulting ByteString can
+ then be written to disk, sent over the network, or futher processed
+ (for example, compressed with gzip).
+Homepage: http://code.haskell.org/binary/
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Origin: Ubuntu
+
+Package: ghc6
+Version: 6.13-0+seereason1
+Architecture: amd64
+Maintainer: Kari Pahula <kaol@debian.org>
+Installed-Size: 380300
+Depends: perl | perl5, gcc (>= 4:4.2), libgmp3-dev, libffi-dev, libc6 (>= 2.4), libffi5 (>= 3.0.4), libgmp3c2
+Suggests: ghc6-prof, ghc6-doc, haskell-doc
+Conflicts: ghc4 (<= 4.08.1-4)
+Provides: ghc, haskell-compiler
+Section: haskell
+Priority: optional
+Homepage: http://haskell.org/ghc/
+Description: GHC - the Glasgow Haskell Compilation system
+ Version 6 of the Glorious Glasgow Haskell Compilation system (GHC).  GHC is
+ a compiler for Haskell98.
+ .
+ Haskell is "the" standard lazy functional programming language. Haskell98
+ is the current version of the language. The language definition and
+ additional documentation can be found in the `haskell-doc' package.
+ Alternatively, there is an online version at
+ http://haskell.org/onlinereport/.
+Source: ghc6
+Filename: pool/main/g/ghc6/ghc6_6.13-0+seereason1_amd64.deb
+Size: 68638840
+MD5sum: 7ed49746643efb4bb881236763a0960f
+
+Package: ghc6-prof
+Source: ghc6
+Version: 6.13-0+seereason1
+Architecture: amd64
+Maintainer: Kari Pahula <kaol@debian.org>
+Installed-Size: 265057
+Depends: ghc6 (= 6.13-0+seereason1)
+Provides: ghc-prof
+Section: haskell
+Priority: optional
+Homepage: http://haskell.org/ghc/
+Description: Profiling libraries for the Glasgow Haskell Compilation system
+ Version 6 of the Glorious Glasgow Haskell Compilation system (GHC).  GHC is
+ a compiler for Haskell98.
+ .
+ Haskell is "the" standard lazy functional programming language. Haskell98
+ is the current version of the language. The language definition and
+ additional documentation can be found in the `haskell-doc' package.
+ Alternatively, there is an online version at
+ http://haskell.org/onlinereport/.
+ .
+ This package contains additional profiling libraries. They are only needed,
+ if you want to take a closer look on where exactly your program burns CPU
+ cycles.
+Source: ghc6
+Filename: pool/main/g/ghc6/ghc6-prof_6.13-0+seereason1_amd64.deb
+Size: 37755490
+MD5sum: c2ae962c410b513c81bf9438b5e5bddc
+
+Package: ghc6-doc
+Source: ghc6
+Version: 6.13-0+seereason1
+Architecture: all
+Maintainer: Kari Pahula <kaol@debian.org>
+Installed-Size: 34620
+Depends: haddock
+Suggests: haskell-doc
+Section: doc
+Priority: optional
+Homepage: http://haskell.org/ghc/
+Description: Documentation for the Glasgow Haskell Compilation system
+ Version 6 of the Glorious Glasgow Haskell Compilation system (GHC).  GHC is
+ a compiler for Haskell98.
+ .
+ Haskell is "the" standard lazy functional programming language. Haskell98
+ is the current version of the language. The language definition and
+ additional documentation can be found in the `haskell-doc' package.
+ Alternatively, there is an online version at
+ http://haskell.org/onlinereport/.
+ .
+ This package includes HTML, DVI and PS versions of the SGML-based
+ documentation around GHC.
+Source: ghc6
+Filename: pool/main/g/ghc6/ghc6-doc_6.13-0+seereason1_all.deb
+Size: 3715552
+MD5sum: f9e8a3171823305b8604ccaeaa25b296
+

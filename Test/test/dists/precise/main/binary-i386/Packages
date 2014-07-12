@@ -1,0 +1,3425 @@
+Package: libghc-clckwrks-theme-happstack-doc
+Source: haskell-clckwrks-theme-happstack
+Version: 0.1.10-1~hackage1+seereason1
+Architecture: all
+Maintainer: Unknown Maintainer <unknown@debian.org>
+Installed-Size: 107
+Depends: haddock-interface-19
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-clckwrks-theme-happstack-dev
+Section: doc
+Priority: extra
+Homepage: http://www.clckwrks.com/
+Description: Theme for happstack.com
+ .
+ This package contains the documentation files.
+Source: haskell-clckwrks-theme-happstack
+Filename: pool/main/h/haskell-clckwrks-theme-happstack/libghc-clckwrks-theme-happstack-doc_0.1.10-1~hackage1+seereason1_all.deb
+Size: 36290
+MD5sum: 96a8346a1027e3d80e46ac36bd5b927a
+
+Package: artvaluereport-production
+Source: haskell-artvaluereport
+Version: 1.31-0+seereason74~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 81
+Depends: artvaluereport-server, apache2
+Section: misc
+Priority: optional
+Homepage: http://seereason.com
+Description: Configuration for running the appraisal report generator in production mode
+Source: haskell-artvaluereport
+Filename: pool/main/h/haskell-artvaluereport/artvaluereport-production_1.31-0+seereason74~precise1_all.deb
+Size: 16780
+MD5sum: 3eeadb0e124cb21f3d0652c0f1e44012
+
+Package: artvaluereport-staging
+Source: haskell-artvaluereport
+Version: 1.31-0+seereason74~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 52
+Depends: artvaluereport-server
+Section: misc
+Priority: optional
+Homepage: http://seereason.com
+Description: Configuration for running the appraisal report generator in staging mode
+Source: haskell-artvaluereport
+Filename: pool/main/h/haskell-artvaluereport/artvaluereport-staging_1.31-0+seereason74~precise1_all.deb
+Size: 16134
+MD5sum: 953d03f8c3db2315a2e7874a58c48fdf
+
+Package: artvaluereport-development
+Source: haskell-artvaluereport
+Version: 1.31-0+seereason74~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 52
+Depends: artvaluereport-server
+Section: misc
+Priority: optional
+Homepage: http://seereason.com
+Description: Configuration for running the appraisal report generator in development mode
+Source: haskell-artvaluereport
+Filename: pool/main/h/haskell-artvaluereport/artvaluereport-development_1.31-0+seereason74~precise1_all.deb
+Size: 16140
+MD5sum: 80411df6cfd528d1980c73f848dd40df
+
+Package: libghc-document-doc
+Source: haskell-document
+Version: 0.17.3-0+seereason2~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 581
+Depends: haddock-interface-19
+Recommends: ghc-doc, libghc-happstack-data-doc, libghc-haxml-doc, libghc-network-doc, libghc-safecopy-doc, libghc-syb-with-class-doc, libghc-text-doc, libghc-xhtml-doc, libghc-document-dev
+Section: doc
+Priority: extra
+Homepage: http://seereason.com
+Description: Haskell modules for converting between several document formats
+ Haskell modules for converting between several document formats
+ .
+  Author: David Fox <dsf@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-document
+Filename: pool/main/h/haskell-document/libghc-document-doc_0.17.3-0+seereason2~precise1_all.deb
+Size: 76782
+MD5sum: 4494ab52926d0761ab5a682a811e5cda
+
+Package: creativeprompts-development
+Source: haskell-creativeprompts
+Version: 1.5.2-0+seereason96~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@seereason.com>
+Installed-Size: 50
+Section: misc
+Priority: optional
+Description: Configuration for running the creativeprompts.com server
+  Testing version of the blog server, runs on port
+  8000 with HTML validation turned on.
+Source: haskell-creativeprompts
+Filename: pool/main/h/haskell-creativeprompts/creativeprompts-development_1.5.2-0+seereason96~precise1_all.deb
+Size: 13686
+MD5sum: afb3b6132d0d42c673459a90e52db943
+
+Package: creativeprompts-production
+Source: haskell-creativeprompts
+Version: 1.5.2-0+seereason96~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@seereason.com>
+Installed-Size: 79
+Section: misc
+Priority: optional
+Description: Configuration for running the creativeprompts.com server
+  Production version of the blog server, runs on port
+  9021 with HTML validation turned off.
+Source: haskell-creativeprompts
+Filename: pool/main/h/haskell-creativeprompts/creativeprompts-production_1.5.2-0+seereason96~precise1_all.deb
+Size: 14346
+MD5sum: 065b3aa1f5a7720c715778d06212a6d0
+
+Package: creativeprompts-data
+Source: haskell-creativeprompts
+Version: 1.5.2-0+seereason96~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@seereason.com>
+Installed-Size: 133
+Section: misc
+Priority: optional
+Description: creativeprompts.com data files
+  Static data files for creativeprompts.com
+Source: haskell-creativeprompts
+Filename: pool/main/h/haskell-creativeprompts/creativeprompts-data_1.5.2-0+seereason96~precise1_all.deb
+Size: 84360
+MD5sum: 7f1513509ed718ae0ead4848b076020d
+
+Package: libghc-stripe-core-doc
+Source: haskell-stripe-core
+Version: 0.1-0+seereason2~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 952
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-safecopy-doc, libghc-text-doc, libghc-stripe-core-dev
+Section: doc
+Priority: optional
+Description: No short description available
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-core
+Filename: pool/main/h/haskell-stripe-core/libghc-stripe-core-doc_0.1-0+seereason2~precise1_all.deb
+Size: 127304
+MD5sum: 8d0ba6b1bb775dd399cd4859eb2fada5
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason2~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason2~precise1_all.deb
+Size: 65566
+MD5sum: 6f922a18b3fbfaf69a7b160736afac55
+
+Package: seereason-development
+Source: haskell-seereason
+Version: 0.18-0+seereason70~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 52
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Testing version of the blog server, runs on port
+  8000 with HTML validation turned on.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-development_0.18-0+seereason70~precise1_all.deb
+Size: 16078
+MD5sum: 4780b624db0bb36d860394f2d10a0d61
+
+Package: seereason-production
+Source: haskell-seereason
+Version: 0.18-0+seereason70~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 81
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Production version of the blog server, runs on port
+  9021 with HTML validation turned off.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-production_0.18-0+seereason70~precise1_all.deb
+Size: 16736
+MD5sum: e4226a889265fdd6524bddba52222696
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.18-0+seereason70~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 99
+Section: misc
+Priority: optional
+Description: seereason.com data files
+  Static data files for seereason.com
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.18-0+seereason70~precise1_all.deb
+Size: 38856
+MD5sum: 373f505602c1412e3231ed209b75ba6d
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason2~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason2~precise1_all.deb
+Size: 73004
+MD5sum: 8ef4f6139f5576c443d7bceb6babb34e
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason85~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason85~precise1_all.deb
+Size: 123478
+MD5sum: 1a0f548c3cb561090a8986b25f64e7f9
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason2~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason2~precise1_all.deb
+Size: 32812
+MD5sum: f60b652022e658ba360d756a45551d0b
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason26~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: extra
+Homepage: http://hackage.haskell.org/package/happstack-ontology
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason26~precise1_all.deb
+Size: 323560
+MD5sum: 68cf9b1421577e4173d307688160c8d9
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.4.1-0+seereason1~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 133
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: Theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.4.1-0+seereason1~precise1_all.deb
+Size: 33962
+MD5sum: 86abe381f842d9c2309bd7316ad87632
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.4.1-0+seereason1~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 931
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.4.1-0+seereason1~precise1_all.deb
+Size: 332326
+MD5sum: f02bd0d837a44fce6a9707cdad5b36a7
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.69.2-0+seereason1~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2709
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-applicative-extras-doc, libghc-formlets-doc, libghc-happstack-extra-doc, libghc-happstack-hsp-doc, libghc-happstack-server-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-rjson-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-transformers-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.69.2-0+seereason1~precise1_all.deb
+Size: 331186
+MD5sum: f559a675b61da68752b43044af6ffe17
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason3~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason3~precise1_all.deb
+Size: 32838
+MD5sum: f0fe6a18d773533394442cadcca128ef
+
+Package: libghc-stripe-core-doc
+Source: haskell-stripe-core
+Version: 0.1-0+seereason3~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 952
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-safecopy-doc, libghc-text-doc, libghc-stripe-core-dev
+Section: doc
+Priority: optional
+Description: No short description available
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-core
+Filename: pool/main/h/haskell-stripe-core/libghc-stripe-core-doc_0.1-0+seereason3~precise1_all.deb
+Size: 126814
+MD5sum: 91eb13cfa7198e34948ec40d6a83e785
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.4.2-0+seereason1~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 133
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: Theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.4.2-0+seereason1~precise1_all.deb
+Size: 33986
+MD5sum: 16261f28ae1123bbd56597c04693a67b
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.4.2-0+seereason1~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 932
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.4.2-0+seereason1~precise1_all.deb
+Size: 332480
+MD5sum: bb3375db29615b1ff29a1b61d2d146b1
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason86~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason86~precise1_all.deb
+Size: 123020
+MD5sum: 4fb90f6e5640c1bbf56870238ebb92c6
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason3~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason3~precise1_all.deb
+Size: 73174
+MD5sum: d0033bc6e8be8824bc226f42ab88e2a6
+
+Package: seereason-development
+Source: haskell-seereason
+Version: 0.18-0+seereason71~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 52
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Testing version of the blog server, runs on port
+  8000 with HTML validation turned on.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-development_0.18-0+seereason71~precise1_all.deb
+Size: 15982
+MD5sum: eaee826be441659d96862e43992c7469
+
+Package: seereason-production
+Source: haskell-seereason
+Version: 0.18-0+seereason71~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 81
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Production version of the blog server, runs on port
+  9021 with HTML validation turned off.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-production_0.18-0+seereason71~precise1_all.deb
+Size: 16650
+MD5sum: 7f6b982d43a39ec788222c106d576469
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.18-0+seereason71~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 99
+Section: misc
+Priority: optional
+Description: seereason.com data files
+  Static data files for seereason.com
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.18-0+seereason71~precise1_all.deb
+Size: 37574
+MD5sum: 982aca89f61531cd61a0dd08ffad3a23
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason27~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: extra
+Homepage: http://hackage.haskell.org/package/happstack-ontology
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason27~precise1_all.deb
+Size: 322918
+MD5sum: 4dc719b354a6ad8355518794d74af7be
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason3~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason3~precise1_all.deb
+Size: 64352
+MD5sum: 0aaab70a8a9864185c8717918fe78e7f
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.69.2-0+seereason2~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2710
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-applicative-extras-doc, libghc-formlets-doc, libghc-happstack-extra-doc, libghc-happstack-hsp-doc, libghc-happstack-server-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-rjson-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-transformers-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.69.2-0+seereason2~precise1_all.deb
+Size: 329024
+MD5sum: bad43d7bdf8e2f98b344240ad9746740
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.69.2-0+seereason3~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2710
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-applicative-extras-doc, libghc-formlets-doc, libghc-happstack-extra-doc, libghc-happstack-hsp-doc, libghc-happstack-server-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-rjson-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-transformers-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.69.2-0+seereason3~precise1_all.deb
+Size: 331574
+MD5sum: 5c782867a85f84e712f69660b711706c
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason87~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason87~precise1_all.deb
+Size: 123382
+MD5sum: 4cb13041a0e5e2edb8c3b031e44c434e
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason4~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason4~precise1_all.deb
+Size: 65556
+MD5sum: 5a494829458268e690c8517e8b6e6bc8
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason4~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason4~precise1_all.deb
+Size: 72990
+MD5sum: 8f7fbbc88f4ea36d5f561ca4ae3f0ad9
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason28~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: extra
+Homepage: http://hackage.haskell.org/package/happstack-ontology
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason28~precise1_all.deb
+Size: 323408
+MD5sum: 726cce9310633bbb7e74c47c1538e57d
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason4~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason4~precise1_all.deb
+Size: 32798
+MD5sum: 3a4a1afbb603e5b78ebaa9ed41996dd8
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.4.2-0+seereason2~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 133
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: Theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.4.2-0+seereason2~precise1_all.deb
+Size: 34068
+MD5sum: b9aea5c2c16180a840ee7fded25eb477
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.4.2-0+seereason2~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 932
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.4.2-0+seereason2~precise1_all.deb
+Size: 331794
+MD5sum: 11a2cd75ca36b174faba8777edb51972
+
+Package: seereason-development
+Source: haskell-seereason
+Version: 0.18-0+seereason72~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 52
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Testing version of the blog server, runs on port
+  8000 with HTML validation turned on.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-development_0.18-0+seereason72~precise1_all.deb
+Size: 15936
+MD5sum: 37a1ef8c354d8094270ad992985f2291
+
+Package: seereason-production
+Source: haskell-seereason
+Version: 0.18-0+seereason72~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 81
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Production version of the blog server, runs on port
+  9021 with HTML validation turned off.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-production_0.18-0+seereason72~precise1_all.deb
+Size: 16600
+MD5sum: 63f196455dcab53c2da67309834fb2bc
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.18-0+seereason72~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 99
+Section: misc
+Priority: optional
+Description: seereason.com data files
+  Static data files for seereason.com
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.18-0+seereason72~precise1_all.deb
+Size: 37522
+MD5sum: 10aa90a60e02ff83c649ef97668122de
+
+Package: seereason-development
+Source: haskell-seereason
+Version: 0.18-0+seereason73~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 52
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Testing version of the blog server, runs on port
+  8000 with HTML validation turned on.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-development_0.18-0+seereason73~precise1_all.deb
+Size: 15930
+MD5sum: 144a25ee212cef90a1b8b570ea8fb612
+
+Package: seereason-production
+Source: haskell-seereason
+Version: 0.18-0+seereason73~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 81
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Production version of the blog server, runs on port
+  9021 with HTML validation turned off.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-production_0.18-0+seereason73~precise1_all.deb
+Size: 16594
+MD5sum: 7bc4153b31998bee6baaf631c6639388
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.18-0+seereason73~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 99
+Section: misc
+Priority: optional
+Description: seereason.com data files
+  Static data files for seereason.com
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.18-0+seereason73~precise1_all.deb
+Size: 37526
+MD5sum: 005fcca2d34cf2a6107435a394dd5a5c
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason5~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason5~precise1_all.deb
+Size: 64366
+MD5sum: 563d114b0fe07ac26dedcc9de1e0c2ae
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.4.2-0+seereason3~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 133
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: Theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.4.2-0+seereason3~precise1_all.deb
+Size: 33992
+MD5sum: 34d686326fbf0be6ca5edbff6c2150d9
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.4.2-0+seereason3~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 932
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.4.2-0+seereason3~precise1_all.deb
+Size: 332490
+MD5sum: 466db88ebe1281f7de006c68053e3deb
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason5~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason5~precise1_all.deb
+Size: 73170
+MD5sum: 9db381c998f50503931d157ef6e32d77
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason29~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: extra
+Homepage: http://hackage.haskell.org/package/happstack-ontology
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason29~precise1_all.deb
+Size: 322898
+MD5sum: 88ff8225839745c6b2c6f2513e31a878
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason88~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason88~precise1_all.deb
+Size: 123022
+MD5sum: 1695262d4845d4e971a96a700f0a7ef2
+
+Package: seereason-development
+Source: haskell-seereason
+Version: 0.18-0+seereason74~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 52
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Testing version of the blog server, runs on port
+  8000 with HTML validation turned on.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-development_0.18-0+seereason74~precise1_all.deb
+Size: 15942
+MD5sum: 6ba55e60c5ad52f725c24219ec73ffbb
+
+Package: seereason-production
+Source: haskell-seereason
+Version: 0.18-0+seereason74~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 81
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Production version of the blog server, runs on port
+  9021 with HTML validation turned off.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-production_0.18-0+seereason74~precise1_all.deb
+Size: 16594
+MD5sum: b2e59591525230a8f861019fc98a4e53
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.18-0+seereason74~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 99
+Section: misc
+Priority: optional
+Description: seereason.com data files
+  Static data files for seereason.com
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.18-0+seereason74~precise1_all.deb
+Size: 37520
+MD5sum: 15c67329fbe644070df258a538f3b03a
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason5~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason5~precise1_all.deb
+Size: 32840
+MD5sum: 415bbf667d1ed3d71f7284dffc6dfa5a
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.69.2-0+seereason4~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2710
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-applicative-extras-doc, libghc-formlets-doc, libghc-happstack-extra-doc, libghc-happstack-hsp-doc, libghc-happstack-server-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-rjson-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-transformers-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.69.2-0+seereason4~precise1_all.deb
+Size: 329034
+MD5sum: 54fc6769578f398280e16214e39604a2
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason6~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason6~precise1_all.deb
+Size: 64388
+MD5sum: a107f4085398c15eb6c7b4f45a1f4684
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.4.2-0+seereason4~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 133
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: Theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.4.2-0+seereason4~precise1_all.deb
+Size: 33986
+MD5sum: 4f089b254c6b6c7d5181dc0dfda24d40
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.4.2-0+seereason4~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 932
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.4.2-0+seereason4~precise1_all.deb
+Size: 332482
+MD5sum: 732de19b7ee7b2b711cc4ef72da360f4
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason6~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason6~precise1_all.deb
+Size: 73152
+MD5sum: 868db3cc3b175500138aaacd6778c235
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason30~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: extra
+Homepage: http://hackage.haskell.org/package/happstack-ontology
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason30~precise1_all.deb
+Size: 322936
+MD5sum: 208d3d5ddd99e059d71a234061b865db
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason89~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason89~precise1_all.deb
+Size: 123024
+MD5sum: 321f9f8763c25670183d8dbef867c746
+
+Package: seereason-development
+Source: haskell-seereason
+Version: 0.18-0+seereason75~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 52
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Testing version of the blog server, runs on port
+  8000 with HTML validation turned on.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-development_0.18-0+seereason75~precise1_all.deb
+Size: 15980
+MD5sum: 930d63d7ad8ddaa8a6c674e757e5f08e
+
+Package: seereason-production
+Source: haskell-seereason
+Version: 0.18-0+seereason75~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 81
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Production version of the blog server, runs on port
+  9021 with HTML validation turned off.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-production_0.18-0+seereason75~precise1_all.deb
+Size: 16632
+MD5sum: 7c94fb9ecf8acecd83f4596b3b2c82e5
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.18-0+seereason75~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 99
+Section: misc
+Priority: optional
+Description: seereason.com data files
+  Static data files for seereason.com
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.18-0+seereason75~precise1_all.deb
+Size: 37568
+MD5sum: 11eddc11ffebfb6d79ebcc72468c254b
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.69.2-0+seereason5~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2710
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-applicative-extras-doc, libghc-formlets-doc, libghc-happstack-extra-doc, libghc-happstack-hsp-doc, libghc-happstack-server-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-rjson-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-transformers-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.69.2-0+seereason5~precise1_all.deb
+Size: 329024
+MD5sum: c70eb86dd1bca47f0193cace3f4fdb45
+
+Package: seereason-development
+Source: haskell-seereason
+Version: 0.18-0+seereason76~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 52
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Testing version of the blog server, runs on port
+  8000 with HTML validation turned on.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-development_0.18-0+seereason76~precise1_all.deb
+Size: 15980
+MD5sum: bc5136b8e5ce222c8f238fa2cf22f960
+
+Package: seereason-production
+Source: haskell-seereason
+Version: 0.18-0+seereason76~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 81
+Depends: seereason-server, seereason-data
+Section: misc
+Priority: optional
+Description: Configuration for running the seereason.com server
+  Production version of the blog server, runs on port
+  9021 with HTML validation turned off.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-production_0.18-0+seereason76~precise1_all.deb
+Size: 16648
+MD5sum: 632846b47d3b84337e9ca0f3860d7379
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.18-0+seereason76~precise1
+Architecture: all
+Maintainer: Clifford Beshers <beshers@seereason.com>
+Installed-Size: 99
+Section: misc
+Priority: optional
+Description: seereason.com data files
+  Static data files for seereason.com
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.18-0+seereason76~precise1_all.deb
+Size: 37562
+MD5sum: 2ca8226d6cf34fe0acf0d418b28162a7
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.69.3-0+seereason1~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2716
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-applicative-extras-doc, libghc-formlets-doc, libghc-happstack-extra-doc, libghc-happstack-hsp-doc, libghc-happstack-server-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-rjson-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-transformers-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.69.3-0+seereason1~precise1_all.deb
+Size: 329384
+MD5sum: 738bc2c2b2c118acba2f7f383be204c5
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason1~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 137
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.5.0-0+seereason1~precise1_all.deb
+Size: 34296
+MD5sum: 4d978b97487e8891e2baba68fc928f82
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason1~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 462
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.5.0-0+seereason1~precise1_all.deb
+Size: 151170
+MD5sum: 84961b0af960311a072dc8a2b240f0e1
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.69.3-0+seereason2~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2717
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-applicative-extras-doc, libghc-formlets-doc, libghc-happstack-extra-doc, libghc-happstack-hsp-doc, libghc-happstack-server-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-rjson-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-transformers-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.69.3-0+seereason2~precise1_all.deb
+Size: 329620
+MD5sum: 6e6d7ad28ed96c5b1fe05e3e03a5dbb2
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.69.3-0+seereason3~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2718
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-applicative-extras-doc, libghc-formlets-doc, libghc-happstack-extra-doc, libghc-happstack-hsp-doc, libghc-happstack-server-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-rjson-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-transformers-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.69.3-0+seereason3~precise1_all.deb
+Size: 329664
+MD5sum: bab527304e95bbbe8b1c4501e89ee5ec
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.69.3-0+seereason4~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2718
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-applicative-extras-doc, libghc-formlets-doc, libghc-happstack-extra-doc, libghc-happstack-hsp-doc, libghc-happstack-server-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-rjson-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-transformers-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.69.3-0+seereason4~precise1_all.deb
+Size: 329668
+MD5sum: 42330492e47cc39fe3bf62753a3b5673
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason1~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 96
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ An executable built from the seereason package.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason1~precise1_all.deb
+Size: 38842
+MD5sum: bb68adb0d9ec6e3d1728e9d216845b7e
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason2~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 100
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ Common data files for i.seereason.com.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason2~precise1_all.deb
+Size: 38846
+MD5sum: 0f60f7069a34ec68cfcab85d6046e1a9
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.0-0+seereason1~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2151
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.0-0+seereason1~precise1_all.deb
+Size: 279424
+MD5sum: b279c3a0fc877489321ce6dc5f6aee08
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason1~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2158
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason1~precise1_all.deb
+Size: 280060
+MD5sum: 05b0b7ec6258920ecfbfe34a28754e07
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason2~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2159
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason2~precise1_all.deb
+Size: 280156
+MD5sum: cfa55ce4f5722ff180986cf41709ccba
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason7~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason7~precise1_all.deb
+Size: 64392
+MD5sum: bcc188863167211ecc9ea2854a9c0cdc
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason2~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 137
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.5.0-0+seereason2~precise1_all.deb
+Size: 34280
+MD5sum: e7be1fa71997adc05a41f116a6aac9fc
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason2~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 462
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.5.0-0+seereason2~precise1_all.deb
+Size: 151180
+MD5sum: fe64ec84553318186bc8f4a6252b496d
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason7~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason7~precise1_all.deb
+Size: 73148
+MD5sum: ae91875efd792f852efcc38eae5d5dfb
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason31~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: extra
+Homepage: http://hackage.haskell.org/package/happstack-ontology
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason31~precise1_all.deb
+Size: 322920
+MD5sum: 84606c49c324377914336f40f253e22e
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason90~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason90~precise1_all.deb
+Size: 123036
+MD5sum: 3fa9dede4bdb13f339d166d5bf7a17e9
+
+Package: libghc-stripe-core-doc
+Source: haskell-stripe-core
+Version: 0.1-0+seereason4~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 952
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-safecopy-doc, libghc-text-doc, libghc-stripe-core-dev
+Section: doc
+Priority: optional
+Description: No short description available
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-core
+Filename: pool/main/h/haskell-stripe-core/libghc-stripe-core-doc_0.1-0+seereason4~precise1_all.deb
+Size: 126838
+MD5sum: 1092869b2c4224b1e30dd8e372b252ca
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason6~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason6~precise1_all.deb
+Size: 32878
+MD5sum: 7d072727946d9cf20023650b4b7a03b7
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason7~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason7~precise1_all.deb
+Size: 32876
+MD5sum: 41a84877f3011c47ff134cd92eb035b6
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason8~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason8~precise1_all.deb
+Size: 73164
+MD5sum: 90456e3b1b03ff4b344708baa9de030a
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason91~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason91~precise1_all.deb
+Size: 123068
+MD5sum: dcf2ef54d9ba9c1c47e38252a1853fe9
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason32~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: extra
+Homepage: http://hackage.haskell.org/package/happstack-ontology
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason32~precise1_all.deb
+Size: 322900
+MD5sum: 7f794bd4a253546152f5a8f6318d56dd
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason8~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason8~precise1_all.deb
+Size: 64384
+MD5sum: 948fe52fd0d548da545fbfa8f7393ae0
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason3~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 137
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.5.0-0+seereason3~precise1_all.deb
+Size: 34312
+MD5sum: 8adb8ae3309d86b3297316b790e2662f
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason3~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 462
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.5.0-0+seereason3~precise1_all.deb
+Size: 151202
+MD5sum: b887ae0bac721993e7c23269569d29bb
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason3~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2159
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason3~precise1_all.deb
+Size: 280138
+MD5sum: f3fcd56e19f5c4176645b5d8359af062
+
+Package: libghc-stripe-core-doc
+Source: haskell-stripe-core
+Version: 0.1-0+seereason5~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 952
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-safecopy-doc, libghc-text-doc, libghc-stripe-core-dev
+Section: doc
+Priority: optional
+Description: No short description available
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-core
+Filename: pool/main/h/haskell-stripe-core/libghc-stripe-core-doc_0.1-0+seereason5~precise1_all.deb
+Size: 126858
+MD5sum: 100d92812653bb4ca7812485ba6699c3
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason3~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 100
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ Common data files for i.seereason.com.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason3~precise1_all.deb
+Size: 38904
+MD5sum: aaa64f37df2b80688d45c4f1d3e0444e
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason4~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 100
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ Common data files for i.seereason.com.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason4~precise1_all.deb
+Size: 38904
+MD5sum: b316607040f6c5498d021a2fa583b881
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason33~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: extra
+Homepage: http://hackage.haskell.org/package/happstack-ontology
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason33~precise1_all.deb
+Size: 322944
+MD5sum: 2dd5103b8cd3f5b09ba86d6a95c12483
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason5~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 100
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ Common data files for i.seereason.com.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason5~precise1_all.deb
+Size: 38982
+MD5sum: 6c4207cbc4ceedef36da51bf92b93e12
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason92~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason92~precise1_all.deb
+Size: 123048
+MD5sum: bb9423753eb705274893f7831aab0e6c
+
+Package: libghc-stripe-core-doc
+Source: haskell-stripe-core
+Version: 0.1-0+seereason6~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 952
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-safecopy-doc, libghc-text-doc, libghc-stripe-core-dev
+Section: doc
+Priority: optional
+Description: No short description available
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-core
+Filename: pool/main/h/haskell-stripe-core/libghc-stripe-core-doc_0.1-0+seereason6~precise1_all.deb
+Size: 126860
+MD5sum: c2ce81ac9af65998cf3ed54ed612295f
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason9~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason9~precise1_all.deb
+Size: 73160
+MD5sum: 814548eaf1c2764e0c3c53032b10a8be
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason8~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason8~precise1_all.deb
+Size: 32884
+MD5sum: b024cf387091c690209a27fb970518c0
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason9~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason9~precise1_all.deb
+Size: 64428
+MD5sum: 9f42cdfcdfeef794c678fd19796df60d
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason4~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 137
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.5.0-0+seereason4~precise1_all.deb
+Size: 34302
+MD5sum: f2e58b1ee8d9fee59f1eddde87a1264f
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason4~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 462
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.5.0-0+seereason4~precise1_all.deb
+Size: 151206
+MD5sum: 8c8c271a7972bf80c5e8a1cd73d083af
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason4~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2153
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason4~precise1_all.deb
+Size: 279720
+MD5sum: 2a5f1f885c96211e999cdfbdb8ee03f8
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason34~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: extra
+Homepage: http://hackage.haskell.org/package/happstack-ontology
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason34~precise1_all.deb
+Size: 322950
+MD5sum: 5472f148b3a61b9c1fc944d96ef7e228
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason10~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason10~precise1_all.deb
+Size: 73152
+MD5sum: 3b3aae4d9308752a6229a25ce913347e
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason93~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason93~precise1_all.deb
+Size: 123106
+MD5sum: 96f3954d977aaa647ee19e4910e23a70
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason5~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2153
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason5~precise1_all.deb
+Size: 279762
+MD5sum: dbefe02a3f7172d529ad94142b98defd
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason6~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 100
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ Common data files for i.seereason.com.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason6~precise1_all.deb
+Size: 38984
+MD5sum: b8caf20a357227a45fd67f63e2bb87c8
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason10~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason10~precise1_all.deb
+Size: 64444
+MD5sum: 8249aca010de54a20b5f4d69fb2c08a2
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason9~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason9~precise1_all.deb
+Size: 32884
+MD5sum: 1a8b02fab190bd5f678cd1923d7dd807
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason5~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 137
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.5.0-0+seereason5~precise1_all.deb
+Size: 34306
+MD5sum: 958bcd6c766dfdf9bb4fce0cf62e73f7
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason5~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 462
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.5.0-0+seereason5~precise1_all.deb
+Size: 151196
+MD5sum: 8dea29239fb6d3a93b3a81bff9ba7480
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason7~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 100
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ Common data files for i.seereason.com.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason7~precise1_all.deb
+Size: 38984
+MD5sum: 03d1d4f1270a0b5bb267653ed6bbce86
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason6~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2152
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason6~precise1_all.deb
+Size: 279654
+MD5sum: d2c1e4487edc235a1462ad40f0e07118
+
+Package: libghc-stripe-core-doc
+Source: haskell-stripe-core
+Version: 0.1-0+seereason7~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 952
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-safecopy-doc, libghc-text-doc, libghc-stripe-core-dev
+Section: doc
+Priority: optional
+Description: No short description available
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-core
+Filename: pool/main/h/haskell-stripe-core/libghc-stripe-core-doc_0.1-0+seereason7~precise1_all.deb
+Size: 126836
+MD5sum: aa0fd490dd61ab62b415dd1d15868c88
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason11~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason11~precise1_all.deb
+Size: 73176
+MD5sum: c1df25515dcf27c923fc7e585a83d0de
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason94~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason94~precise1_all.deb
+Size: 123064
+MD5sum: 7180f52c30e5b77813a44afd29179711
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason10~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason10~precise1_all.deb
+Size: 32888
+MD5sum: 713483762359c4143c3b9eba656c641b
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason7~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2152
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason7~precise1_all.deb
+Size: 279624
+MD5sum: 2eb3c29588eab0885feeb4327638c62d
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason8~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 100
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ Common data files for i.seereason.com.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason8~precise1_all.deb
+Size: 38894
+MD5sum: 74e55fc27c1f8b3bed62899a9efa0af4
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason11~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason11~precise1_all.deb
+Size: 64426
+MD5sum: 882b3eb533f704d98ea815c715d84e30
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason6~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 137
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.5.0-0+seereason6~precise1_all.deb
+Size: 34328
+MD5sum: 8c50e87d76e9e1d751851bdb22f65ead
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason6~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 462
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.5.0-0+seereason6~precise1_all.deb
+Size: 151216
+MD5sum: 9086f275b39f2ca123c09d947f707c6c
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason35~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: extra
+Homepage: http://hackage.haskell.org/package/happstack-ontology
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason35~precise1_all.deb
+Size: 322944
+MD5sum: 543e5ab2862980882265a9cb05de1c06
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason7~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 137
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.5.0-0+seereason7~precise1_all.deb
+Size: 34306
+MD5sum: 20aba1ebfa4ec5fc8ae33ca0fa5a86c2
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason7~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 462
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.5.0-0+seereason7~precise1_all.deb
+Size: 151206
+MD5sum: a607441efb725159db63ca0ed5d3e324
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason8~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2152
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason8~precise1_all.deb
+Size: 279662
+MD5sum: ebb62cea005113674e5f37109ee4f643
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason11~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason11~precise1_all.deb
+Size: 32888
+MD5sum: 111c09affa0f70122b303b31d9ce932d
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason95~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason95~precise1_all.deb
+Size: 123072
+MD5sum: eca7279a689be34cf716eabed52f20d9
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason12~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason12~precise1_all.deb
+Size: 73186
+MD5sum: 4b206c2dedb53a43ee4ee141541c962a
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason12~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason12~precise1_all.deb
+Size: 64414
+MD5sum: 469ff6e0bdfbb8b314383c4dca236659
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason36~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: optional
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason36~precise1_all.deb
+Size: 323332
+MD5sum: 9d073b40b9cf27719b812a5bed68b93d
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason9~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 100
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ Common data files for i.seereason.com.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason9~precise1_all.deb
+Size: 38880
+MD5sum: 70ee54a45f84be58fab3ef06e4863770
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason13~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason13~precise1_all.deb
+Size: 64410
+MD5sum: f86be4720cdc487a7fa886a1de1c50cb
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason13~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason13~precise1_all.deb
+Size: 73170
+MD5sum: 992c2f1d570b07b922a0cd0e99043ab1
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason8~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 137
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.5.0-0+seereason8~precise1_all.deb
+Size: 34310
+MD5sum: d90c571a85f528832ea3ba7625067af8
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason8~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 462
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.5.0-0+seereason8~precise1_all.deb
+Size: 151208
+MD5sum: 0cfd6360f7f3f779521de424aebd92f6
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason9~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2152
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason9~precise1_all.deb
+Size: 279652
+MD5sum: 2fdc5f302242f837e27001863c8b79e6
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason96~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason96~precise1_all.deb
+Size: 123108
+MD5sum: 386bfa6fea5e2e5eb245ec7d3772e882
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason10~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 100
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ Common data files for i.seereason.com.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason10~precise1_all.deb
+Size: 38904
+MD5sum: 54c3df9a255b158dc51548cc6927fef1
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason37~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: optional
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason37~precise1_all.deb
+Size: 323322
+MD5sum: 6aca82980a345fe9c5579dc59e1b50cc
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason14~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason14~precise1_all.deb
+Size: 64420
+MD5sum: 897a482dfc781966132184f33def7521
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason14~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason14~precise1_all.deb
+Size: 73160
+MD5sum: 862468fdb6ef832bb1f089a5596fd0f6
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason38~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: optional
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason38~precise1_all.deb
+Size: 323330
+MD5sum: 7cc8b4ffd25534b443b63c989a0d2ec6
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason9~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 137
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.5.0-0+seereason9~precise1_all.deb
+Size: 34312
+MD5sum: 2c02d52cc75083fa35a1a017c54a6649
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason9~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 462
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.5.0-0+seereason9~precise1_all.deb
+Size: 151192
+MD5sum: 9ee86711c48717ebdf6dda1cdb2179f3
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason12~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason12~precise1_all.deb
+Size: 32890
+MD5sum: b2384860f43cc42d057af541e8755fe3
+
+Package: libghc-stripe-core-doc
+Source: haskell-stripe-core
+Version: 0.1-0+seereason8~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 952
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-safecopy-doc, libghc-text-doc, libghc-stripe-core-dev
+Section: doc
+Priority: optional
+Description: No short description available
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-core
+Filename: pool/main/h/haskell-stripe-core/libghc-stripe-core-doc_0.1-0+seereason8~precise1_all.deb
+Size: 126826
+MD5sum: 4815f4ab51e846a57166f10475347ced
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason97~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason97~precise1_all.deb
+Size: 123052
+MD5sum: c55a5c3382e224dc96332cea4f7a9e77
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason10~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2152
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason10~precise1_all.deb
+Size: 279634
+MD5sum: 39112dc03e4ef4f0fbac58f6644fb8e7
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason11~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 100
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ Common data files for i.seereason.com.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason11~precise1_all.deb
+Size: 38892
+MD5sum: 4cfc4398f2e47a1f71f5c0a82fa75d26
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason11~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2152
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason11~precise1_all.deb
+Size: 279620
+MD5sum: adfc62879d8416abd6ef736c8c02eca1
+
+Package: libghc-happstack-ontology-doc
+Source: haskell-happstack-ontology
+Version: 0.23-0+seereason39~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 3554
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-digestive-functors-doc, libghc-happstack-authenticate-doc, libghc-happstack-search-doc, libghc-happstack-server-doc, libghc-hjavascript-doc, libghc-hjscript-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-hsx-jmacro-doc, libghc-ixset-doc, libghc-jmacro-doc, libghc-logic-classes-doc, libghc-mtl-doc, libghc-ontology-doc, libghc-safecopy-doc, libghc-seereason-base-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-routes-doc, libghc-happstack-ontology-dev
+Section: doc
+Priority: optional
+Description: Support for happstack applications that use the ontology library.
+ Support for happstack applications that use the ontology library.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-happstack-ontology
+Filename: pool/main/h/haskell-happstack-ontology/libghc-happstack-ontology-doc_0.23-0+seereason39~precise1_all.deb
+Size: 323348
+MD5sum: 713d1861aded3f5b88c7eb723ff49664
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.1.0-0+seereason15~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 405
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hjscript-doc, libghc-hsx-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.1.0-0+seereason15~precise1_all.deb
+Size: 64422
+MD5sum: 356658472b9e570a9781efd49158b7a8
+
+Package: seereason-data
+Source: haskell-seereason
+Version: 0.19-0+seereason12~precise1
+Architecture: all
+Maintainer: SeeReason Partners <partners@seereason.com>
+Installed-Size: 100
+Section: misc
+Priority: optional
+Homepage: http://i.seereason.com
+Description: The seereason.com web site.
+ A web site for collaborative development of logical analyses of text.
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ Common data files for i.seereason.com.
+Source: haskell-seereason
+Filename: pool/main/h/haskell-seereason/seereason-data_0.19-0+seereason12~precise1_all.deb
+Size: 38916
+MD5sum: 3272e2daeca59d2ce140a26c18918bcf
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason10~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 137
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-hsx-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.5.0-0+seereason10~precise1_all.deb
+Size: 34326
+MD5sum: 1ade36e27ed03cf33223e1d443cca8fe
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.5.0-0+seereason10~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 462
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.5.0-0+seereason10~precise1_all.deb
+Size: 151214
+MD5sum: cfb064207b198fe24a23465d5fde3982
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.2.3-0+seereason15~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.2.3-0+seereason15~precise1_all.deb
+Size: 73176
+MD5sum: 5ac7deb162897ffd543b6614d9b00b30
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason98~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason98~precise1_all.deb
+Size: 123080
+MD5sum: 8f9cfa165c0b6fb8f73e5da953cadd69
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason13~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason13~precise1_all.deb
+Size: 32892
+MD5sum: 272dd1167cda0989b19f35082dad5ff4
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason12~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2152
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason12~precise1_all.deb
+Size: 279702
+MD5sum: 31b9d7913b1aa5c7c5357173bdddda70
+
+Package: libghc-stripe-http-conduit-doc
+Source: haskell-stripe-http-conduit
+Version: 0.1.0.0-0+seereason14~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 109
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-aeson-doc, libghc-conduit-doc, libghc-http-conduit-doc, libghc-stripe-core-doc, libghc-stripe-http-conduit-dev
+Section: doc
+Priority: optional
+Description: binding to stripe payment API - uses http-conduits for the HTTP connection
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-stripe-http-conduit
+Filename: pool/main/h/haskell-stripe-http-conduit/libghc-stripe-http-conduit-doc_0.1.0.0-0+seereason14~precise1_all.deb
+Size: 32902
+MD5sum: 1a5e0bde65c75cfcd00df12a09f6b757
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason14~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2152
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason14~precise1_all.deb
+Size: 279480
+MD5sum: e02b7781fe6526bd43de049c699b5dc1
+
+Package: libghc-ontology-doc
+Source: haskell-ontology
+Version: 1.53-0+seereason99~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 1040
+Depends: haddock-interface-22, ghc-doc
+Section: doc
+Priority: optional
+Description: Seereason.com
+ The only logical explanation
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+Source: haskell-ontology
+Filename: pool/main/h/haskell-ontology/libghc-ontology-doc_1.53-0+seereason99~precise1_all.deb
+Size: 123010
+MD5sum: 8af6b3723b9fb87dd53a6e51274fe601
+
+Package: libghc-clckwrks-theme-appraisalreportonline-doc
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.6.0-0+seereason1~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 137
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-clckwrks-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-text-doc, libghc-clckwrks-theme-appraisalreportonline-dev
+Section: doc
+Priority: optional
+Description: theme for appraisalreportonline.com
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/libghc-clckwrks-theme-appraisalreportonline-doc_0.6.0-0+seereason1~precise1_all.deb
+Size: 34042
+MD5sum: 96fdd7c1b1f69a3ae4b3da0cd4f6ca72
+
+Package: haskell-clckwrks-theme-appraisalreportonline-utils
+Source: haskell-clckwrks-theme-appraisalreportonline
+Version: 0.6.0-0+seereason1~precise1
+Architecture: all
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Installed-Size: 462
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-appraisalreportonline
+Filename: pool/main/h/haskell-clckwrks-theme-appraisalreportonline/haskell-clckwrks-theme-appraisalreportonline-utils_0.6.0-0+seereason1~precise1_all.deb
+Size: 150958
+MD5sum: 65bd800bf0e6c4f1efefbbb35502f007
+
+Package: libghc-artvaluereport-data-doc
+Source: haskell-artvaluereport-data
+Version: 1.70.1-0+seereason13~precise1
+Architecture: all
+Maintainer: David Fox <dsf@seereason.com>
+Installed-Size: 2152
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-happstack-authenticate-doc, libghc-hatex-doc, libghc-haxml-doc, libghc-hunit-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-network-doc, libghc-pandoc-types-doc, libghc-random-doc, libghc-revision-doc, libghc-safecopy-doc, libghc-syb-doc, libghc-text-doc, libghc-xhtml-doc, libghc-artvaluereport-data-dev
+Section: doc
+Priority: optional
+Homepage: http://artvaluereportonline.com
+Description: Data structures used by the fine art appraisal application
+ Data structures used by the fine art appraisal application
+ .
+  Author: David Fox <dsf@seereason.com>
+  Upstream-Maintainer: David Fox <dsf@seereason.com>
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-artvaluereport-data
+Filename: pool/main/h/haskell-artvaluereport-data/libghc-artvaluereport-data-doc_1.70.1-0+seereason13~precise1_all.deb
+Size: 279470
+MD5sum: 9957259274dfcffbc609a7219315b8c2
+
+Package: libghc-clckwrks-plugin-stripe-doc
+Source: haskell-clckwrks-plugin-stripe
+Version: 0.2.0-0+seereason1~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 509
+Depends: haddock-interface-22
+Recommends: ghc-doc, libghc-acid-state-doc, libghc-aeson-doc, libghc-clckwrks-doc, libghc-happstack-authenticate-doc, libghc-happstack-server-doc, libghc-hsp-doc, libghc-ixset-doc, libghc-mtl-doc, libghc-reform-doc, libghc-safecopy-doc, libghc-stripe-core-doc, libghc-text-doc, libghc-transformers-doc, libghc-web-plugins-doc, libghc-web-routes-doc, libghc-clckwrks-plugin-stripe-dev
+Section: doc
+Priority: optional
+Description: bug tracking plugin for clckwrks
+ .
+ This package provides the documentation for a library for the Haskell
+ programming language.
+ See http:///www.haskell.org/ for more information on Haskell.
+Source: haskell-clckwrks-plugin-stripe
+Filename: pool/main/h/haskell-clckwrks-plugin-stripe/libghc-clckwrks-plugin-stripe-doc_0.2.0-0+seereason1~precise1_all.deb
+Size: 76880
+MD5sum: a9b37a5fb327bc409af8e89f34e04fb9
+
+Package: haskell-clckwrks-theme-seereasonpartners-utils
+Source: haskell-clckwrks-theme-seereasonpartners
+Version: 0.3.0-0+seereason1~precise1
+Architecture: all
+Maintainer: Jeremy Shaw <jeremy@n-heptane.com>
+Installed-Size: 336
+Section: misc
+Priority: optional
+Description: No description available.
+Source: haskell-clckwrks-theme-seereasonpartners
+Filename: pool/main/h/haskell-clckwrks-theme-seereasonpartners/haskell-clckwrks-theme-seereasonpartners-utils_0.3.0-0+seereason1~precise1_all.deb
+Size: 72920
+MD5sum: 920afe79a09dd78a9058e28b8160d433

@@ -1,0 +1,21 @@
+Origin: SeeReason Partners
+Label: SeeReason
+Suite: precise-seereason-private
+Codename: precise-seereason-private
+Date: Thu, 18 Jul 2013 17:40:56 UTC
+Architectures: i386 amd64
+Components: main
+Description: SeeReason Internal Use - Not Released
+Md5Sum:
+ e6c72ef53766bb5b58d5c9de7beb82c2 723411 main/source/Sources
+ 73b8199b7ab76d2904583eb935f3586e  74983 main/source/Sources.gz
+ 65da0f1d972b98a6517551e7b2917622  33348 main/source/Sources.bz2
+ 142669d75b26b723ec67ff995561f9cd    117 main/source/Release
+ f2e7c0d55cfb6a2e481a8fe75bf73598 151400 main/binary-i386/Packages
+ d5206b0d00f717a3262f447289de1942   9627 main/binary-i386/Packages.gz
+ 1192f61cf283f50b4779bdaabef205e1   8083 main/binary-i386/Packages.bz2
+ e5ff0c60635ab651cf524c418299d4e0    115 main/binary-i386/Release
+ 7b52b457581335eef4b9bd9fdabf1f2f 888943 main/binary-amd64/Packages
+ 5bdecbf64eae72cc2b41e9ea746267fb  87954 main/binary-amd64/Packages.gz
+ bcf65e559d6656e262751a4184638467  40525 main/binary-amd64/Packages.bz2
+ 4bd3c7426075610cb9a174cd830b0699    116 main/binary-amd64/Release

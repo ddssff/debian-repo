@@ -1,0 +1,9 @@
+#!/usr/bin/make -f
+
+DEB_CABAL_PACKAGE = debian-repo
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/hlibrary.mk
+
+binary-fixup/newdist::
+	install -Dp -m 755 dist-ghc/build/newdist/newdist debian/newdist/usr/bin/newdist
