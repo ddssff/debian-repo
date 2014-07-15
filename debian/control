@@ -7,8 +7,6 @@ Build-Depends: debhelper (>= 7.0)
                , cdbs
                , ghc
                , ghc-prof
-               , libghc-cabal-dev | ghc
-               , libghc-cabal-prof | ghc-prof
                , libghc-haxml-dev
                , libghc-haxml-prof
                , libghc-mime-dev
@@ -78,7 +76,6 @@ Build-Depends: debhelper (>= 7.0)
                , libghc-zlib-dev
                , libghc-zlib-prof
 Build-Depends-Indep: ghc-doc
-                     , libghc-cabal-doc | ghc-doc
                      , libghc-haxml-doc
                      , libghc-mime-doc
                      , libghc-unixutils-doc (>= 1.51)

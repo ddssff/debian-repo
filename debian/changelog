@@ -1,3 +1,9 @@
+haskell-debian-repo (5.65) unstable; urgency=low
+
+  * Remove spurious Cabal dependency.
+
+ -- David Fox <dsf@seereason.com>  Tue, 15 Jul 2014 07:58:52 -0700
+
 haskell-debian-repo (5.64) unstable; urgency=low
 
   * Fix the testing of architecture OS in package dependencies, before it

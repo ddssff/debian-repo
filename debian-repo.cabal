@@ -1,5 +1,5 @@
 Name:           debian-repo
-Version:        5.64
+Version:        5.65
 License:        BSD3
 License-File:	debian/copyright
 Author:         David Fox
@@ -47,7 +47,6 @@ Library
         base,
         bytestring,
         bzlib,
-        Cabal,
         containers,
         data-lens,
         data-lens-template,
@@ -127,7 +126,7 @@ Executable debian-versions
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
-  Build-Depends: base, Cabal, containers, debian-repo >= 5.60, directory, filepath, MIME, mtl, process-progress, regex-compat, template-haskell, text
+  Build-Depends: base, containers, debian-repo >= 5.60, directory, filepath, MIME, mtl, process-progress, regex-compat, template-haskell, text
   Buildable: True
   Main-is: Main.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
