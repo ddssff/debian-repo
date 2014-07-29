@@ -55,8 +55,8 @@ Build-Depends: debhelper (>= 7.0)
                , libghc-process-prof | ghc-prof
                , libghc-process-listlike-dev (>= 0.6)
                , libghc-process-listlike-prof (>= 0.6)
-               , libghc-process-progress-dev (>= 0.9)
-               , libghc-process-progress-prof (>= 0.9)
+               , libghc-process-progress-dev (>= 0.11)
+               , libghc-process-progress-prof (>= 0.11)
                , libghc-puremd5-dev
                , libghc-puremd5-prof
                , libghc-regex-compat-dev
@@ -100,7 +100,7 @@ Build-Depends-Indep: ghc-doc
                      , libghc-parsec3-doc (>= 3)
                      , libghc-process-doc | ghc-doc
                      , libghc-process-listlike-doc (>= 0.6)
-                     , libghc-process-progress-doc (>= 0.9)
+                     , libghc-process-progress-doc (>= 0.11)
                      , libghc-puremd5-doc
                      , libghc-regex-compat-doc
                      , libghc-regex-tdfa-doc
