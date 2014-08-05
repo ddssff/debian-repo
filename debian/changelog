@@ -1,3 +1,9 @@
+haskell-debian-repo (5.66) unstable; urgency=low
+
+  * Add functions to get source and binary deb names from a debian source tree.
+
+ -- David Fox <dsf@seereason.com>  Tue, 05 Aug 2014 10:18:27 -0700
+
 haskell-debian-repo (5.65) unstable; urgency=low
 
   * Remove spurious Cabal dependency.

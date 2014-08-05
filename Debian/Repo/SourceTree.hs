@@ -17,6 +17,8 @@ module Debian.Repo.SourceTree
     , DebianBuildTree (debTree', topdir')
     , DebianSourceTree(tree', control')
     , SourceTree(dir')
+    , debNames
+    , HasSrcDebName(srcDebName)
     ) where
 
 import Control.Applicative ((<$>), (<*>), pure)
@@ -24,13 +26,14 @@ import Control.Exception (evaluate, SomeException, try)
 import Control.Monad (foldM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List (intercalate, nubBy, sortBy)
-import Data.Text (Text)
+import Data.Maybe (isJust, fromJust)
+import Data.Text (Text, unpack)
 import Data.Text.IO as T (readFile)
 import Data.Time (NominalDiffTime)
 import Debian.Changes (ChangeLogEntry(..), ChangesFile(..), parseEntries)
-import Debian.Control.Text (Control, Control'(Control), ControlFunctions(parseControl), Field'(Comment), Paragraph'(..))
+import Debian.Control.Text (Control, Control'(Control, unControl), ControlFunctions(parseControl), Field'(Comment), Paragraph'(..), fieldValue)
 import Debian.Pretty (pretty)
-import Debian.Relation (BinPkgName)
+import Debian.Relation (BinPkgName(..), SrcPkgName(..))
 import Debian.Repo.Changes (findChangesFiles)
 import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.MonadOS (MonadOS(getOS))
@@ -303,3 +306,18 @@ instance DebianSourceTreeC DebianBuildTree where
 instance DebianBuildTreeC DebianBuildTree where
     subdir = subdir'
     findBuildTree path d = findSourceTree (path </> d) >>= return . DebianBuildTree path d
+
+debNames :: DebianSourceTree -> Either String (SrcPkgName, [BinPkgName])
+debNames tree =
+    let paras = unControl (control' tree) in
+    case paras of
+      (src : bins) -> case (fieldValue "Source" src, map (fieldValue "Package") bins) of
+                        (Just s, bs) | all isJust bs -> Right (SrcPkgName (unpack s), map (BinPkgName . unpack . fromJust) bs)
+                        _ -> Left ("Invalid control file - missing source or binary package names: " ++ show paras)
+      [] -> Left ("Invalid control file: " ++ show paras)
+
+class HasSrcDebName a where
+    srcDebName :: a -> SrcPkgName
+
+instance HasSrcDebName DebianSourceTree where
+    srcDebName = either error fst . debNames
