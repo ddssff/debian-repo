@@ -1,3 +1,10 @@
+haskell-debian-repo (5.67) unstable; urgency=low
+
+  * Remove the stuff added in 5.66, replaced by module
+    Debian.Control.Policy in debian-3.82.
+
+ -- David Fox <dsf@seereason.com>  Wed, 06 Aug 2014 09:34:37 -0700
+
 haskell-debian-repo (5.66) unstable; urgency=low
 
   * Add functions to get source and binary deb names from a debian source tree.
