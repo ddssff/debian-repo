@@ -33,9 +33,11 @@ Library
   ghc-options: -O2 -threaded -Wall
 
   if flag(local-cabal-debian)
+    cpp-options: -DMIN_VERSION_Cabal(a,b,c)=1
+    ghc-options: -package Cabal-1.21.0.0
     if flag(local-debian)
-      Hs-Source-Dirs: ., ../cabal-debian/src, ../../haskell-debian
-      Build-Depends: hsemail, memoize, syb
+      Hs-Source-Dirs: ., ../cabal-debian/src, ../haskell-debian
+      Build-Depends: hsemail, ListLike, memoize, syb
     else
       Hs-Source-Dirs: ., ../cabal-debian/src
       Build-Depends: debian >= 3.80, hsemail, memoize, syb
@@ -120,7 +122,7 @@ Executable debian-versions
   Main-is: Versions.hs
   ghc-options: -O2 -threaded -Wall
   if flag(local-debian)
-    Hs-Source-Dirs: ., ../../haskell-debian
+    Hs-Source-Dirs: ., ../haskell-debian
   else
     Build-Depends: debian >= 3.80
 
@@ -131,7 +133,7 @@ Executable newdist
   Main-is: Main.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
   if flag(local-debian)
-    Hs-Source-Dirs: ., ../../haskell-debian
+    Hs-Source-Dirs: ., ../haskell-debian
   else
     Build-Depends: debian >= 3.80
 
@@ -142,7 +144,7 @@ Executable speedtest
   Main-is: Speed.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
   if flag(local-debian)
-    Hs-Source-Dirs: ., ../../haskell-debian
+    Hs-Source-Dirs: ., ../haskell-debian
   else
     Build-Depends: debian >= 3.80
 
@@ -153,6 +155,6 @@ Executable speedtest2
   Main-is: Speed2.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
   if flag(local-debian)
-    Hs-Source-Dirs: ., ../../haskell-debian
+    Hs-Source-Dirs: ., ../haskell-debian
   else
     Build-Depends: debian >= 3.80
