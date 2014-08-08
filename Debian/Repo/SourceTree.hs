@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, PackageImports, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, PackageImports, ScopedTypeVariables #-}
 module Debian.Repo.SourceTree
     ( addLogEntry
     , buildDebs
@@ -17,23 +17,19 @@ module Debian.Repo.SourceTree
     , DebianBuildTree (debTree', topdir')
     , DebianSourceTree(tree', control')
     , SourceTree(dir')
-    , debNames
-    , HasSrcDebName(srcDebName)
     ) where
 
 import Control.Applicative ((<$>), (<*>), pure)
-import Control.Exception (evaluate, SomeException, try)
+import Control.Exception (evaluate, SomeException, try, throw)
 import Control.Monad (foldM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List (intercalate, nubBy, sortBy)
-import Data.Maybe (isJust, fromJust)
-import Data.Text (Text, unpack)
-import Data.Text.IO as T (readFile)
 import Data.Time (NominalDiffTime)
 import Debian.Changes (ChangeLogEntry(..), ChangesFile(..), parseEntries)
-import Debian.Control.Text (Control, Control'(Control, unControl), ControlFunctions(parseControl), Field'(Comment), Paragraph'(..), fieldValue)
+import Debian.Control.Policy (HasDebianControl(debianControl), DebianControl(unDebianControl), parseDebianControlFromFile)
+import Debian.Control.Text (Control)
 import Debian.Pretty (pretty)
-import Debian.Relation (BinPkgName(..), SrcPkgName(..))
+import Debian.Relation (BinPkgName(..))
 import Debian.Repo.Changes (findChangesFiles)
 import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.MonadOS (MonadOS(getOS))
@@ -215,8 +211,11 @@ data SourceTree =
 -- at least a control file and a changelog.
 data DebianSourceTree =
     DebianSourceTree {tree' :: SourceTree,
-                      control' :: Control' Text,
+                      control' :: DebianControl,
                       entry' :: ChangeLogEntry}
+
+instance HasDebianControl DebianSourceTree where
+    debianControl = control'
 
 -- |A Debian source tree plus a parent directory, which is where the
 -- binary and source deb packages appear after a build.  Note that
@@ -240,32 +239,21 @@ instance SourceTreeC DebianSourceTree where
     copySourceTree tree dest = DebianSourceTree <$> copySourceTree (tree' tree) dest <*> pure (control' tree) <*> pure (entry' tree)
     findSourceTree path0 =
       findSourceTree path0 >>= \ tree ->
-      T.readFile controlPath >>= return . parseControl controlPath >>= either (fail . show) (return . removeCommentParagraphs) >>= \ (c :: Control' Text) ->
+      parseDebianControlFromFile (path0 ++ "/debian/control") >>= either throw return >>= \ c ->
       -- We only read part of the changelog, so be careful that the file
       -- descriptor gets closed.
-      withFile changelogPath ReadMode
-        (\ handle ->
+      withFile (path0 ++ "/debian/changelog") ReadMode $ \ handle ->
           hGetContents handle >>= \ l ->
           case parseEntries l of
             (Right e : _) ->
               -- ePutStrLn ("findDebianSourceTree " ++ show path0 ++ " -> " ++ topdir tree) >>
               return (DebianSourceTree tree c e)
-            (Left msgs : _) -> error $ "Bad changelog entry in " ++ show changelogPath ++ ": " ++ intercalate ", " msgs
-            [] -> return $ error $ "Empty changelog file: " ++ show changelogPath)
-      where
-        controlPath = path0 ++ "/debian/control"
-        changelogPath = path0 ++ "/debian/changelog"
-        removeCommentParagraphs :: Control' a -> Control' a
-        removeCommentParagraphs (Control paragraphs) =
-            Control (filter (not . isCommentParagraph) paragraphs)
-            where
-              isCommentParagraph (Paragraph fields) = all isCommentField fields
-              isCommentField (Comment _) = True
-              isCommentField _ = False
+            (Left msgs : _) -> error $ "Bad changelog entry in " ++ show (path0 ++ "/debian/changelog") ++ ": " ++ intercalate ", " msgs
+            [] -> return $ error $ "Empty changelog file: " ++ show (path0 ++ "/debian/changelog")
 
 instance DebianSourceTreeC DebianSourceTree where
     debdir = dir' . tree'
-    control = control'
+    control = unDebianControl . control'
     entry = entry'
 
 instance SourceTreeC DebianBuildTree where
@@ -300,24 +288,9 @@ instance SourceTreeC DebianBuildTree where
 
 instance DebianSourceTreeC DebianBuildTree where
     debdir t = topdir' t </> subdir' t
-    control = control' . debTree'
+    control = unDebianControl . control' . debTree'
     entry = entry' . debTree'
 
 instance DebianBuildTreeC DebianBuildTree where
     subdir = subdir'
     findBuildTree path d = findSourceTree (path </> d) >>= return . DebianBuildTree path d
-
-debNames :: DebianSourceTree -> Either String (SrcPkgName, [BinPkgName])
-debNames tree =
-    let paras = unControl (control' tree) in
-    case paras of
-      (src : bins) -> case (fieldValue "Source" src, map (fieldValue "Package") bins) of
-                        (Just s, bs) | all isJust bs -> Right (SrcPkgName (unpack s), map (BinPkgName . unpack . fromJust) bs)
-                        _ -> Left ("Invalid control file - missing source or binary package names: " ++ show paras)
-      [] -> Left ("Invalid control file: " ++ show paras)
-
-class HasSrcDebName a where
-    srcDebName :: a -> SrcPkgName
-
-instance HasSrcDebName DebianSourceTree where
-    srcDebName = either error fst . debNames
