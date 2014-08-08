@@ -2,6 +2,7 @@ haskell-debian-repo (5.67) unstable; urgency=low
 
   * Remove the stuff added in 5.66, replaced by module
     Debian.Control.Policy in debian-3.82.
+  * Sort out the type classes in Debian/Repo/SourceTree.hs
 
  -- David Fox <dsf@seereason.com>  Wed, 06 Aug 2014 09:34:37 -0700
 
