@@ -29,7 +29,7 @@ import qualified Debian.Pretty as F (Pretty(..))
 import Debian.Release (parseReleaseName, ReleaseName(..), releaseName', Section(..), sectionName', SubSection(section))
 import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath(envPath), outsidePath)
-import Debian.Repo.PackageID (PackageID)
+import Debian.Repo.Fingerprint (readUpstreamFingerprint)
 import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile, rsync)
 import Debian.Repo.Prelude.SSH (sshVerify)
 import Debian.Repo.Release (parseReleaseFile, Release)
@@ -257,26 +257,28 @@ validRevision' (Success c) = validRevision
       dscPath = changeDir c </> changePackage c ++ "_" ++ show (prettyDebianVersion (changeVersion c)) ++ ".dsc"
       checkRevision :: FilePath -> S.Control' String -> IO (Failing ChangesFile)
       checkRevision dscPath' (S.Control [p]) =
-          case maybe (Failure ["Missing Fingerprint field in " ++ dscPath']) parseRevision (S.fieldValue "Fingerprint" p) of
+          case maybe (Failure ["Missing Fingerprint field in " ++ dscPath'])
+                     (\ s -> maybe (Failure ["Parse error in revision string: " ++  show s]) Success (readUpstreamFingerprint s))
+                     (S.fieldValue "Fingerprint" p) of
             Failure msgs -> return (Failure msgs)
-            Success (x, _) | x == invalidRevision -> return (Failure ["Invalid revision: " ++ show x])
+            -- Success x | x == invalidRevision -> return (Failure ["Invalid revision: " ++ show x])
             Success _ -> return (Success c)
       checkRevision dscPath' _ = return (Failure ["Invalid .dsc file: " ++ show dscPath'])
-      invalidRevision = "none"
+      -- invalidRevision = "none"
       -- Parse the "Fingerprint:" value describing the origin of the
       -- package's source and the dependency versions used to build it:
       --   Revision: <revisionstring> dep1=ver1 dep2=ver2 ...
-      parseRevision :: String -> Failing (String, [PackageID BinPkgName])
-      parseRevision s =
-          case reads s :: [(String, String)] of
-            [(method, etc)] ->
-                case words etc of
-                  (sourceVersion : buildDeps)
-                    | not (elem '=' sourceVersion) ->
-                        Success (method, map readSimpleRelation buildDeps)
-                  buildDeps ->
-                        Success (method, map readSimpleRelation buildDeps)
-            _ -> Failure ["Invalid revision field: " ++ s]
+      -- parseRevision :: String -> Failing (String, [PackageID BinPkgName])
+      -- parseRevision s =
+      --     case reads s :: [(String, String)] of
+      --       [(method, etc)] ->
+      --           case words etc of
+      --             (sourceVersion : buildDeps)
+      --               | not (elem '=' sourceVersion) ->
+      --                   Success (method, map readSimpleRelation buildDeps)
+      --             buildDeps ->
+      --                   Success (method, map readSimpleRelation buildDeps)
+      --       _ -> Failure ["Invalid revision field: " ++ s]
 
 uploadKey :: UploadFile -> (String, DebianVersion, Arch)
 uploadKey (Upload _ name ver arch) = (name, ver, arch)
