@@ -72,7 +72,8 @@ import System.IO ()
 import qualified System.Posix.Files as F (createLink, fileSize, getFileStatus)
 import System.Posix.Types (FileOffset)
 import System.Process (runInteractiveCommand, waitForProcess)
-import System.Process.Progress (ePutStrLn, qPutStr, qPutStrLn)
+import System.Process.Progress (ePutStrLn)
+import System.Process.Read.Verbosity (qPutStr, qPutStrLn)
 import Text.Regex (matchRegex, mkRegex, splitRegex)
 
 -- | A monad for installing or deleting a repository's packages

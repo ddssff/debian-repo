@@ -66,7 +66,8 @@ Library
         parsec >= 3,
         process,
         process-listlike >= 0.6,
-        process-progress >= 0.11,
+        process-progress >= 0.9,
+        process-verbosity,
         pureMD5,
         regex-compat,
         regex-tdfa,
@@ -132,7 +133,7 @@ Executable debian-versions
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
-  Build-Depends: base, containers, directory, filepath, MIME, mtl, process-progress, regex-compat, template-haskell, text
+  Build-Depends: base, containers, directory, filepath, MIME, mtl, process-verbosity, regex-compat, template-haskell, text
   Buildable: True
   Main-is: Main.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
@@ -144,7 +145,7 @@ Executable newdist
 
 Executable speedtest
   Hs-Source-Dirs: Test
-  Build-Depends: applicative-extras, base, bytestring, bzlib, cabal-debian, containers, data-lens, data-lens-template, deepseq, directory, exceptions, filepath, ListLike, mtl, network, old-locale, old-time, parsec, process, process-listlike, process-progress, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
+  Build-Depends: applicative-extras, base, bytestring, bzlib, cabal-debian, containers, data-lens, data-lens-template, deepseq, directory, exceptions, filepath, ListLike, mtl, network, old-locale, old-time, parsec, process, process-listlike, process-verbosity, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
   Buildable: True
   Main-is: Speed.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
@@ -155,7 +156,7 @@ Executable speedtest
 
 Executable speedtest2
   Hs-Source-Dirs: Test
-  Build-Depends: applicative-extras, base, bytestring, bzlib, cabal-debian, containers, data-lens, data-lens-template, deepseq, directory, exceptions, filepath, ListLike, mtl, network, old-locale, old-time, parsec, process, process-listlike, process-progress, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
+  Build-Depends: applicative-extras, base, bytestring, bzlib, cabal-debian, containers, data-lens, data-lens-template, deepseq, directory, exceptions, filepath, ListLike, mtl, network, old-locale, old-time, parsec, process, process-listlike, process-verbosity, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
   Buildable: True
   Main-is: Speed2.hs
   ghc-options: -O2 -threaded -Wall -rtsopts

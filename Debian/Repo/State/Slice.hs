@@ -34,7 +34,7 @@ import Debian.URI (dirFromURI, fileFromURI)
 import Network.URI (URI(uriScheme, uriPath))
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath ((</>))
-import System.Process.Progress (qPutStrLn)
+import System.Process.Read.Verbosity (qPutStrLn)
 import Text.Regex (mkRegex, splitRegex)
 
 -- | Examine the repository whose root is at the given URI and return a

@@ -37,7 +37,7 @@ import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath ((</>))
 import System.Posix.Files (setFileMode)
 import qualified System.Posix.Files as F (fileSize, getFileStatus)
-import System.Process.Progress (qPutStrLn)
+import System.Process.Read.Verbosity (qPutStrLn)
 import System.Unix.Directory (removeRecursiveSafely)
 
 -- | Remove all the packages from the repository and then re-create

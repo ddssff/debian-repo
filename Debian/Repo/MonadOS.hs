@@ -34,7 +34,8 @@ import System.Directory (createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitFailure))
 import System.FilePath ((</>))
 import System.Process (proc, readProcess)
-import System.Process.Progress (keepResult, qPutStrLn, quieter, timeTask)
+import System.Process.Progress (keepResult, timeTask)
+import System.Process.Read.Verbosity (qPutStrLn, quieter)
 import System.Unix.Chroot (useEnv)
 
 -- | The problem with having an OSImage in the state of MonadOS is

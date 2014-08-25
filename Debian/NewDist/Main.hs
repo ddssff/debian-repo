@@ -33,7 +33,7 @@ import System.Environment (getArgs)
 import System.Exit (ExitCode(ExitSuccess, ExitFailure), exitWith)
 import System.FilePath ((</>))
 import System.IO as IO (putStrLn, hFlush, stderr)
-import System.Process.Progress (quieter, qPutStrLn)
+import System.Process.Read.Verbosity (qPutStrLn)
 import Text.Regex (mkRegex, splitRegex)
 
 import Config (option)

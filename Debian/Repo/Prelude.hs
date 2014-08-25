@@ -42,9 +42,9 @@ import Language.Haskell.TH (Exp(LitE), Lit(StringL), Name, nameBase, nameModule,
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
 import System.Process (CreateProcess, proc)
-import System.Process.Progress (ePutStrLn, keepResult, keepResult, runProcessF)
+import System.Process.Progress (ePutStrLn, keepResult, keepResult)
 import System.Process.Read.Chunks (Output)
-import System.Process.Read.Verbosity (quieter, runProcess)
+import System.Process.Read.Verbosity (quieter, runProcess, runProcessF)
 import Text.Printf (printf)
 
 -- | Perform a list of tasks with log messages.

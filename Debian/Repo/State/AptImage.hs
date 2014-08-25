@@ -34,7 +34,7 @@ import Debian.Repo.State.Slice (updateCacheSources)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion)
 import System.Directory (createDirectoryIfMissing)
-import System.Process.Progress (qPutStr, qPutStrLn)
+import System.Process.Read.Verbosity (qPutStr, qPutStrLn)
 import System.Unix.Directory (removeRecursiveSafely)
 
 instance MonadApt m => MonadApt (StateT EnvRoot m) where
