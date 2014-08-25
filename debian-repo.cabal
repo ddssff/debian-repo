@@ -40,9 +40,9 @@ Library
       Build-Depends: hsemail, ListLike, memoize, syb
     else
       Hs-Source-Dirs: ., ../cabal-debian/src
-      Build-Depends: debian >= 3.82, hsemail, memoize, syb
+      Build-Depends: debian >= 3.83.2, hsemail, memoize, syb
   else
-    Build-Depends: cabal-debian >= 4.5, debian >= 3.82
+    Build-Depends: cabal-debian >= 4.5, debian >= 3.83.2
 
   Build-Depends:
         applicative-extras,
@@ -125,7 +125,7 @@ Executable debian-versions
     Hs-Source-Dirs: ., ../haskell-debian
     Build-Depends: applicative-extras, bzlib, bytestring, containers, data-lens, directory, exceptions, filepath, ListLike, network, parsec, process, process-listlike, process-progress, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
   else
-    Build-Depends: debian >= 3.82, debian-repo >= 5.60
+    Build-Depends: debian >= 3.83.2, debian-repo >= 5.60
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
@@ -137,7 +137,7 @@ Executable newdist
     Hs-Source-Dirs: ., ../haskell-debian
     Build-Depends: applicative-extras, bzlib, bytestring, containers, data-lens, data-lens-template, directory, exceptions, filepath, ListLike, network, old-locale, old-time, parsec, process, process-listlike, process-progress, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
   else
-    Build-Depends: debian >= 3.82, debian-repo >= 5.60
+    Build-Depends: debian >= 3.83.2, debian-repo >= 5.60
 
 Executable speedtest
   Hs-Source-Dirs: Test
@@ -148,7 +148,7 @@ Executable speedtest
   if flag(local-debian)
     Hs-Source-Dirs: ., ../haskell-debian
   else
-    Build-Depends: debian >= 3.82, debian-repo >= 5.60
+    Build-Depends: debian >= 3.83.2, debian-repo >= 5.60
 
 Executable speedtest2
   Hs-Source-Dirs: Test
@@ -159,4 +159,4 @@ Executable speedtest2
   if flag(local-debian)
     Hs-Source-Dirs: ., ../haskell-debian
   else
-    Build-Depends: debian >= 3.82, debian-repo >= 5.60
+    Build-Depends: debian >= 3.83.2, debian-repo >= 5.60

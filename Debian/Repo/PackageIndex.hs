@@ -43,11 +43,6 @@ import Debian.Repo.Release (Release(..))
 import System.FilePath ((</>))
 import System.Posix.Types (FileOffset)
 
-deriving instance Show (T.Field' Text)
-deriving instance Ord (T.Field' Text)
-deriving instance Show T.Paragraph
-deriving instance Ord T.Paragraph
-
 -- | A package index is identified by Section (e.g. main, contrib,
 -- non-free) and architecture (e.g. source, i386, amd64.)
 data PackageIndex

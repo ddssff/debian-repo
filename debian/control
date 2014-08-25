@@ -31,8 +31,8 @@ Build-Depends: debhelper (>= 7.0)
                , libghc-data-lens-prof
                , libghc-data-lens-template-dev
                , libghc-data-lens-template-prof
-               , libghc-debian-dev (>= 3.80)
-               , libghc-debian-prof (>= 3.80)
+               , libghc-debian-dev (>= 3.83.2)
+               , libghc-debian-prof (>= 3.83.2)
                , libghc-deepseq-dev | ghc
                , libghc-deepseq-prof | ghc-prof
                , libghc-directory-dev | ghc
@@ -88,7 +88,7 @@ Build-Depends-Indep: ghc-doc
                      , libghc-containers-doc | ghc-doc
                      , libghc-data-lens-doc
                      , libghc-data-lens-template-doc
-                     , libghc-debian-doc (>= 3.80)
+                     , libghc-debian-doc (>= 3.83.2)
                      , libghc-deepseq-doc | ghc-doc
                      , libghc-directory-doc | ghc-doc
                      , libghc-exceptions-doc
