@@ -37,7 +37,7 @@ import Debian.Repo.EnvPath (EnvPath(EnvPath, envPath, envRoot), EnvRoot(rootPath
 import Debian.Repo.Internal.IO (buildArchOfRoot)
 import Debian.Repo.LocalRepository (copyLocalRepo, LocalRepository)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
-import Debian.Repo.Prelude (isSublistOf, readProc, replaceFile, rsync, sameInode, sameMd5sum)
+import Debian.Repo.Prelude (isSublistOf, readProc, replaceFile, rsync, checkRsyncExitCode, sameInode, sameMd5sum)
 import Debian.Repo.Repo (repoKey, repoURI)
 import Debian.Repo.Slice (NamedSliceList(sliceList), NamedSliceList(sliceListName), Slice(Slice, sliceRepoKey, sliceSource), SliceList(..))
 import Debian.Sources (DebSource(..), DebSource(sourceDist, sourceUri), SourceType(..), SourceType(..))
@@ -167,7 +167,7 @@ syncOS' :: OSImage -> EnvRoot -> IO OSImage
 syncOS' src dst = do
   mkdir
   umount
-  rsync ["--exclude=/work/build/*"] (rootPath (osRoot src)) (rootPath dst)
+  rsync ["--exclude=/work/build/*"] (rootPath (osRoot src)) (rootPath dst) >>= checkRsyncExitCode
   cloneOSImage src dst
     where
       mkdir = createDirectoryIfMissing True (rootPath dst ++ "/work")
