@@ -81,13 +81,13 @@ updateLists = quieter 1 $
 withProc :: forall m c. (MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m c -> m c
 withProc task =
     do root <- rootPath . osRoot <$> getOS
-       let proc = root </> "proc"
+       let proc' = root </> "proc"
            sys = root </> "sys"
            pre :: m String
-           pre = liftIO (createDirectoryIfMissing True proc >> readProcess "mount" ["--bind", "/proc", proc] "" >>
+           pre = liftIO (createDirectoryIfMissing True proc' >> readProcess "mount" ["--bind", "/proc", proc'] "" >>
                          createDirectoryIfMissing True sys >> readProcess "mount" ["--bind", "/sys", sys] "")
            post :: String -> m String
-           post _s = liftIO $ readProcess "umount" [proc] "" >> readProcess "umount" [sys] ""
+           post _s = liftIO $ readProcess "umount" [proc'] "" >> readProcess "umount" [sys] ""
            task' :: String -> m c
            task' _s = task
        bracket pre post task'

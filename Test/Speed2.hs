@@ -12,6 +12,7 @@ import Debian.Pretty (pretty, render)
 import System.Environment (getArgs)
 import Text.Parsec.Error
 
+main :: IO Int
 main =
     do args <- getArgs
        case args of
@@ -26,6 +27,7 @@ main =
              -- best - similar to byte2
              ("text4" : _) ->  (parseControlFromFile "/srv/deb/ubuntu/dists/precise-seereason/main/binary-i386/Packages" :: IO (Either ParseError (Control' B.ByteString))) >>= either (error . show) (return . useControl . T.decodeControl)
 
+useControl :: Control' Text -> Int
 useControl = force . T.length . render . pretty
 
 

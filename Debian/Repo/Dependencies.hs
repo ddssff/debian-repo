@@ -47,6 +47,7 @@ prettySimpleRelation (Just p) = pretty (packageName p) <> text "=" <> prettyDebi
 showSimpleRelation :: PackageID BinPkgName -> String
 showSimpleRelation v = show (prettySimpleRelation (Just v))
 
+-- Shouldn't this return a maybe?
 readSimpleRelation :: String -> PackageID BinPkgName
 readSimpleRelation s = case second (parseDebianVersion . (drop 1)) (span (/= '=') s) of
                          (n, v) -> PackageID { packageName = BinPkgName n, packageVersion = v }

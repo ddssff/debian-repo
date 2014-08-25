@@ -161,7 +161,7 @@ writeAndZipFileWithBackup path text =
            (\ _ -> try (B.writeFile path text) >>=
                    either (\ (e :: SomeException) ->
                                restoreBackup path >>=
-                               either (\ e -> error ("Failed to restore backup: " ++ path ++ "~ -> " ++ path ++ ": " ++ show e))
+                               either (\ e' -> error ("Failed to restore backup: " ++ path ++ "~ -> " ++ path ++ ": " ++ show e'))
                                       (\ _ -> return (Left ["Failure writing " ++ path ++ ": " ++ show e])))
                           (\ _ -> zipFile path))
 

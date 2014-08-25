@@ -6,10 +6,9 @@ module Debian.Repo.Prelude.Lock
 
 import Control.Exception
 import Control.Monad.RWS
-import Prelude hiding (catch)
 import System.Directory
 import System.IO
-import System.IO.Error hiding (try, catch)
+import System.IO.Error
 import System.Posix.Files
 import System.Posix.IO
 import System.Posix.Unistd
@@ -47,10 +46,10 @@ withLock path task =
 
 -- |Like withLock, but instead of giving up immediately, try n times
 -- with a wait between each.
---awaitLock :: (MonadIO m) => Int -> Int -> FilePath -> m a -> m (Either Exception a)
+awaitLock :: Int -> Int -> FilePath -> IO a -> IO a
 awaitLock tries usecs path task =
     attempt 0
-    where 
+    where
       attempt n | n >= tries = error "awaitLock: too many failures"
       attempt n = withLock path task `catch` checkLockError
           where
@@ -60,4 +59,5 @@ awaitLock tries usecs path task =
 processID :: IO String
 processID = readSymbolicLink "/proc/self"
 
+lockedBy :: String -> FilePath -> IOError
 lockedBy pid path = mkIOError alreadyInUseErrorType ("Locked by " ++ pid) Nothing (Just path)

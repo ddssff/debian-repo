@@ -300,17 +300,17 @@ expandSections toExpand expansions =
             let sequences = map getNames useFlags
             -- ePut ("sequences: " ++ show sequences)
             -- A sequence of name lists
-            let (sequence :: [[String]]) = cartesianProduct sequences
+            let (sequences' :: [[String]]) = cartesianProduct sequences
             -- ePut ("sequence: " ++ show sequence)
             -- map (elem stack) (concat sequence)
-            let (newstack :: [String]) = nub $ stack ++ concat sequence
+            let (newstack :: [String]) = nub $ stack ++ concat sequences'
             -- Remove any names which are already being expanded,
             -- either because of a cycle in the Use->Name graph or
             -- because an element is reachable by multiple paths.
-            let (sequence''' :: [[String]]) = map (\ s -> filter (\ e -> not (elem e stack)) s) sequence
+            let (sequence''' :: [[String]]) = map (\ s -> filter (\ e -> not (elem e stack)) s) sequences'
             -- ePut ("newstack: " ++ show newstack)
             -- A sequence of flag lists
-            let (sequence' :: [[[Flag]]]) = map (expandNames expansions stack) sequence'''
+            let (sequence' :: [[[Flag]]]) = map (expandNames stack) sequence'''
             -- ePut ("sequence': " ++ show sequence')
             case sequence' of
               [] ->
@@ -327,9 +327,9 @@ expandSections toExpand expansions =
       getNames _ = []
 
       -- FIXME: use the stack to prevent infinite recursion
-      expandNames expansions stack names =
-          map (expandName expansions stack) names
-      expandName _ _stack name =
+      expandNames stack names' =
+          map (expandName stack) names'
+      expandName _stack name =
           maybe err id (find  (elem (Name name)) expansions)
           where
             err = error ("Configuration file section '" ++ name ++ "' not found.\nAvailable:\n  " ++ 
@@ -350,6 +350,7 @@ mergeSpecs appName specs =
     specs ++ optBaseSpecs appName
 -}
 
+optBaseSpecs :: String -> [ParamDescr Flag]
 optBaseSpecs appName =
     [ Param { shortOpts = ['c']
             , longOpts = ["config","include"]
@@ -423,11 +424,12 @@ consperse :: [a] -> [[a]] -> [a]
 consperse sep items = concat (intersperse sep items)
 
 -- |cartesianProduct [[1,2,3], [4,5],[6]] -> [[1,4,6],[1,5,6],[2,4,6],[2,5,6],[3,4,6],[3,5,6]]
+cartesianProduct :: [[a]] -> [[a]]
 cartesianProduct [] = []
 cartesianProduct [xs] = map (: []) xs
-cartesianProduct (xs : yss) =
-    distribute xs (cartesianProduct yss)
-    where distribute xs yss = concat (map (\ x -> map (x :) yss) xs)
+cartesianProduct (xs : yss) = distribute xs (cartesianProduct yss)
+distribute :: [a] -> [[a]] -> [[a]]
+distribute xs yss = concat (map (\ x -> map (x :) yss) xs)
 
 -- Example:
 --
@@ -462,8 +464,8 @@ data ParamDescr a
             }
 
 option :: ParamDescr a -> OptDescr a
-option param =
-    Option (shortOpts param) (longOpts param) (argDescr param) (description param)
+option p =
+    Option (shortOpts p) (longOpts p) (argDescr p) (description p)
 
 -- Modified version of usageInfo.
 
@@ -488,11 +490,10 @@ usageInfo header params = unlines (header:table)
          ls _ = 0
          table = map fmtLine (legend ++ xs)
          fmtLine (Text s) = "    " ++ s
-         fmtLine (Opt {long = ls, short = 
-ss, param = ps}) =
+         fmtLine (Opt {long = lopts, short = sopts, param = ps}) =
              "  " ++
-             flushLeft lsl ls ++ "  " ++
-             flushLeft ssl ss ++ "  " ++
+             flushLeft lsl lopts ++ "  " ++
+             flushLeft ssl sopts ++ "  " ++
              ps
          flushLeft n x = take n (x ++ repeat ' ')
          legend = [Opt {long = "Long option", short = "Short option", param = "Config file parameter"},

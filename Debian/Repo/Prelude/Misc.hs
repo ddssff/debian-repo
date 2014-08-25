@@ -123,6 +123,7 @@ splitOutput output = (B.concat (keepStdout output), B.concat (keepStderr output)
 -}
 
 -- |A version of read with a more helpful error message.
+read' :: Read a => String -> a
 read' s =
     case reads s of
       [] -> error $ "read - no parse: " ++ show s

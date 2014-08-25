@@ -3,6 +3,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.AptImage
     ( aptDir
+    , buildArchOfRoot
     , aptGetSource
     , aptGetUpdate
     ) where

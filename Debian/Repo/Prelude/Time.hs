@@ -20,6 +20,7 @@ import Text.Printf
  -}
 
 
+formatDebianDate :: FormatTime t => t -> [Char]
 formatDebianDate t =
     prefix ++ seconds ++ suffix
         where prefix = formatTime defaultTimeLocale prefixFormat t
@@ -31,7 +32,8 @@ formatDebianDate t =
               format = "%a, %d %b %Y %H:%M:%S %Z"
               _test = assert (format == prefixFormat ++ secondsFormat ++ suffixFormat)
 
-_test=
+_test :: IO Bool
+_test =
     do tz <- getCurrentTimeZone
        let ut = localTimeToUTC tz testtime
        return $ teststring == formatDebianDate ut
@@ -45,6 +47,7 @@ _test=
           testsecond = 15.29
           teststring = "Tue, 19 Dec 2006 17:19:15 UTC"
 
+myTimeDiffToString :: TimeDiff -> String
 myTimeDiffToString diff =
     do
       case () of
@@ -54,6 +57,6 @@ myTimeDiffToString diff =
         _ -> s
     where
       s = formatTimeDiff defaultTimeLocale "%T" diff
-      ms = ps2ms ps
-      ps2ms ps = quot (ps + 500000000) 1000000000
+      ms = ps2ms
+      ps2ms = quot (ps + 500000000) 1000000000
       ps = tdPicosec diff
