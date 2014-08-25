@@ -1,3 +1,10 @@
+haskell-debian-repo (5.68) unstable; urgency=low
+
+  * Move code here from autobuilder to avoid duplication of code to read
+    the Fingerprint field.
+
+ -- David Fox <dsf@seereason.com>  Mon, 25 Aug 2014 03:52:51 -0700
+
 haskell-debian-repo (5.67) unstable; urgency=low
 
   * Remove the stuff added in 5.66, replaced by module
