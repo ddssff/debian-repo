@@ -1,3 +1,9 @@
+haskell-debian-repo (5.68.1) unstable; urgency=low
+
+  * Move source repository to github.com
+
+ -- David Fox <dsf@seereason.com>  Fri, 29 Aug 2014 14:19:05 -0700
+
 haskell-debian-repo (5.68) unstable; urgency=low
 
   * Move code here from autobuilder to avoid duplication of code to read

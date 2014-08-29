@@ -1,11 +1,11 @@
 Name:           debian-repo
-Version:        5.68
+Version:        5.68.1
 License:        BSD3
 License-File:	debian/copyright
 Author:         David Fox
 Category:	System
 Maintainer:     david@seereason.com
-Homepage:       http://src.seereason.com/debian-repo
+Homepage:       https://github.com/ddssff/debian-repo
 Build-Type:	Simple
 Synopsis:       Modules for working with Debian repositories
 Description:
