@@ -43,7 +43,7 @@ import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
 import System.Process (CreateProcess, proc)
 import System.Process.Progress (ePutStrLn, keepResult, keepResult)
-import System.Process.Read.Chunks (Output)
+import System.Process.ListLike (Output)
 import System.Process.Read.Verbosity (quieter, runProcess, runProcessF)
 import Text.Printf (printf)
 
