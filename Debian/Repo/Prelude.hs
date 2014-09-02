@@ -28,23 +28,34 @@ module Debian.Repo.Prelude
     ) where
 
 import Control.Monad.State (get, modify, MonadIO, MonadState)
+import Control.Monad.Trans (liftIO)
 import qualified Data.ByteString.Lazy as L (empty)
 import qualified Data.ByteString.Lazy.Char8 as B (ByteString)
+import Data.Char (ord)
 import Data.Lens.Lazy (getL, Lens, modL)
 import Data.List (group, sort)
 import Data.List as List (map)
+import Data.Monoid ((<>))
+import Data.Text as T (Text, lines)
+import Data.Text.IO as T (hPutStr)
+import Data.Word (Word8)
 import Debian.Repo.Prelude.Bool (cond)
 import Debian.Repo.Prelude.Files (getSubDirectories, maybeWriteFile, replaceFile, writeFileIfMissing)
 import Debian.Repo.Prelude.GPGSign (cd)
 import Debian.Repo.Prelude.List (cartesianProduct, dropPrefix, isSublistOf, listIntersection, partitionM)
 import Debian.Repo.Prelude.Misc (sameInode, sameMd5sum)
+import Debian.UTF8 as Deb (decode)
 import Language.Haskell.TH (Exp(LitE), Lit(StringL), Name, nameBase, nameModule, Q)
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
-import System.Process (CreateProcess, proc)
+import System.IO (stdout, stderr)
+import System.Process (CreateProcess(cmdspec), proc)
+import System.Process.ByteString.Lazy
+import System.Process.ByteString
+import System.Process.Chunks (Chunk(..), readProcessChunks, putIndented)
 import System.Process.Progress (ePutStrLn, keepResult, keepResult)
-import System.Process.ListLike (Output)
-import System.Process.Read.Verbosity (quieter, runProcess, runProcessF)
+import System.Process.ListLike (showCmdSpecForUser)
+import System.Process.Read.Verbosity (quieter, runProcess)
 import Text.Printf (printf)
 
 -- | Perform a list of tasks with log messages.
@@ -79,12 +90,21 @@ symbol x = return $ LitE (StringL (maybe "" (++ ".") (nameModule x) ++ nameBase 
 --    2. If it exits with an error code all its output is echoed (with prefixes) and an exception is thrown
 --    3. The process input is the empty string
 --    4. When the output is echoed stdout is prefixed with "1>" and stderr with "2>".
---    5. The output is a stream of 'Output'
-runProc :: MonadIO m => CreateProcess -> m [Output B.ByteString]
-runProc p = quieter 1 $ runProcessF prefixes p L.empty
+--    5. The output is a stream of 'Chunk'
+runProc :: MonadIO m => CreateProcess -> m [Chunk B.ByteString]
+-- runProc p = quieter 1 $ runProcessF prefixes p L.empty
+runProc p = liftIO $ readProcessChunks p L.empty >>= putIndented nl " 1> " " 2> " >>= mapM doChunk
+    where
+      nl :: Word8
+      nl = fromIntegral (ord '\n')
+      doChunk :: Chunk B.ByteString -> IO (Chunk B.ByteString)
+      doChunk (Result f@(ExitFailure _)) = error (showCmdSpecForUser (cmdspec p) ++ " -> " ++ show f)
+      doChunk x = return x
+      indent :: T.Text -> T.Text -> [T.Text]
+      indent pre text = map (pre <>) (T.lines text)
 
 -- | Like runProc, but does not raise an exception when process exit code is not 0.
-readProc :: MonadIO m => CreateProcess -> m [Output B.ByteString]
+readProc :: MonadIO m => CreateProcess -> m [Chunk B.ByteString]
 readProc p = quieter 1 $ runProcess p L.empty
 
 prefixes :: Maybe (B.ByteString, B.ByteString)

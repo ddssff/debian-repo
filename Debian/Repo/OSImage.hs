@@ -47,7 +47,8 @@ import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>))
 import System.Posix.Files (createLink, deviceID, fileID, FileStatus, modificationTime)
 import System.Process (shell)
-import System.Process.Progress (collectOutputs, doOutput, ePutStr, ePutStrLn, foldOutputsL)
+import System.Process.Chunks (Chunk(Result), foldChunks)
+import System.Process.Progress (collectOutputs, doOutput, ePutStr, ePutStrLn)
 import System.Process.Read.Verbosity (qPutStr, qPutStrLn)
 import System.Unix.Chroot (useEnv)
 import System.Unix.Directory (removeRecursiveSafely)
@@ -351,9 +352,9 @@ pbuilder top root distro repo _extraEssential _omitEssential _extra =
       -- then add them back in.
     do ePutStrLn ("Creating clean build environment (" ++ relName (sliceListName distro) ++ ")")
        ePutStrLn ("# " ++ cmd top)
-       let codefn _ ExitSuccess = return ()
-           codefn _ failure = error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show failure)
-       liftIO (readProc (shell (cmd top))) >>= liftIO . doOutput >>= foldOutputsL codefn outfn errfn exnfn (return ())
+       let codefn ExitSuccess = return ()
+           codefn failure = error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show failure)
+       liftIO (readProc (shell (cmd top))) >>= liftIO . doOutput >>= foldChunks (\ _ c -> case c of Result code -> codefn code; _ -> return ()) (return ())
        ePutStrLn "done."
        os <- createOSImage root distro repo -- arch?  copy?
        let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
@@ -362,9 +363,6 @@ pbuilder top root distro repo _extraEssential _omitEssential _extra =
        replaceFile sourcesPath' sources
        return os
     where
-      outfn _ _ = return ()
-      errfn _ _ = return ()
-      exnfn _ _ = return ()
       cmd x =
           intercalate " " $ [ "pbuilder"
                             , "--create"
@@ -394,7 +392,7 @@ debootstrap root distro repo include exclude components =
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
       -- then add them back in.
-      readProc (shell cmd) >>= foldOutputsL codefn outfn errfn exnfn (return ())
+      readProc (shell cmd) >>= foldChunks (\ _ c -> case c of Result code -> codefn code; _ -> return ()) (return ())
       ePutStrLn "done."
       os <- createOSImage root distro repo -- arch?  copy?
       let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
@@ -403,11 +401,8 @@ debootstrap root distro repo include exclude components =
       liftIO $ replaceFile sourcesPath' sources
       return os
     where
-      codefn _ ExitSuccess = return ()
-      codefn _ failure = error ("Could not create build environment:\n " ++ cmd ++ " -> " ++ show failure)
-      outfn _ _ = return ()
-      errfn _ _ = return ()
-      exnfn _ _ = return ()
+      codefn ExitSuccess = return ()
+      codefn failure = error ("Could not create build environment:\n " ++ cmd ++ " -> " ++ show failure)
 
       woot = rootPath root
       wootNew = woot ++ ".new"

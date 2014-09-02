@@ -16,7 +16,9 @@ module Debian.Repo.LocalRepository
 import Control.Applicative.Error (Failing(Success, Failure))
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (ByteString, empty)
+import Data.Char (ord)
 import Data.List (groupBy, isPrefixOf, isSuffixOf, partition, sort, sortBy)
+import Data.Monoid (mempty)
 import qualified Data.Set as Set (fromList, member)
 import Data.Text as T (unpack)
 import Data.Time (NominalDiffTime)
@@ -41,9 +43,10 @@ import System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryCo
 import System.Exit (ExitCode(ExitFailure), ExitCode(ExitSuccess))
 import System.FilePath ((</>), splitFileName)
 import qualified System.Posix.Files as F (createLink, getSymbolicLinkStatus, isSymbolicLink, readSymbolicLink, removeLink)
-import System.Process (readProcessWithExitCode, shell, showCommandForUser)
-import System.Process.ListLike (Output)
-import System.Process.Progress (foldOutputsL, runProcessV, timeTask)
+import System.Process (readProcessWithExitCode, CreateProcess(cwd, cmdspec), showCommandForUser, proc)
+import System.Process.Chunks (Chunk(..), readProcessChunks, putIndented, foldChunks)
+import System.Process.ListLike (showCmdSpecForUser)
+import System.Process.Progress (timeTask)
 import System.Process.Read.Verbosity (qPutStrLn)
 import Text.Regex (matchRegex, mkRegex)
 
@@ -191,7 +194,7 @@ uriDest uri =
 -- directory of a remote repository (using dupload.)
 uploadRemote :: LocalRepository		-- ^ Local repository holding the packages.
              -> URI			-- ^ URI of upload repository
-             -> IO [Failing ([Output L.ByteString], NominalDiffTime)]
+             -> IO [Failing ([Chunk L.ByteString], NominalDiffTime)]
 uploadRemote repo uri =
     do uploaded <- uploadFind (outsidePath root) >>=
                    return . Set.fromList . map uploadKey . successes
@@ -317,39 +320,35 @@ acceptM p tag (accept, reject) =
 dupload :: URI		-- user
         -> FilePath	-- The directory containing the .changes file
         -> String	-- The name of the .changes file to upload
-        -> IO (Failing ([Output L.ByteString], NominalDiffTime))
+        -> IO (Failing ([Chunk L.ByteString], NominalDiffTime))
 dupload uri dir changesFile  =
     case uriAuthority uri of
       Nothing -> error ("Invalid Upload-URI: " ++ uriToString' uri)
-      Just auth ->
-          do
-            let config = ("package config;\n" ++
-                          "$cfg{'default'} = {\n" ++
-                          "        fqdn => \"" ++ uriRegName auth ++ uriPort auth ++ "\",\n" ++
-                          "        method => \"scpb\",\n" ++
-	                  "        login => \"" ++ init (uriUserInfo auth) ++ "\",\n" ++
-                          "        incoming => \"" ++ uriPath uri ++ "/incoming\",\n" ++
-                          "        dinstall_runs => 1,\n" ++
-                          "};\n\n" ++
-			  "$preupload{'changes'} = '';\n\n" ++
-                          "1;\n")
-            replaceFile (dir ++ "/dupload.conf") config
-            let cmd = "cd " ++ dir ++ " && dupload --to default -c " ++ changesFile
-            qPutStrLn ("Uploading " ++ show changesFile)
-            (result, elapsed) <-
-                timeTask $ do
-                output <- runProcessV (shell cmd) L.empty
-                foldOutputsL (doCode cmd) ignore ignore ignore (return (Right output)) output
-            qPutStrLn ("Upload finished, elapsed time " ++ show elapsed)
-            return (either (Failure . (: [])) (\ output -> Success (output, elapsed)) result)
+      Just auth -> do
+        let config = ("package config;\n" ++
+                      "$cfg{'default'} = {\n" ++
+                      "        fqdn => \"" ++ uriRegName auth ++ uriPort auth ++ "\",\n" ++
+                      "        method => \"scpb\",\n" ++
+	              "        login => \"" ++ init (uriUserInfo auth) ++ "\",\n" ++
+                      "        incoming => \"" ++ uriPath uri ++ "/incoming\",\n" ++
+                      "        dinstall_runs => 1,\n" ++
+                      "};\n\n" ++
+		      "$preupload{'changes'} = '';\n\n" ++
+                      "1;\n")
+        replaceFile (dir ++ "/dupload.conf") config
+        let cmd = (proc "dupload" ["--to", "default", "-c", changesFile]) {cwd = Just dir}
+        qPutStrLn ("Uploading " ++ show changesFile)
+        (chunks, elapsed) <- timeTask $ readProcessChunks cmd L.empty >>= putIndented (fromIntegral (ord '\n')) " 1> " " 2> "
+        qPutStrLn ("Upload finished, elapsed time " ++ show elapsed)
+        let (code, out) = foldChunks (\ (code, out) chunk -> case chunk of Result x -> (x, out); Stdout _ -> (code, chunk : out); Stderr _ -> (code, chunk : out); _ -> (code, out)) mempty chunks
+        case code of
+          ExitFailure _ ->
+              do let message = "dupload in " ++ dir ++ " failed: " ++ showCmdSpecForUser (cmdspec cmd) ++ " -> " ++ show code
+                 qPutStrLn message
+                 return $ Failure [message]
+          ExitSuccess -> return $ Success (out, elapsed)
 
-doCode :: String -> IO (Either String [Output L.ByteString]) -> ExitCode -> IO (Either String [Output L.ByteString])
-doCode _ result ExitSuccess = result
-doCode cmd _ (ExitFailure n) =
-    let message = "dupload failed: " ++ cmd ++ " -> " ++ show n in
-    qPutStrLn message >> return (Left message)
-
-ignore :: forall a. IO (Either String [Output L.ByteString]) -> a -> IO (Either String [Output L.ByteString])
+ignore :: forall a. IO (Either String [Chunk L.ByteString]) -> a -> IO (Either String [Chunk L.ByteString])
 ignore result _ = result
 
 -- | Move a build result into a local repository's 'incoming' directory.
