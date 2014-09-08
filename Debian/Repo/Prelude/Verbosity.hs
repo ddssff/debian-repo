@@ -20,7 +20,7 @@ import Data.ByteString.Lazy as L (ByteString)
 import System.IO (hPutStr, hPutStrLn, stderr)
 import System.Posix.Env (setEnv, getEnv, unsetEnv)
 import System.Process (CreateProcess)
-import System.Process.ByteString.Lazy (Chunk, readProcessChunks, putIndentedShowCommand)
+import System.Process.ByteString.Lazy (Chunk, readProcessChunks, putIndentedShowCommand, putMappedChunks, insertCommandStart, eraseOutput)
 
 import Control.Exception (evaluate)
 import Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
@@ -76,5 +76,5 @@ readProc p input = do
   v <- verbosity
   case v of
     n | n <= 0 -> liftIO $ readProcessChunks p input
-    -- 1 -> 
+    1 -> liftIO $ readProcessChunks p input >>= putMappedChunks (insertCommandStart p . eraseOutput)
     _ -> liftIO $ readProcessChunks p input >>= putIndentedShowCommand p " 1> " " 1> "
