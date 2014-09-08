@@ -8,10 +8,7 @@ module Debian.Repo.Prelude
     , (~=)
     , (%=)
     , symbol
-#if 0
-    , runProc
-#endif
-    , readProc
+    , Debian.Repo.Prelude.Verbosity.readProc -- re-export
     , rsync
     , checkRsyncExitCode
     , partitionM
@@ -31,8 +28,6 @@ module Debian.Repo.Prelude
 
 import Control.Applicative ((<$>))
 import Control.Monad.State (get, modify, MonadIO, MonadState)
-import Control.Monad.Trans (liftIO)
-import Data.ByteString.Lazy as L (ByteString)
 import Data.Lens.Lazy (getL, Lens, modL)
 import Data.List (group, sort)
 import Data.List as List (map)
@@ -42,13 +37,12 @@ import Debian.Repo.Prelude.Files (getSubDirectories, maybeWriteFile, replaceFile
 import Debian.Repo.Prelude.GPGSign (cd)
 import Debian.Repo.Prelude.List (cartesianProduct, dropPrefix, isSublistOf, listIntersection, partitionM)
 import Debian.Repo.Prelude.Misc (sameInode, sameMd5sum)
+import Debian.Repo.Prelude.Verbosity (ePutStrLn, readProc)
 import Language.Haskell.TH (Exp(LitE), Lit(StringL), Name, nameBase, nameModule, Q)
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
-import System.Process (CreateProcess, proc)
-import System.Process.Chunks (Chunk, readProcessChunks, putIndentedShowCommand, collectProcessTriple)
-import System.Process.String ()
-import Debian.Repo.Prelude.Verbosity (ePutStrLn)
+import System.Process (proc)
+import System.Process.String (collectProcessTriple)
 import Text.Printf (printf)
 
 -- | Perform a list of tasks with log messages.
@@ -101,9 +95,6 @@ runProc p = liftIO $ readProcessChunks p L.empty >>= putIndented nl " 1> " " 2> 
 readProc :: MonadIO m => CreateProcess -> m [Chunk B.ByteString]
 readProc p = quieter 1 $ runProcess p L.empty
 #endif
-
-readProc :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteString]
-readProc p input = liftIO $ readProcessChunks p input >>= putIndentedShowCommand p " 1> " " 1> "
 
 rsync :: forall m. (Functor m, MonadIO m) => [String] -> FilePath -> FilePath -> m ExitCode
 rsync extra source dest =

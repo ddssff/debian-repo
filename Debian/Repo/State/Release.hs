@@ -30,6 +30,7 @@ import Debian.Repo.LocalRepository (LocalRepository, repoReleaseInfoLocal, repoR
 import Debian.Repo.PackageIndex (PackageIndex(packageIndexArch, packageIndexComponent), packageIndexDir, packageIndexes, packageIndexName, releaseDir)
 import qualified Debian.Repo.Prelude.Files as EF (maybeWriteFile, prepareSymbolicLink, writeAndZipFile)
 import qualified Debian.Repo.Prelude.Time as ET (formatDebianDate)
+import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (parseArchitectures, parseComponents, Release(..))
 import Debian.Repo.Repo (Repo)
 import Debian.Repo.State.Repository (repairLocalRepository)
@@ -37,7 +38,6 @@ import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath ((</>))
 import System.Posix.Files (setFileMode)
 import qualified System.Posix.Files as F (fileSize, getFileStatus)
-import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import System.Unix.Directory (removeRecursiveSafely)
 
 -- | Remove all the packages from the repository and then re-create

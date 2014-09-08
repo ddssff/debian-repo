@@ -21,12 +21,12 @@ import qualified Data.Text as T (Text, unpack)
 import qualified Data.Text.IO as T (readFile)
 import Debian.Arch (Arch(..), parseArch)
 import qualified Debian.Control.Text as T (Control'(Control), fieldValue, Paragraph, Paragraph', parseControl)
+import Debian.Repo.Prelude.Verbosity (qPutStr)
 import Debian.Release (parseReleaseName, parseSection', ReleaseName(..), releaseName', Section(..))
 import Debian.URI (dirFromURI, fileFromURI, URI(uriPath), uriToString')
 import Debian.UTF8 as Deb (decode)
 import Prelude hiding (readFile)
 import System.FilePath ((</>))
-import Debian.Repo.Prelude.Verbosity (qPutStr)
 import Text.Regex (mkRegex, splitRegex)
 
 -- |A file whose contents have been read into memory.

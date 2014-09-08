@@ -27,6 +27,7 @@ import Debian.Repo.Internal.Repos (AptKey, evalMonadApt, getAptKey, MonadRepos(.
 import Debian.Repo.PackageID (PackageID(packageName), PackageID(packageVersion))
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage(sourcePackageID))
 import Debian.Repo.Prelude (symbol)
+import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn)
 import Debian.Repo.Slice (NamedSliceList(sliceList, sliceListName), SliceList, SourcesChangedAction)
 import Debian.Repo.SourceTree (DebianBuildTree(debTree'), DebianSourceTree(tree'), HasChangeLog(entry), findDebianBuildTrees, SourceTree(dir'))
 import Debian.Repo.State.PackageIndex (binaryPackagesFromSources, sourcePackagesFromSources)
@@ -34,7 +35,6 @@ import Debian.Repo.State.Slice (updateCacheSources)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion)
 import System.Directory (createDirectoryIfMissing)
-import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn)
 import System.Unix.Directory (removeRecursiveSafely)
 
 instance MonadApt m => MonadApt (StateT EnvRoot m) where
