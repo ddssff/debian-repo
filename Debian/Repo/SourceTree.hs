@@ -36,7 +36,7 @@ import Debian.Repo.Changes (findChangesFiles)
 import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.MonadOS (MonadOS(getOS))
 import Debian.Repo.OSImage (osRoot)
-import Debian.Repo.Prelude (rsync, runProc, getSubDirectories, replaceFile, dropPrefix)
+import Debian.Repo.Prelude (rsync, readProc, getSubDirectories, replaceFile, dropPrefix)
 import qualified Debian.Version as V (version)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist)
 import System.Environment (getEnv, getEnvironment)
@@ -44,8 +44,8 @@ import System.Exit (ExitCode(ExitFailure), ExitCode(ExitSuccess))
 import System.FilePath ((</>))
 import System.IO (hGetContents, IOMode(ReadMode), withFile)
 import System.Process (CmdSpec(..), CreateProcess(cwd, env, cmdspec), proc, readProcessWithExitCode, showCommandForUser)
-import System.Process.Progress (keepResult, timeTask)
-import System.Process.Read.Verbosity (noisier)
+import System.Process.Chunks (collectProcessTriple)
+import Debian.Repo.Prelude.Verbosity (timeTask, noisier)
 import System.Unix.Chroot (useEnv)
 
 class HasTopDir t where
@@ -121,16 +121,16 @@ buildDebs noClean _twice setEnv buildTree decision =
       -- Set LOGNAME so dpkg-buildpackage doesn't die when it fails to
       -- get the original user's login information
       let run cmd = timeTask . useEnv root forceList $
-                    runProc (cmd {env = Just (modEnv (("LOGNAME", Just "root") : setEnv) env0),
-                                  cwd = dropPrefix root path})
+                    readProc (cmd {env = Just (modEnv (("LOGNAME", Just "root") : setEnv) env0),
+                                   cwd = dropPrefix root path}) ""
       _ <- liftIO $ run (proc "chmod" ["ugo+x", "debian/rules"])
       let buildCmd = proc "dpkg-buildpackage" (concat [["-sa"],
                                                        case decision of Arch _ -> ["-B"]; _ -> [],
                                                        if noSecretKey then ["-us", "-uc"] else [],
                                                        if noClean then ["-nc"] else []])
       (result, elapsed) <- liftIO . noisier 4 $ run buildCmd
-      case keepResult result of
-        (ExitFailure n : _) -> fail $ "*** FAILURE: " ++ showCmd (cmdspec buildCmd) ++ " -> " ++ show n
+      case collectProcessTriple result of
+        (ExitFailure n, _, _) -> fail $ "*** FAILURE: " ++ showCmd (cmdspec buildCmd) ++ " -> " ++ show n
         _ -> return elapsed
     where
       path = debdir buildTree

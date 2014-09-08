@@ -50,7 +50,7 @@ import Debian.Repo.Top (MonadTop, runTopT, sub, TopT)
 import Debian.URI (URI')
 import System.IO.Error (isDoesNotExistError)
 import qualified System.Posix.Files as F (removeLink)
-import System.Process.Read.Verbosity (qPutStrLn)
+import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 
 data ReleaseKey = ReleaseKey RepoKey ReleaseName deriving (Eq, Ord, Show)
 

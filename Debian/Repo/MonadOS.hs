@@ -27,15 +27,15 @@ import Debian.Repo.Internal.Repos (MonadRepos, osFromRoot, putOSImage, syncOS)
 import Debian.Repo.LocalRepository (copyLocalRepo)
 import Debian.Repo.OSImage as OS (OSImage(osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
-import Debian.Repo.Prelude (readProc, runProc)
+import Debian.Repo.Prelude (readProc)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
 import System.Directory (createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitFailure))
 import System.FilePath ((</>))
 import System.Process (proc, readProcess)
-import System.Process.Progress (keepResult, timeTask)
-import System.Process.Read.Verbosity (qPutStrLn, quieter)
+import System.Process.Chunks (collectProcessTriple)
+import Debian.Repo.Prelude.Verbosity (qPutStrLn, quieter, timeTask)
 import System.Unix.Chroot (useEnv)
 
 -- | The problem with having an OSImage in the state of MonadOS is
@@ -65,13 +65,13 @@ updateLists = quieter 1 $
     do root <-rootPath . osRoot <$> getOS
        withProc $ liftIO $ do
          qPutStrLn ("Updating OSImage " ++ root)
-         out <- useEnv root forceList (readProc update)
-         _ <- case keepResult out of
-                [ExitFailure _] ->
-                    do _ <- useEnv root forceList (runProc configure)
-                       useEnv root forceList (runProc update)
+         (code, _, _) <- useEnv root forceList (readProc update "") >>= return . collectProcessTriple
+         _ <- case code of
+                ExitFailure _ ->
+                    do _ <- useEnv root forceList (readProc configure "")
+                       useEnv root forceList (readProc update "")
                 _ -> return []
-         (_, elapsed) <- timeTask (useEnv root forceList (runProc upgrade))
+         (_, elapsed) <- timeTask (useEnv root forceList (readProc upgrade ""))
          return elapsed
     where
        update = proc "apt-get" ["update"]
@@ -113,7 +113,7 @@ aptGetInstall :: (MonadOS m, MonadIO m, PkgName n) => [(n, Maybe DebianVersion)]
 aptGetInstall packages =
     do root <- rootPath . osRoot <$> getOS
        liftIO $ useEnv root (return . force) $ do
-         _ <- runProc p
+         _ <- readProc p ""
          return ()
     where
       p = proc "apt-get" args'

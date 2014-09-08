@@ -16,7 +16,6 @@ module Debian.Repo.LocalRepository
 import Control.Applicative.Error (Failing(Success, Failure))
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (ByteString, empty)
-import Data.Char (ord)
 import Data.List (groupBy, isPrefixOf, isSuffixOf, partition, sort, sortBy)
 import Data.Monoid (mempty)
 import qualified Data.Set as Set (fromList, member)
@@ -32,7 +31,7 @@ import Debian.Release (parseReleaseName, ReleaseName(..), releaseName', Section(
 import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath(envPath), outsidePath)
 import Debian.Repo.Fingerprint (readUpstreamFingerprint)
-import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile, rsync)
+import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile, rsync, readProc)
 import Debian.Repo.Prelude.SSH (sshVerify)
 import Debian.Repo.Release (parseReleaseFile, Release)
 import Debian.Repo.Repo (compatibilityFile, libraryCompatibilityLevel, Repo(..), RepoKey(..))
@@ -44,10 +43,9 @@ import System.Exit (ExitCode(ExitFailure), ExitCode(ExitSuccess))
 import System.FilePath ((</>), splitFileName)
 import qualified System.Posix.Files as F (createLink, getSymbolicLinkStatus, isSymbolicLink, readSymbolicLink, removeLink)
 import System.Process (readProcessWithExitCode, CreateProcess(cwd, cmdspec), showCommandForUser, proc)
-import System.Process.Chunks (Chunk(..), readProcessChunks, putIndented, foldChunks)
+import System.Process.Chunks (Chunk(..), foldChunks)
 import System.Process.ListLike (showCmdSpecForUser)
-import System.Process.Progress (timeTask)
-import System.Process.Read.Verbosity (qPutStrLn)
+import Debian.Repo.Prelude.Verbosity (qPutStrLn, timeTask)
 import Text.Regex (matchRegex, mkRegex)
 
 data LocalRepository
@@ -338,7 +336,7 @@ dupload uri dir changesFile  =
         replaceFile (dir ++ "/dupload.conf") config
         let cmd = (proc "dupload" ["--to", "default", "-c", changesFile]) {cwd = Just dir}
         qPutStrLn ("Uploading " ++ show changesFile)
-        (chunks, elapsed) <- timeTask $ readProcessChunks cmd L.empty >>= putIndented (fromIntegral (ord '\n')) " 1> " " 2> "
+        (chunks, elapsed) <- timeTask $ readProc cmd L.empty
         qPutStrLn ("Upload finished, elapsed time " ++ show elapsed)
         let (code, out) = foldChunks (\ (code, out) chunk -> case chunk of Result x -> (x, out); Stdout _ -> (code, chunk : out); Stderr _ -> (code, chunk : out); _ -> (code, out)) mempty chunks
         case code of

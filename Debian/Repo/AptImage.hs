@@ -18,7 +18,7 @@ import Debian.Pretty (pretty)
 import Debian.Relation (PkgName, SrcPkgName(unSrcPkgName))
 import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.Internal.Apt (AptImage(aptImageRoot, aptImageSources), MonadApt(getApt))
-import Debian.Repo.Prelude (runProc)
+import Debian.Repo.Prelude (readProc)
 import Debian.Repo.Slice (NamedSliceList(sliceListName))
 import Debian.Repo.Top (distDir, MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
@@ -68,7 +68,7 @@ aptGetSource :: (MonadIO m, MonadApt m, PkgName n) => FilePath -> [(n, Maybe Deb
 aptGetSource dir packages =
     do args <- aptOpts
        let p = (proc "apt-get" (args ++ ["source"] ++ map formatPackage packages)) {cwd = Just dir}
-       liftIO $ createDirectoryIfMissing True dir >> runProc p >> return ()
+       liftIO $ createDirectoryIfMissing True dir >> readProc p "" >> return ()
     where
       formatPackage (name, Nothing) = show (pretty name)
       formatPackage (name, Just version) = show (pretty name) ++ "=" ++ show (prettyDebianVersion version)
@@ -76,7 +76,7 @@ aptGetSource dir packages =
 aptGetUpdate :: (MonadIO m, MonadApt m) => m ()
 aptGetUpdate =
     do args <- aptOpts
-       _ <- liftIO $ runProc (proc "apt-get" (args ++ ["update"]))
+       _ <- liftIO $ readProc (proc "apt-get" (args ++ ["update"])) ""
        return ()
 
 aptOpts :: MonadApt m => m [String]

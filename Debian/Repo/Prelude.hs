@@ -8,7 +8,9 @@ module Debian.Repo.Prelude
     , (~=)
     , (%=)
     , symbol
+#if 0
     , runProc
+#endif
     , readProc
     , rsync
     , checkRsyncExitCode
@@ -27,35 +29,26 @@ module Debian.Repo.Prelude
     , dropPrefix
     ) where
 
+import Control.Applicative ((<$>))
 import Control.Monad.State (get, modify, MonadIO, MonadState)
 import Control.Monad.Trans (liftIO)
-import qualified Data.ByteString.Lazy as L (empty)
-import qualified Data.ByteString.Lazy.Char8 as B (ByteString)
-import Data.Char (ord)
+import Data.ByteString.Lazy as L (ByteString)
 import Data.Lens.Lazy (getL, Lens, modL)
 import Data.List (group, sort)
 import Data.List as List (map)
-import Data.Monoid ((<>))
-import Data.Text as T (Text, lines)
-import Data.Text.IO as T (hPutStr)
-import Data.Word (Word8)
+import Data.Monoid (mempty)
 import Debian.Repo.Prelude.Bool (cond)
 import Debian.Repo.Prelude.Files (getSubDirectories, maybeWriteFile, replaceFile, writeFileIfMissing)
 import Debian.Repo.Prelude.GPGSign (cd)
 import Debian.Repo.Prelude.List (cartesianProduct, dropPrefix, isSublistOf, listIntersection, partitionM)
 import Debian.Repo.Prelude.Misc (sameInode, sameMd5sum)
-import Debian.UTF8 as Deb (decode)
 import Language.Haskell.TH (Exp(LitE), Lit(StringL), Name, nameBase, nameModule, Q)
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
-import System.IO (stdout, stderr)
-import System.Process (CreateProcess(cmdspec), proc)
-import System.Process.ByteString.Lazy
-import System.Process.ByteString
-import System.Process.Chunks (Chunk(..), readProcessChunks, putIndented)
-import System.Process.Progress (ePutStrLn, keepResult, keepResult)
-import System.Process.ListLike (showCmdSpecForUser)
-import System.Process.Read.Verbosity (quieter, runProcess)
+import System.Process (CreateProcess, proc)
+import System.Process.Chunks (Chunk, readProcessChunks, putIndentedShowCommand, collectProcessTriple)
+import System.Process.String ()
+import Debian.Repo.Prelude.Verbosity (ePutStrLn)
 import Text.Printf (printf)
 
 -- | Perform a list of tasks with log messages.
@@ -85,6 +78,7 @@ l %= f = modify (modL l f)
 symbol :: Name -> Q Exp
 symbol x = return $ LitE (StringL (maybe "" (++ ".") (nameModule x) ++ nameBase x))
 
+#if 0
 -- | Convenience function for running shell commands
 --    1. Runs quietly by default, but that can be controlled by the VERBOSITY environement variable
 --    2. If it exits with an error code all its output is echoed (with prefixes) and an exception is thrown
@@ -106,18 +100,18 @@ runProc p = liftIO $ readProcessChunks p L.empty >>= putIndented nl " 1> " " 2> 
 -- | Like runProc, but does not raise an exception when process exit code is not 0.
 readProc :: MonadIO m => CreateProcess -> m [Chunk B.ByteString]
 readProc p = quieter 1 $ runProcess p L.empty
+#endif
 
-prefixes :: Maybe (B.ByteString, B.ByteString)
-prefixes = Just (" 1> ", " 2> ")
+readProc :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteString]
+readProc p input = liftIO $ readProcessChunks p input >>= putIndentedShowCommand p " 1> " " 1> "
 
-rsync :: (Functor m, MonadIO m) => [String] -> FilePath -> FilePath -> m ExitCode
+rsync :: forall m. (Functor m, MonadIO m) => [String] -> FilePath -> FilePath -> m ExitCode
 rsync extra source dest =
-    do result <- runProc (proc "rsync" (["-aHxSpDt", "--delete"] ++ extra ++
-                                        [dropTrailingPathSeparator source ++ "/",
-                                         dropTrailingPathSeparator dest])) >>= return . keepResult
-       case result of
-         [x] -> return x
-         _ -> error "Missing or multiple exit codes"
+    do let p = proc "rsync" (["-aHxSpDt", "--delete"] ++ extra ++
+                             [dropTrailingPathSeparator source ++ "/",
+                              dropTrailingPathSeparator dest])
+       (result, _, _) <- collectProcessTriple <$> readProc p mempty
+       return result
 
 #if 0
 data RsyncError

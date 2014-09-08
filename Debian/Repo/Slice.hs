@@ -27,7 +27,7 @@ import Debian.Repo.Repo (RepoKey)
 import Debian.Sources (DebSource(..), SliceName, SourceType(..))
 import System.Directory (createDirectoryIfMissing, removeFile)
 import System.IO (hGetLine, stdin)
-import System.Process.Progress (ePutStr, ePutStrLn)
+import Debian.Repo.Prelude.Verbosity (ePutStr, ePutStrLn)
 import System.Unix.Directory (removeRecursiveSafely)
 
 data Slice = Slice {sliceRepoKey :: RepoKey, sliceSource :: DebSource} deriving (Eq, Ord, Show)

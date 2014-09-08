@@ -47,9 +47,9 @@ import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>))
 import System.Posix.Files (createLink, deviceID, fileID, FileStatus, modificationTime)
 import System.Process (shell)
-import System.Process.Chunks (Chunk(Result), foldChunks)
-import System.Process.Progress (collectOutputs, doOutput, ePutStr, ePutStrLn)
-import System.Process.Read.Verbosity (qPutStr, qPutStrLn)
+import System.Process.Chunks (Chunk(Result), foldChunks, collectProcessTriple)
+-- import System.Process.Progress (collectOutputs, doOutput)
+import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn)
 import System.Unix.Chroot (useEnv)
 import System.Unix.Directory (removeRecursiveSafely)
 import System.Unix.Mount (umountBelow)
@@ -185,10 +185,13 @@ localeGen :: OSImage -> String -> IO ()
 localeGen os locale =
     do let root = osRoot os
        qPutStr ("Generating locale " ++  locale ++ " (" ++ stripDist (rootPath root) ++ ")...")
-       result <- try $ useEnv (rootPath root) forceList (readProc (shell cmd)) >>= return . collectOutputs
-       either (\ (e :: SomeException) -> error $ "Failed to generate locale " ++ rootPath root ++ ": " ++ show e)
-              (\ _ -> qPutStrLn "done")
-              result
+       result <- try $ useEnv (rootPath root) forceList (readProc (shell cmd) "")
+       case result of
+         Left (e :: SomeException) -> error $ "Failed to generate locale " ++ rootPath root ++ ": " ++ show e
+         Right output ->
+             case collectProcessTriple output of
+               (ExitSuccess, _, _) -> qPutStrLn "done"
+               (code, _, _) -> error $ "Failed to generate locale " ++ rootPath root ++ ": " ++ cmd ++ " -> " ++ show code
     where
       cmd = "locale-gen " ++ locale
 
@@ -354,7 +357,7 @@ pbuilder top root distro repo _extraEssential _omitEssential _extra =
        ePutStrLn ("# " ++ cmd top)
        let codefn ExitSuccess = return ()
            codefn failure = error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show failure)
-       liftIO (readProc (shell (cmd top))) >>= liftIO . doOutput >>= foldChunks (\ _ c -> case c of Result code -> codefn code; _ -> return ()) (return ())
+       liftIO (readProc (shell (cmd top)) "") >>= return . collectProcessTriple >>= \ (result, _, _) -> codefn result
        ePutStrLn "done."
        os <- createOSImage root distro repo -- arch?  copy?
        let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
@@ -392,7 +395,7 @@ debootstrap root distro repo include exclude components =
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
       -- then add them back in.
-      readProc (shell cmd) >>= foldChunks (\ _ c -> case c of Result code -> codefn code; _ -> return ()) (return ())
+      readProc (shell cmd) "" >>= foldChunks (\ _ c -> case c of Result code -> codefn code; _ -> return ()) (return ())
       ePutStrLn "done."
       os <- createOSImage root distro repo -- arch?  copy?
       let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"

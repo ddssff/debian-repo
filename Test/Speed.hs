@@ -35,7 +35,7 @@ import System.FilePath ((</>))
 import System.IO (hPutStrLn, stderr)
 import System.IO.Error (mkIOError)
 import System.Process.ByteString.Lazy (readProcessWithExitCode)
-import System.Process.Read.Verbosity (qPutStrLn, quieter)
+import Debian.Repo.Prelude.Verbosity (qPutStrLn, quieter)
 
 uriToString' :: URI -> String
 uriToString' uri = uriToString id uri ""

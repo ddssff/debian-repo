@@ -26,7 +26,7 @@ import Debian.URI (dirFromURI, fileFromURI, URI(uriPath), uriToString')
 import Debian.UTF8 as Deb (decode)
 import Prelude hiding (readFile)
 import System.FilePath ((</>))
-import System.Process.Read.Verbosity (qPutStr)
+import Debian.Repo.Prelude.Verbosity (qPutStr)
 import Text.Regex (mkRegex, splitRegex)
 
 -- |A file whose contents have been read into memory.

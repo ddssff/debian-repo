@@ -43,9 +43,9 @@ import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), splitFileName)
 import System.Posix.Env (setEnv)
 import System.Process (readProcessWithExitCode, shell)
-import System.Process.Chunks (readProcessChunks)
-import System.Process.Progress (ePutStrLn, oneResult)
-import System.Process.Read.Verbosity (qPutStrLn, quieter)
+import System.Process.Chunks (collectProcessTriple)
+import Debian.Repo.Prelude (readProc)
+import Debian.Repo.Prelude.Verbosity (ePutStrLn, quieter, qPutStrLn)
 import System.Unix.Chroot (useEnv)
 import System.Unix.Directory (removeRecursiveSafely)
 
@@ -301,5 +301,5 @@ prepareDevs root = do
                      let cmd = "mknod " ++ path ++ " " ++ typ ++ " " ++ show major ++ " " ++ show minor ++ " 2> /dev/null"
                      exists <- doesFileExist path
                      case exists of
-                       False -> readProcessChunks (shell cmd) L.empty >>= return . oneResult
+                       False -> readProc (shell cmd) L.empty >>= return . collectProcessTriple >>= \ (result, _, _) -> return result
                        True -> return ExitSuccess
