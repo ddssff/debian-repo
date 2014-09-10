@@ -64,7 +64,6 @@ updateLists :: (MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m NominalDif
 updateLists = quieter 1 $
     do root <-rootPath . osRoot <$> getOS
        withProc $ liftIO $ do
-         ePutStrLn ("Updating OSImage " ++ root)
          (code, _, _) <- useEnv root forceList (readProcFailing update "") >>= return . collectProcessTriple
          _ <- case code of
                 ExitFailure _ ->

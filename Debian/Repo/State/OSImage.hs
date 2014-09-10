@@ -220,7 +220,6 @@ updateOS = quieter 1 $ do
   -- Disable the starting of services in the changeroot
   _ <- liftIO $ useEnv root (return . force) $ readProcessWithExitCode "dpkg-divert" ["--local", "--rename", "--add", "/sbin/initctl"] ""
   _ <- liftIO $ useEnv root (return . force) $ readProcessWithExitCode "ln" ["-s", "/bin/true", "/sbin/initctl"] ""
-  _elapsed <- updateLists
   code <- liftIO $ sshCopy root
   case code of
     ExitSuccess -> return ()
