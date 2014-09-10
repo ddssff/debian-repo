@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, GeneralizedNewtypeDeriving, MultiParamTypeClasses, OverloadedStrings,
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, GeneralizedNewtypeDeriving, MultiParamTypeClasses, OverloadedStrings,
              PackageImports, ScopedTypeVariables, TemplateHaskell, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 module Debian.Repo.Prelude
@@ -8,9 +8,8 @@ module Debian.Repo.Prelude
     , (~=)
     , (%=)
     , symbol
-    , Debian.Repo.Prelude.Verbosity.readProc -- re-export
+    , Debian.Repo.Prelude.Verbosity.readProcFailing -- re-export
     , rsync
-    , checkRsyncExitCode
     , partitionM
     , maybeWriteFile
     , replaceFile
@@ -26,23 +25,25 @@ module Debian.Repo.Prelude
     , dropPrefix
     ) where
 
-import Control.Applicative ((<$>))
+import Control.Exception (Exception)
 import Control.Monad.State (get, modify, MonadIO, MonadState)
+import Control.Monad.Trans (liftIO)
 import Data.Lens.Lazy (getL, Lens, modL)
 import Data.List (group, sort)
 import Data.List as List (map)
 import Data.Monoid (mempty)
+import Data.Typeable (Typeable)
 import Debian.Repo.Prelude.Bool (cond)
 import Debian.Repo.Prelude.Files (getSubDirectories, maybeWriteFile, replaceFile, writeFileIfMissing)
 import Debian.Repo.Prelude.GPGSign (cd)
 import Debian.Repo.Prelude.List (cartesianProduct, dropPrefix, isSublistOf, listIntersection, partitionM)
 import Debian.Repo.Prelude.Misc (sameInode, sameMd5sum)
-import Debian.Repo.Prelude.Verbosity (ePutStrLn, readProc)
+import Debian.Repo.Prelude.Verbosity (ePutStrLn, readProcLazy', throwProcessResult'', readProcFailing)
 import Language.Haskell.TH (Exp(LitE), Lit(StringL), Name, nameBase, nameModule, Q)
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
-import System.Process (proc)
-import System.Process.String (collectProcessTriple)
+import System.Process (CreateProcess, proc)
+import System.Process.ListLike (collectProcessTriple)
 import Text.Printf (printf)
 
 -- | Perform a list of tasks with log messages.
@@ -96,15 +97,16 @@ readProc :: MonadIO m => CreateProcess -> m [Chunk B.ByteString]
 readProc p = quieter 1 $ runProcess p L.empty
 #endif
 
-rsync :: forall m. (Functor m, MonadIO m) => [String] -> FilePath -> FilePath -> m ExitCode
+rsync :: forall m. (Functor m, MonadIO m) => [String] -> FilePath -> FilePath -> m (ExitCode, String, String)
 rsync extra source dest =
     do let p = proc "rsync" (["-aHxSpDt", "--delete"] ++ extra ++
                              [dropTrailingPathSeparator source ++ "/",
                               dropTrailingPathSeparator dest])
-       (result, _, _) <- collectProcessTriple <$> readProc p mempty
-       return result
+       readProcLazy' p (mempty :: String) >>= liftIO . throwProcessResult'' throwRsyncError p >>= return . collectProcessTriple
 
-#if 0
+#if 1
+instance Exception RsyncError
+
 data RsyncError
     = RsyncSuccess
     | RsyncSyntaxOrUsage
@@ -127,11 +129,12 @@ data RsyncError
     | TimeoutInDataSendReceive
     | TimeoutWaitingForDaemonConnection
     | RsyncUnexpected Int
+    deriving (Typeable, Show)
 
 rsyncError :: Int -> RsyncError
 rsyncError = fst . rsyncErrorInfo
 
-rsyncErrorMessage :: Int -> RsyncError
+rsyncErrorMessage :: Int -> String
 rsyncErrorMessage = snd . rsyncErrorInfo
 
 rsyncErrorInfo :: Int -> (RsyncError, String)
@@ -157,9 +160,10 @@ rsyncErrorInfo 35 = (TimeoutWaitingForDaemonConnection, "rsync: Timeout waiting 
 rsyncErrorInfo n = (RsyncUnexpected n, "Unexpected rsync error: " ++ show n)
 #endif
 
-checkRsyncExitCode :: Monad m => ExitCode -> m ()
-checkRsyncExitCode ExitSuccess = return ()
-checkRsyncExitCode (ExitFailure n) =
+throwRsyncError :: CreateProcess -> ExitCode -> Maybe RsyncError
+throwRsyncError _ ExitSuccess = Nothing
+throwRsyncError _ (ExitFailure n) = Just $ fst $ rsyncErrorInfo n
+#if 0
     case n of
       1 -> error "rsync: Syntax or usage error"
       2 -> error "rsync: Protocol incompatibility"
@@ -181,3 +185,4 @@ checkRsyncExitCode (ExitFailure n) =
       30 -> error "rsync: Timeout in data send/receive"
       35 -> error "rsync: Timeout waiting for daemon connection"
       _ -> error $ "rsync: Unexpected failure " ++ show n
+#endif

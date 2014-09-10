@@ -27,7 +27,7 @@ import Debian.Repo.LocalRepository (LocalRepository)
 import Debian.Repo.OSImage (createOSImage, OSImage(osArch, osBaseDistro, osLocalMaster,
                                                    osRoot, osSourcePackageCache, osBinaryPackageCache),
                             pbuilder, debootstrap, localeGen, neuterEnv, osFullDistro)
-import Debian.Repo.MonadOS (MonadOS(getOS, modifyOS), evalMonadOS, aptGetInstall, updateLists, syncLocalPool, syncOS)
+import Debian.Repo.MonadOS (MonadOS(getOS, modifyOS), evalMonadOS, aptGetInstall, syncLocalPool, syncOS)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
 import Debian.Repo.Prelude (replaceFile)
 import Debian.Repo.Prelude.SSH (sshCopy)
@@ -45,7 +45,7 @@ import System.FilePath ((</>), splitFileName)
 import System.Posix.Env (setEnv)
 import System.Process (readProcessWithExitCode, shell)
 import System.Process.ListLike (collectProcessTriple)
-import Debian.Repo.Prelude (readProc)
+import Debian.Repo.Prelude.Verbosity (readProcFailing)
 import System.Unix.Chroot (useEnv)
 import System.Unix.Directory (removeRecursiveSafely)
 
@@ -301,5 +301,5 @@ prepareDevs root = do
                      let cmd = "mknod " ++ path ++ " " ++ typ ++ " " ++ show major ++ " " ++ show minor ++ " 2> /dev/null"
                      exists <- doesFileExist path
                      case exists of
-                       False -> readProc (shell cmd) L.empty >>= return . collectProcessTriple >>= \ (result, _, _) -> return result
+                       False -> readProcFailing (shell cmd) L.empty >>= return . collectProcessTriple >>= \ (result, _, _) -> return result
                        True -> return ExitSuccess

@@ -37,8 +37,8 @@ import Debian.Repo.EnvPath (EnvPath(EnvPath, envPath, envRoot), EnvRoot(rootPath
 import Debian.Repo.Internal.IO (buildArchOfRoot)
 import Debian.Repo.LocalRepository (copyLocalRepo, LocalRepository)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
-import Debian.Repo.Prelude (isSublistOf, readProc, replaceFile, rsync, checkRsyncExitCode, sameInode, sameMd5sum)
-import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn)
+import Debian.Repo.Prelude (isSublistOf, replaceFile, rsync, sameInode, sameMd5sum)
+import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn, readProcFailing)
 import Debian.Repo.Repo (repoKey, repoURI)
 import Debian.Repo.Slice (NamedSliceList(sliceList), NamedSliceList(sliceListName), Slice(Slice, sliceRepoKey, sliceSource), SliceList(..))
 import Debian.Sources (DebSource(..), DebSource(sourceDist, sourceUri), SourceType(..), SourceType(..))
@@ -169,7 +169,7 @@ syncOS' :: OSImage -> EnvRoot -> IO OSImage
 syncOS' src dst = do
   mkdir
   umount
-  rsync ["--exclude=/work/build/*"] (rootPath (osRoot src)) (rootPath dst) >>= checkRsyncExitCode
+  rsync ["--exclude=/work/build/*"] (rootPath (osRoot src)) (rootPath dst) :: IO (ExitCode, String, String)
   cloneOSImage src dst
     where
       mkdir = createDirectoryIfMissing True (rootPath dst ++ "/work")
@@ -185,7 +185,7 @@ localeGen :: OSImage -> String -> IO ()
 localeGen os locale =
     do let root = osRoot os
        qPutStr ("Generating locale " ++  locale ++ " (" ++ stripDist (rootPath root) ++ ")...")
-       result <- try $ useEnv (rootPath root) forceList (readProc (shell cmd) "")
+       result <- try $ useEnv (rootPath root) forceList (readProcFailing (shell cmd) "")
        case result of
          Left (e :: SomeException) -> error $ "Failed to generate locale " ++ rootPath root ++ ": " ++ show e
          Right output ->
@@ -357,7 +357,7 @@ pbuilder top root distro repo _extraEssential _omitEssential _extra =
        ePutStrLn ("# " ++ cmd top)
        let codefn ExitSuccess = return ()
            codefn failure = error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show failure)
-       liftIO (readProc (shell (cmd top)) "") >>= return . collectProcessTriple >>= \ (result, _, _) -> codefn result
+       liftIO (readProcFailing (shell (cmd top)) "") >>= return . collectProcessTriple >>= \ (result, _, _) -> codefn result
        ePutStrLn "done."
        os <- createOSImage root distro repo -- arch?  copy?
        let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
@@ -395,7 +395,7 @@ debootstrap root distro repo include exclude components =
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
       -- then add them back in.
-      readProc (shell cmd) "" >>= foldChunks (\ _ c -> case c of Result code -> codefn code; _ -> return ()) (return ())
+      readProcFailing (shell cmd) "" >>= foldChunks (\ _ c -> case c of Result code -> codefn code; _ -> return ()) (return ())
       ePutStrLn "done."
       os <- createOSImage root distro repo -- arch?  copy?
       let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"

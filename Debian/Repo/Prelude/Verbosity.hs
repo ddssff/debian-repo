@@ -10,8 +10,10 @@ module Debian.Repo.Prelude.Verbosity
     , noisier
     , withModifiedVerbosity
     , defaultVerbosity
-    , readProc
+    , readProcLazy
+    , readProcLazy'
     , throwProcessResult'
+    , throwProcessResult''
     , throwProcessFailure
     , mapResultM
     , testExit
@@ -19,14 +21,16 @@ module Debian.Repo.Prelude.Verbosity
     , readProcFailing
     ) where
 
+import Control.Exception (Exception)
 import Control.Monad (when)
 import Control.Monad.Catch (MonadMask, bracket)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.ByteString.Lazy as L (ByteString)
+import Data.String (IsString)
 import System.IO (hPutStr, hPutStrLn, stderr)
 import System.Posix.Env (setEnv, getEnv, unsetEnv)
 import System.Process (CreateProcess)
-import System.Process.ByteString.Lazy (Chunk, readProcessChunks, putIndentedShowCommand, putMappedChunks, insertCommandStart, eraseOutput)
+import System.Process.ByteString.Lazy (Chunk, putIndentedShowCommand, putMappedChunks, insertCommandStart, eraseOutput)
 
 import Control.Exception (evaluate)
 import Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
@@ -36,6 +40,7 @@ import System.Exit (ExitCode(..))
 import System.Process.ByteString.Lazy (foldChunk, Chunk(..), showCmdSpecForUser)
 import System.IO.Error (mkIOError)
 import System.Process (CreateProcess(cmdspec, cwd))
+import System.Process.ListLike (ListLikePlus, readProcessChunks)
 import GHC.IO.Exception (IOErrorType(OtherError))
 
 -- | Generalization of Posix setEnv/unSetEnv.
@@ -84,9 +89,18 @@ defaultVerbosity = 0
 verbosity :: MonadIO m => m Int
 verbosity = liftIO $ getEnv "VERBOSITY" >>= return . maybe 1 read
 
--- | Why not IO?
-readProc :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteString]
-readProc p input = do
+-- | Verbosity enabled process reader.  (Why MonadIO and not IO?)
+readProcLazy :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteString]
+readProcLazy p input = do
+  v <- verbosity
+  case v of
+    n | n <= 0 -> liftIO $ readProcessChunks p input
+    1 -> liftIO $ readProcessChunks p input >>= putMappedChunks (insertCommandStart p . eraseOutput)
+    _ -> liftIO $ readProcessChunks p input >>= putIndentedShowCommand p " 1> " " 1> "
+
+-- | Verbosity enabled process reader.  (Why MonadIO and not IO?)
+readProcLazy' :: (ListLikePlus a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
+readProcLazy' p input = do
   v <- verbosity
   case v of
     n | n <= 0 -> liftIO $ readProcessChunks p input
@@ -95,6 +109,9 @@ readProc p input = do
 
 throwProcessResult' :: (ExitCode -> Maybe IOError) -> CreateProcess -> [Chunk a] -> IO [Chunk a]
 throwProcessResult' f p chunks = mapResultM (\ code -> maybe (return $ Result code) (throw $ processException p code) (f code)) chunks
+
+throwProcessResult'' :: Exception e => (CreateProcess -> ExitCode -> Maybe e) -> CreateProcess -> [Chunk a] -> IO [Chunk a]
+throwProcessResult'' f p chunks = mapResultM (\ code -> maybe (return $ Result code) throw (f p code)) chunks
 
 throwProcessFailure :: CreateProcess -> [Chunk a] -> IO [Chunk a]
 throwProcessFailure p = throwProcessResult' (testExit Nothing (Just . processException p . ExitFailure)) p
@@ -113,5 +130,6 @@ processException :: CreateProcess -> ExitCode -> IOError
 processException p code =
     mkIOError OtherError (showCmdSpecForUser (cmdspec p) ++ maybe "" (\ d -> "(in " ++ show d ++ ")") (cwd p) ++ " -> " ++ show code) Nothing Nothing
 
+-- | Verbosity enabled process reader that throws an exception on ExitFailure.
 readProcFailing :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteString]
-readProcFailing p input = readProc p input >>= liftIO . throwProcessFailure p
+readProcFailing p input = readProcLazy p input >>= liftIO . throwProcessFailure p

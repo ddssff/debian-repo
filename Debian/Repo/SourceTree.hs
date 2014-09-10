@@ -36,8 +36,8 @@ import Debian.Repo.Changes (findChangesFiles)
 import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.MonadOS (MonadOS(getOS))
 import Debian.Repo.OSImage (osRoot)
-import Debian.Repo.Prelude (rsync, readProc, getSubDirectories, replaceFile, dropPrefix)
-import Debian.Repo.Prelude.Verbosity (timeTask, noisier)
+import Debian.Repo.Prelude (rsync, getSubDirectories, replaceFile, dropPrefix)
+import Debian.Repo.Prelude.Verbosity (readProcFailing, timeTask, noisier)
 import qualified Debian.Version as V (version)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist)
 import System.Environment (getEnv, getEnvironment)
@@ -121,8 +121,8 @@ buildDebs noClean _twice setEnv buildTree decision =
       -- Set LOGNAME so dpkg-buildpackage doesn't die when it fails to
       -- get the original user's login information
       let run cmd = timeTask . useEnv root forceList $
-                    readProc (cmd {env = Just (modEnv (("LOGNAME", Just "root") : setEnv) env0),
-                                   cwd = dropPrefix root path}) ""
+                    readProcFailing (cmd { env = Just (modEnv (("LOGNAME", Just "root") : setEnv) env0)
+                                         , cwd = dropPrefix root path }) ""
       _ <- liftIO $ run (proc "chmod" ["ugo+x", "debian/rules"])
       let buildCmd = proc "dpkg-buildpackage" (concat [["-sa"],
                                                        case decision of Arch _ -> ["-B"]; _ -> [],
@@ -294,8 +294,8 @@ instance HasSourceTree DebianBuildTree where
         where
           copySource = createDirectoryIfMissing True dest >> rsync [] (topdir' build) dest
           -- copySource = DebianBuildTree <$> pure dest <*> pure (subdir' tree) <*> copySourceTree (debTree' tree) (dest </> subdir' tree)
-          copyTarball (ExitFailure _) = error $ "Failed to copy source tree: " ++ topdir' build ++ " -> " ++ dest
-          copyTarball ExitSuccess =
+          copyTarball (ExitFailure _, _, _) = error $ "Failed to copy source tree: " ++ topdir' build ++ " -> " ++ dest
+          copyTarball (ExitSuccess, _, _) =
               do exists <- liftIO $ doesFileExist origPath
                  case exists of
                    False -> return (ExitSuccess, "", "")

@@ -31,9 +31,9 @@ import Debian.Release (parseReleaseName, ReleaseName(..), releaseName', Section(
 import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath(envPath), outsidePath)
 import Debian.Repo.Fingerprint (readUpstreamFingerprint)
-import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile, rsync, readProc)
+import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile, rsync)
 import Debian.Repo.Prelude.SSH (sshVerify)
-import Debian.Repo.Prelude.Verbosity (qPutStrLn, timeTask)
+import Debian.Repo.Prelude.Verbosity (qPutStrLn, timeTask, readProcFailing)
 import Debian.Repo.Release (parseReleaseFile, Release)
 import Debian.Repo.Repo (compatibilityFile, libraryCompatibilityLevel, Repo(..), RepoKey(..))
 import Debian.URI (URI(uriAuthority, uriPath), URIAuth(uriPort, uriRegName, uriUserInfo), uriToString')
@@ -128,9 +128,9 @@ isSymLink path = F.getSymbolicLinkStatus path >>= return . F.isSymbolicLink
 copyLocalRepo :: MonadIO m => EnvPath -> LocalRepository -> m LocalRepository
 copyLocalRepo dest repo =
     do liftIO $ createDirectoryIfMissing True (outsidePath dest)
-       result <- liftIO $ rsync [] (outsidePath (repoRoot repo)) (outsidePath dest)
+       (result :: (ExitCode, String, String)) <- liftIO $ rsync [] (outsidePath (repoRoot repo)) (outsidePath dest)
        case result of
-         ExitSuccess -> return $ repo {repoRoot = dest}
+         (ExitSuccess, _, _) -> return $ repo {repoRoot = dest}
          code -> error $ "*** FAILURE syncing local repository " ++ src ++ " -> " ++ dst ++ ": " ++ show code
     where
       src = outsidePath (repoRoot repo)
@@ -335,7 +335,7 @@ dupload uri dir changesFile  =
         replaceFile (dir ++ "/dupload.conf") config
         let cmd = (proc "dupload" ["--to", "default", "-c", changesFile]) {cwd = Just dir}
         qPutStrLn ("Uploading " ++ show changesFile)
-        (chunks, elapsed) <- timeTask $ readProc cmd L.empty
+        (chunks, elapsed) <- timeTask $ readProcFailing cmd L.empty
         qPutStrLn ("Upload finished, elapsed time " ++ show elapsed)
         let (code, out) = foldChunks (\ (code, out) chunk -> case chunk of Result x -> (x, out); Stdout _ -> (code, chunk : out); Stderr _ -> (code, chunk : out); _ -> (code, out)) mempty chunks
         case code of
