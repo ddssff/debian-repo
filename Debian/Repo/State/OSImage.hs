@@ -113,18 +113,19 @@ prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optio
        if flushRoot then evalMonadOS (recreate Flushed) cleanRoot else (qPutStrLn ("Updating " ++ show cleanRoot) >>
                                                                         evalMonadOS updateOS cleanRoot `catch` (\ (e :: UpdateError) -> evalMonadOS (recreate e) cleanRoot))
        evalMonadOS (doInclude >> doLocales) cleanRoot
+       when flushDepends (ePutStrLn "sync clean -> depend" >> evalMonadOS (syncOS dependRoot) cleanRoot)
        -- Try running a command in the depend environment, if it fails
        -- sync dependOS from cleanOS.
        dependOS <- osFromRoot dependRoot
-       case dependOS of 
+       case dependOS of
          Nothing -> do (arch :: Either SomeException Arch) <- (liftIO $ try $ useEnv (rootPath dependRoot) return buildArchOfRoot)
                        case arch of
                          Left _ -> evalMonadOS (syncOS dependRoot) cleanRoot
                          Right _ ->
-                             do os <- liftIO (createOSImage dependRoot distro repo)
+                             do ePutStrLn "createOSImage dependRoot?  I don't understand why this would be done."
+                                os <- liftIO (createOSImage dependRoot distro repo)
                                 putOSImage os
          Just _ -> return ()
-       when flushDepends (ePutStrLn "sync clean -> depend" >> evalMonadOS (syncOS dependRoot) cleanRoot)
        evalMonadOS syncLocalPool dependRoot
        return (cleanRoot, dependRoot)
     where

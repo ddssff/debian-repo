@@ -28,7 +28,7 @@ import Debian.Repo.LocalRepository (copyLocalRepo)
 import Debian.Repo.OSImage as OS (OSImage(osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
 import Debian.Repo.Prelude (readProc)
-import Debian.Repo.Prelude.Verbosity (qPutStrLn, quieter, timeTask)
+import Debian.Repo.Prelude.Verbosity (qPutStrLn, quieter, timeTask, ePutStrLn)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
 import System.Directory (createDirectoryIfMissing)
@@ -64,7 +64,7 @@ updateLists :: (MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m NominalDif
 updateLists = quieter 1 $
     do root <-rootPath . osRoot <$> getOS
        withProc $ liftIO $ do
-         qPutStrLn ("Updating OSImage " ++ root)
+         ePutStrLn ("Updating OSImage " ++ root)
          (code, _, _) <- useEnv root forceList (readProc update "") >>= return . collectProcessTriple
          _ <- case code of
                 ExitFailure _ ->
@@ -130,11 +130,12 @@ forceList output = evaluate (length output) >> return output
 -- environment where apt can see and install the packages.  On the
 -- assumption that we are doing this because the pool changed, we also
 -- flush the cached package lists.
-syncLocalPool :: (MonadIO m, MonadOS m) => m ()
+syncLocalPool :: (MonadIO m, MonadOS m, MonadCatch m, MonadMask m) => m ()
 syncLocalPool =
     do os <- getOS
        repo' <- copyLocalRepo (EnvPath {envRoot = osRoot os, envPath = "/work/localpool"}) (osLocalMaster os)
        putOS (os {osLocalCopy = repo'})
+       updateLists
        -- Presumably we are doing this because the pool changed, and
        -- that invalidates the OS package lists.
        osFlushPackageCache
