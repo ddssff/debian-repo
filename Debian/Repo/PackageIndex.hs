@@ -81,7 +81,12 @@ data BinaryPackage
       , pConflicts ::B.Relations
       , pReplaces :: B.Relations
       , pProvides :: B.Relations
-      }
+      } deriving (Show)
+
+-- In a perfect world these would be valid Eq and Ord instances, but
+-- they are not because different builds of the same version can occur
+-- on different machines that are unaware of each other.  These should
+-- be removed.  But they are currently in use.
 
 instance Ord BinaryPackage where
     compare a b = compare (packageID a) (packageID b)

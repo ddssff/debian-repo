@@ -1,4 +1,4 @@
-{-# LANGUAGE PackageImports, ScopedTypeVariables, StandaloneDeriving, TupleSections #-}
+{-# LANGUAGE PackageImports, ScopedTypeVariables, TupleSections #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 
 import Control.DeepSeq (force)
@@ -39,8 +39,6 @@ import Debian.Repo.Prelude.Verbosity (qPutStrLn, quieter)
 
 uriToString' :: URI -> String
 uriToString' uri = uriToString id uri ""
-
-deriving instance Show BinaryPackage
 
 root' :: FilePath
 root' = "/srv/deb/ubuntu"
