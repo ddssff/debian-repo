@@ -37,7 +37,7 @@ import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.MonadOS (MonadOS(getOS))
 import Debian.Repo.OSImage (osRoot)
 import Debian.Repo.Prelude (rsync, getSubDirectories, replaceFile, dropPrefix)
-import Debian.Repo.Prelude.Verbosity (readProcFailing, timeTask, noisier)
+import Debian.Repo.Prelude.Verbosity (readProcFailing, timeTask, noisier, modifyProcessEnv)
 import qualified Debian.Version as V (version)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist)
 import System.Environment (getEnv, getEnvironment)
@@ -120,9 +120,11 @@ buildDebs noClean _twice setEnv buildTree decision =
       env0 <- liftIO getEnvironment
       -- Set LOGNAME so dpkg-buildpackage doesn't die when it fails to
       -- get the original user's login information
-      let run cmd = timeTask . useEnv root forceList $
-                    readProcFailing (cmd { env = Just (modEnv (("LOGNAME", Just "root") : setEnv) env0)
-                                         , cwd = dropPrefix root path }) ""
+      let run cmd =
+              liftIO $ do
+                cmd' <- modifyProcessEnv (("LOGNAME", Just "root") : setEnv) cmd
+                let cmd'' = cmd' {cwd = dropPrefix root path}
+                timeTask $ useEnv root forceList $ readProcFailing cmd'' ""
       _ <- liftIO $ run (proc "chmod" ["ugo+x", "debian/rules"])
       let buildCmd = proc "dpkg-buildpackage" (concat [["-sa"],
                                                        case decision of Arch _ -> ["-B"]; _ -> [],
@@ -136,14 +138,6 @@ buildDebs noClean _twice setEnv buildTree decision =
       path = debdir buildTree
       showCmd (RawCommand cmd args) = showCommandForUser cmd args
       showCmd (ShellCommand cmd) = cmd
-
-modEnv :: [(String, Maybe String)] -> [(String, String)] -> [(String, String)]
-modEnv [] env0 = env0
-modEnv pairs env0 = foldl modEnv1 env0 pairs
--- foldM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a
-
-modEnv1 :: [(String, String)] -> (String, Maybe String) -> [(String, String)]
-modEnv1 env0 (name, mvalue) = maybe [] (\ v -> [(name, v)]) mvalue ++ filter ((/= name) . fst) env0
 
 forceList :: [a] -> IO [a]
 forceList output = evaluate (length output) >> return output

@@ -19,8 +19,11 @@ module Debian.Repo.Prelude.Verbosity
     , testExit
     , processException
     , readProcFailing
+    , insertProcessEnv
+    , modifyProcessEnv
     ) where
 
+import Control.Arrow (second)
 import Control.Exception (Exception)
 import Control.Monad (when)
 import Control.Monad.Catch (MonadMask, bracket)
@@ -29,17 +32,17 @@ import Data.ByteString.Lazy as L (ByteString)
 import Data.String (IsString)
 import System.IO (hPutStr, hPutStrLn, stderr)
 import System.Posix.Env (setEnv, getEnv, unsetEnv)
-import System.Process (CreateProcess)
 import System.Process.ByteString.Lazy (Chunk, putIndentedShowCommand, putMappedChunks, insertCommandStart, eraseOutput)
 
 import Control.Exception (evaluate)
 import Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
 
 import Control.Exception (throw)
+import System.Environment (getEnvironment)
 import System.Exit (ExitCode(..))
 import System.Process.ByteString.Lazy (foldChunk, Chunk(..), showCmdSpecForUser)
 import System.IO.Error (mkIOError)
-import System.Process (CreateProcess(cmdspec, cwd))
+import System.Process (CreateProcess(cmdspec, cwd, env))
 import System.Process.ListLike (ListLikePlus, readProcessChunks)
 import GHC.IO.Exception (IOErrorType(OtherError))
 
@@ -133,3 +136,27 @@ processException p code =
 -- | Verbosity enabled process reader that throws an exception on ExitFailure.
 readProcFailing :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteString]
 readProcFailing p input = readProcLazy p input >>= liftIO . throwProcessFailure p
+
+-- | Set an environment variable in the CreateProcess, initializing it
+-- with what is in the current environment.
+insertProcessEnv :: [(String, String)] -> CreateProcess -> IO CreateProcess
+insertProcessEnv pairs = modifyProcessEnv (map (second Just) pairs)
+{-
+insertEnv pairs p = do
+    pairs' <- maybe (getEnvironment >>= return . (++ pairs)) return (env p)
+    return p {env = Just pairs'}
+
+modEnv :: [(String, Maybe String)] -> [(String, String)] -> [(String, String)]
+modEnv [] env0 = env0
+modEnv pairs env0 = foldl modEnv1 env0 pairs
+-- foldM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a
+-}
+
+modEnv1 :: [(String, String)] -> (String, Maybe String) -> [(String, String)]
+modEnv1 env0 (name, mvalue) = maybe [] (\ v -> [(name, v)]) mvalue ++ filter ((/= name) . fst) env0
+
+modifyProcessEnv :: [(String, Maybe String)] -> CreateProcess -> IO CreateProcess
+modifyProcessEnv pairs p = do
+  env0 <- maybe getEnvironment return (env p)
+  let env' = foldl modEnv1 env0 pairs
+  return $ p {env = Just env'}
