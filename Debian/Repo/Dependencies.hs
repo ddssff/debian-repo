@@ -207,10 +207,10 @@ solutions available relations limit =
 -- alternative to be satisfied.
 testAlternative :: AvailMap (BinaryPackage) -> [[SimpleRelation]] -> Either Excuse [BinaryPackage]
 testAlternative available alternative =
-    if all (/= []) solution then
+    if all (not . null) solution then
         Right (map head solution) else
         Left ("Couldn't satisfy these conditions:\n  " ++
-              intercalate "\n  " (map (show . map prettySimpleRelation) (mask (map (== []) solution) alternative))
+              intercalate "\n  " (map (show . map prettySimpleRelation) (mask (map null solution) alternative))
               {- ++ " using the available packages: " ++ show available -})
     where
       -- solution :: [a]
