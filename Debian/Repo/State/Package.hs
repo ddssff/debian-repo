@@ -31,7 +31,8 @@ import Data.Either (partitionEithers, lefts, rights)
 import Data.Lens.Lazy (getL, modL)
 import Data.Lens.Template (makeLenses)
 import Data.List as List (filter, groupBy, intercalate, intersperse, isSuffixOf, map, partition, sortBy)
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Map as Map (fromList, lookup)
+import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Monoid ((<>), mconcat)
 import Data.Set as Set (difference, empty, fold, fromList, insert, map, member, null, Set, size, toAscList, toList, union, unions, singleton)
 import Data.Text as T (pack, Text, unpack)
@@ -142,10 +143,13 @@ data Problem
     -- and is the right length but its checksum is wrong.
     | InvalidControlInfo FilePath String
     -- ^ Badly formatted control file
-    | DuplicatePackage BinaryPackage
+    | DuplicatePackage Duplicate
     -- ^ A package in incoming has the same ID as a package already in the index
     | OtherProblem String
     deriving (Eq)
+
+data Duplicate
+    = Duplicate {newPackage :: BinaryPackage, oldPackage :: BinaryPackage} deriving (Eq, Show)
 
 instance Show Problem where
     show (NoSuchRelease rel) = "NoSuchRelease  " ++ releaseName' rel
@@ -155,7 +159,7 @@ instance Show Problem where
     show (MissingFromIncoming path) = "MissingFromIncoming " ++ path
     show (MissingFromPool path) = "MissingFromPool " ++ path
     show (BadChecksum path a b) = "BadChecksum " ++ path ++ " " ++ show a ++ " " ++ show b
-    show (DuplicatePackage p) = "DuplicatePackage " ++ show (packageID p)
+    show (DuplicatePackage p) = "DuplicatePackage " ++ show p
     show (InvalidControlInfo path a) = "InvalidControlInfo " ++ path ++ " " ++ show a
     show (OtherProblem s) = "OtherProblem " ++ show s
 
@@ -585,15 +589,22 @@ addPackagesToIndexes pairs =
        case partitionEithers oldPackageLists of
          -- No errors
          ([], oldPackageLists') ->
-             do let newPackageLists = List.map (\ ((release, index), info) -> List.map (toBinaryPackage_ release index) info) pairs
-                -- if none of the new packages are already in the index, add them
-                case concat (List.map (\ (oldList, newList) -> filter (\ new -> any (== (packageID new)) (List.map packageID oldList)) newList) (zip oldPackageLists' newPackageLists)) of
-
+             do -- if none of the new packages are already in the index, add them
+                let newPackageLists = List.map (\ ((release, index), info) -> List.map (toBinaryPackage_ release index) info) pairs
+                    dupes :: [Duplicate]
+                    dupes = concat (List.map (uncurry findDupes) (zip oldPackageLists' newPackageLists))
+                case dupes of
                   [] -> do mapM_ (updateIndex repo) (zip3 indexKeys oldPackageLists' newPackageLists)
                            return Ok
                   dupes -> return $ Failed (List.map DuplicatePackage dupes)
          (bad, _) -> return $ Failed (List.map (OtherProblem . show) bad)
     where
+      findDupes :: [BinaryPackage] -> [BinaryPackage] -> [Duplicate]
+      findDupes oldList newList =
+          -- Assuming here that each package in oldList has a unique packageID
+          let oldMap = Map.fromList (zip (List.map packageID oldList) oldList) in
+          mapMaybe (\ new -> fmap (Duplicate new) (Map.lookup (packageID new) oldMap)) newList
+          -- (\ (oldList, newList) -> filter (\ new -> any (== (packageID new)) (List.map packageID oldList)) newList)
       updateIndex repo ((release, index), oldPackages, newPackages) = liftIO $ putPackages_ repo release index (oldPackages ++ newPackages)
       indexKeys = List.map fst pairs
       indexMemberFn :: [BinaryPackage] -> BinaryPackage -> Bool
@@ -884,7 +895,7 @@ deleteBinaryPackages dry keyname blacklist = do
       put release index (junk, keep) =
           qPutStrLn ("deleteBinaryPackages - removing " ++ show (length junk) ++ " packages from " ++ show (F.pretty (release, index)) ++ ", leaving " ++ show (length keep) {- ++ ":\n " ++ intercalate "\n " (List.map (show . F.pretty . packageID) junk) -}) >>
           putIndex' keyname release index keep
-      allIndexes repo = Set.fold Set.union Set.empty (Set.map (\ r -> Set.fromList (List.map (r,) (packageIndexes r))) (fromList (repoReleaseInfoLocal repo)))
+      allIndexes repo = Set.fold Set.union Set.empty (Set.map (\ r -> Set.fromList (List.map (r,) (packageIndexes r))) (Set.fromList (repoReleaseInfoLocal repo)))
 
       -- (invalid, indexes) = Set.partition (\ (_, i) -> packageIndexArch i == Source) (Set.fromList (List.map (\ (r, i, _) -> (r, i)) (toList packages)))
       -- (source, invalid) = Set.partition (\ (r, i, b) -> packageIndexArch i == Source) (Set.fromList packages)
