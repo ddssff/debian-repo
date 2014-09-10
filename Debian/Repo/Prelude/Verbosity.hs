@@ -11,6 +11,12 @@ module Debian.Repo.Prelude.Verbosity
     , withModifiedVerbosity
     , defaultVerbosity
     , readProc
+    , throwProcessResult'
+    , throwProcessFailure
+    , mapResultM
+    , testExit
+    , processException
+    , readProcFailing
     ) where
 
 import Control.Monad (when)
@@ -24,6 +30,13 @@ import System.Process.ByteString.Lazy (Chunk, readProcessChunks, putIndentedShow
 
 import Control.Exception (evaluate)
 import Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
+
+import Control.Exception (throw)
+import System.Exit (ExitCode(..))
+import System.Process.ByteString.Lazy (foldChunk, Chunk(..), showCmdSpecForUser)
+import System.IO.Error (mkIOError)
+import System.Process (CreateProcess(cmdspec, cwd))
+import GHC.IO.Exception (IOErrorType(OtherError))
 
 -- | Generalization of Posix setEnv/unSetEnv.
 modifyEnv :: String -> (Maybe String -> Maybe String) -> IO ()
@@ -71,6 +84,7 @@ defaultVerbosity = 0
 verbosity :: MonadIO m => m Int
 verbosity = liftIO $ getEnv "VERBOSITY" >>= return . maybe 1 read
 
+-- | Why not IO?
 readProc :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteString]
 readProc p input = do
   v <- verbosity
@@ -78,3 +92,26 @@ readProc p input = do
     n | n <= 0 -> liftIO $ readProcessChunks p input
     1 -> liftIO $ readProcessChunks p input >>= putMappedChunks (insertCommandStart p . eraseOutput)
     _ -> liftIO $ readProcessChunks p input >>= putIndentedShowCommand p " 1> " " 1> "
+
+throwProcessResult' :: (ExitCode -> Maybe IOError) -> CreateProcess -> [Chunk a] -> IO [Chunk a]
+throwProcessResult' f p chunks = mapResultM (\ code -> maybe (return $ Result code) (throw $ processException p code) (f code)) chunks
+
+throwProcessFailure :: CreateProcess -> [Chunk a] -> IO [Chunk a]
+throwProcessFailure p = throwProcessResult' (testExit Nothing (Just . processException p . ExitFailure)) p
+
+mapResultM :: Monad m => (ExitCode -> m (Chunk a)) -> [Chunk a] -> m [Chunk a]
+mapResultM f chunks = mapM (foldChunk (return . ProcessHandle) (return . Stdout) (return . Stderr) (return . Exception) f) chunks
+
+testExit :: a -> (Int -> a) -> ExitCode -> a
+testExit s _ ExitSuccess = s
+testExit _ f (ExitFailure n) = f n
+
+-- | Copied from "System.Process", the exception thrown when the
+-- process started by 'System.Process.readProcess' gets an
+-- 'ExitFailure'.
+processException :: CreateProcess -> ExitCode -> IOError
+processException p code =
+    mkIOError OtherError (showCmdSpecForUser (cmdspec p) ++ maybe "" (\ d -> "(in " ++ show d ++ ")") (cwd p) ++ " -> " ++ show code) Nothing Nothing
+
+readProcFailing :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteString]
+readProcFailing p input = readProc p input >>= liftIO . throwProcessFailure p

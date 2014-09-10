@@ -19,6 +19,7 @@ import Control.Exception (evaluate, SomeException)
 import Control.Monad.Catch (bracket, MonadCatch, MonadMask, throwM, try)
 import Control.Monad.State (MonadState(get), StateT, evalStateT, get)
 import Control.Monad.Trans (liftIO, MonadIO, lift)
+import Data.ByteString.Lazy as L (empty)
 import Data.Time (NominalDiffTime)
 import Debian.Pretty (pretty)
 import Debian.Relation (PkgName, Relations)
@@ -27,14 +28,13 @@ import Debian.Repo.Internal.Repos (MonadRepos, osFromRoot, putOSImage, syncOS)
 import Debian.Repo.LocalRepository (copyLocalRepo)
 import Debian.Repo.OSImage as OS (OSImage(osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
-import Debian.Repo.Prelude (readProc)
-import Debian.Repo.Prelude.Verbosity (qPutStrLn, quieter, timeTask, ePutStrLn)
+import Debian.Repo.Prelude.Verbosity (quieter, timeTask, ePutStrLn, readProcFailing)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
 import System.Directory (createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitFailure))
 import System.FilePath ((</>))
-import System.Process (proc, readProcess)
+import System.Process (proc)
 import System.Process.ListLike (collectProcessTriple)
 import System.Unix.Chroot (useEnv)
 
@@ -65,13 +65,13 @@ updateLists = quieter 1 $
     do root <-rootPath . osRoot <$> getOS
        withProc $ liftIO $ do
          ePutStrLn ("Updating OSImage " ++ root)
-         (code, _, _) <- useEnv root forceList (readProc update "") >>= return . collectProcessTriple
+         (code, _, _) <- useEnv root forceList (readProcFailing update "") >>= return . collectProcessTriple
          _ <- case code of
                 ExitFailure _ ->
-                    do _ <- useEnv root forceList (readProc configure "")
-                       useEnv root forceList (readProc update "")
+                    do _ <- useEnv root forceList (readProcFailing configure "")
+                       useEnv root forceList (readProcFailing update "")
                 _ -> return []
-         (_, elapsed) <- timeTask (useEnv root forceList (readProc upgrade ""))
+         (_, elapsed) <- timeTask (useEnv root forceList (readProcFailing upgrade ""))
          return elapsed
     where
        update = proc "apt-get" ["update"]
@@ -84,13 +84,23 @@ withProc task =
     do root <- rootPath . osRoot <$> getOS
        let proc' = root </> "proc"
            sys = root </> "sys"
-           pre :: m String
-           pre = liftIO (createDirectoryIfMissing True proc' >> readProcess "mount" ["--bind", "/proc", proc'] "" >>
-                         createDirectoryIfMissing True sys >> readProcess "mount" ["--bind", "/sys", sys] "")
-           post :: String -> m String
-           post _s = liftIO $ readProcess "umount" [proc'] "" >> readProcess "umount" [sys] ""
-           task' :: String -> m c
-           task' _s = task
+           pre :: m ()
+           mountProc = proc "mount" ["--bind", "/proc", proc']
+           mountSys = proc "mount" ["--bind", "/sys", sys]
+           umountProc = proc "umount" [proc']
+           umountSys = proc "umount" [sys]
+
+           pre = liftIO (do createDirectoryIfMissing True proc'
+                            readProcFailing mountProc L.empty
+                            createDirectoryIfMissing True sys
+                            readProcFailing mountSys L.empty
+                            return ())
+           post :: () -> m ()
+           post _ = liftIO $ do readProcFailing umountProc L.empty
+                                readProcFailing umountSys L.empty
+                                return ()
+           task' :: () -> m c
+           task' _ = task
        bracket pre post task'
 
 -- | Do an IO task in the build environment with /proc mounted.
@@ -98,11 +108,15 @@ withTmp :: forall m c. (MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m c 
 withTmp task =
     do root <- rootPath . osRoot <$> getOS
        let dir = root </> "tmp"
-           pre :: m String
-           pre = liftIO (createDirectoryIfMissing True dir >> readProcess "mount" ["--bind", "/tmp", dir] "")
-           post :: String -> m String
-           post _ = liftIO $ readProcess "umount" [dir] ""
-           task' :: String -> m c
+           mountTmp = proc "mount" ["--bind", "/tmp", dir]
+           umountTmp = proc "umount" [dir]
+           pre :: m ()
+           pre = liftIO $ do createDirectoryIfMissing True dir
+                             readProcFailing mountTmp L.empty
+                             return ()
+           post :: () -> m ()
+           post _ = liftIO $ readProcFailing umountTmp L.empty >> return ()
+           task' :: () -> m c
            task' _ = try task >>= either (\ (e :: SomeException) -> throwM e) return
        bracket pre post task'
 
@@ -113,7 +127,7 @@ aptGetInstall :: (MonadOS m, MonadIO m, PkgName n) => [(n, Maybe DebianVersion)]
 aptGetInstall packages =
     do root <- rootPath . osRoot <$> getOS
        liftIO $ useEnv root (return . force) $ do
-         _ <- readProc p ""
+         readProcFailing p L.empty
          return ()
     where
       p = proc "apt-get" args'
