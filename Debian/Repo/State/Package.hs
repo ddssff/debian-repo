@@ -149,7 +149,7 @@ data Problem
     deriving (Eq)
 
 data Duplicate
-    = Duplicate {newPackage :: BinaryPackage, oldPackage :: BinaryPackage} deriving (Eq, Show)
+    = Duplicate {release :: Release, index :: PackageIndex, newPackage :: BinaryPackage, oldPackage :: BinaryPackage} deriving (Eq, Show)
 
 instance Show Problem where
     show (NoSuchRelease rel) = "NoSuchRelease  " ++ releaseName' rel
@@ -159,7 +159,7 @@ instance Show Problem where
     show (MissingFromIncoming path) = "MissingFromIncoming " ++ path
     show (MissingFromPool path) = "MissingFromPool " ++ path
     show (BadChecksum path a b) = "BadChecksum " ++ path ++ " " ++ show a ++ " " ++ show b
-    show (DuplicatePackage p) = "DuplicatePackage " ++ show p
+    show (DuplicatePackage (Duplicate rel idx old _new)) = "DuplicatePackage in " ++ show rel ++ ":" ++ show idx ++ ": " ++ show (packageID old)
     show (InvalidControlInfo path a) = "InvalidControlInfo " ++ path ++ " " ++ show a
     show (OtherProblem s) = "OtherProblem " ++ show s
 
@@ -592,18 +592,18 @@ addPackagesToIndexes pairs =
              do -- if none of the new packages are already in the index, add them
                 let newPackageLists = List.map (\ ((release, index), info) -> List.map (toBinaryPackage_ release index) info) pairs
                     dupes :: [Duplicate]
-                    dupes = concat (List.map (uncurry findDupes) (zip oldPackageLists' newPackageLists))
+                    dupes = concat (List.map (\ ((rel, idx), old, new) -> findDupes rel idx old new) (zip3 indexKeys oldPackageLists' newPackageLists))
                 case dupes of
                   [] -> do mapM_ (updateIndex repo) (zip3 indexKeys oldPackageLists' newPackageLists)
                            return Ok
                   dupes -> return $ Failed (List.map DuplicatePackage dupes)
          (bad, _) -> return $ Failed (List.map (OtherProblem . show) bad)
     where
-      findDupes :: [BinaryPackage] -> [BinaryPackage] -> [Duplicate]
-      findDupes oldList newList =
+      findDupes :: Release -> PackageIndex -> [BinaryPackage] -> [BinaryPackage] -> [Duplicate]
+      findDupes rel idx oldList newList =
           -- Assuming here that each package in oldList has a unique packageID
           let oldMap = Map.fromList (zip (List.map packageID oldList) oldList) in
-          mapMaybe (\ new -> fmap (Duplicate new) (Map.lookup (packageID new) oldMap)) newList
+          mapMaybe (\ new -> fmap (Duplicate rel idx new) (Map.lookup (packageID new) oldMap)) newList
           -- (\ (oldList, newList) -> filter (\ new -> any (== (packageID new)) (List.map packageID oldList)) newList)
       updateIndex repo ((release, index), oldPackages, newPackages) = liftIO $ putPackages_ repo release index (oldPackages ++ newPackages)
       indexKeys = List.map fst pairs
