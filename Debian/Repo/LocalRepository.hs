@@ -25,8 +25,7 @@ import Debian.Arch (Arch, parseArch)
 import Debian.Changes (ChangedFileSpec(changedFileName, changedFileSection), ChangesFile(changeDir, changeFiles, changeInfo, changePackage, changeRelease, changeVersion))
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile), fieldValue)
 import qualified Debian.Control.Text as T (fieldValue)
-import Debian.Pretty (Pretty(pretty))
-import qualified Debian.Pretty as F (Pretty(..))
+import Debian.Pretty (PP(..), ppDisplay)
 import Debian.Release (parseReleaseName, ReleaseName(..), releaseName', Section(..), sectionName', SubSection(section))
 import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath(envPath), outsidePath)
@@ -46,6 +45,7 @@ import qualified System.Posix.Files as F (createLink, getSymbolicLinkStatus, isS
 import System.Process (readProcessWithExitCode, CreateProcess(cwd, cmdspec), showCommandForUser, proc)
 import System.Process.ListLike (Chunk(..), foldChunks, showCmdSpecForUser)
 import Text.Regex (matchRegex, mkRegex)
+import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text)
 
 data LocalRepository
     = LocalRepository
@@ -54,10 +54,9 @@ data LocalRepository
       , repoReleaseInfoLocal :: [Release]
       } deriving (Read, Show, Ord, Eq)
 
-instance F.Pretty LocalRepository where
-    pretty (LocalRepository root _ _) =
-        pretty $ show $
-                      URI { uriScheme = "file:"
+instance Pretty (PP LocalRepository) where
+    pPrint (PP (LocalRepository root _ _)) =
+        text $ show $ URI { uriScheme = "file:"
                           , uriAuthority = Nothing
                           , uriPath = envPath root
                           , uriQuery = ""
@@ -198,7 +197,7 @@ uploadRemote repo uri =
        -- Find the changes files
        changesFiles <- findChangesFiles (outsidePath root)
        -- Check that they have not yet been uploaded
-       let changesFiles' = map (\ f -> if notUploaded uploaded f then Success f else Failure ["Already uploaded: " ++ show (pretty f)]) changesFiles
+       let changesFiles' = map (\ f -> if notUploaded uploaded f then Success f else Failure ["Already uploaded: " ++ ppDisplay f]) changesFiles
        -- Create groups of common name and dist, and sort so latest version appears first.
        let changesFileGroups = map (sortBy compareVersions) . groupByNameAndDist $ changesFiles'
        let changesFiles'' = concatMap keepNewest changesFileGroups
@@ -213,7 +212,7 @@ uploadRemote repo uri =
       -- partitionFailing = foldr f ([], []) where f (Failure ms) (msgs, xs) = (ms : msgs, xs)
       --                                           f (Success x) (msgs, xs) = (msgs, x : xs)
       tooOld (Failure x) = Failure x
-      tooOld (Success x) = Failure ["Not the newest version in incoming: " ++ show (pretty x)]
+      tooOld (Success x) = Failure ["Not the newest version in incoming: " ++ ppDisplay x]
       successes (Success x : xs) = x : successes xs
       successes (Failure _ : xs) = successes xs
       successes [] = []

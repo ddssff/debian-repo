@@ -23,7 +23,7 @@ import Data.Text (pack, Text, unpack)
 import Debian.Arch (Arch, parseArch, prettyArch)
 import Debian.Changes (ChangedFileSpec(..), ChangesFile(..), changesFileName, parseChanges)
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile), fieldValue, modifyField, Paragraph'(..))
-import Debian.Pretty (pretty)
+import Debian.Pretty (ppDisplay)
 import Debian.Release (parseReleaseName, parseSection)
 import Debian.Repo.Prelude (replaceFile)
 import Debian.URI ()
@@ -77,7 +77,7 @@ mergeParagraphs paragraphs =
 
 saveChangesFile :: ChangesFile -> IO ()
 saveChangesFile changes =
-    replaceFile path (show (pretty (updateFiles (changeFiles changes) (changeInfo changes))))
+    replaceFile path (ppDisplay (updateFiles (changeFiles changes) (changeInfo changes)))
     where
       path = changeDir changes ++ "/" ++ changesFileName changes
       updateFiles files info =
@@ -151,7 +151,7 @@ parseChecksums text =
       w = "[ \t]+"
 
 showFileList :: [ChangedFileSpec] -> Text
-showFileList files = pack $ concat (map (("\n " <>) . show . pretty) files)
+showFileList files = pack $ concat (map (("\n " <>) . ppDisplay) files)
 
 showSHA1List :: [ChangedFileSpec] -> Text
 showSHA1List files = mconcat (map (("\n " <>) . showSHA1) files)

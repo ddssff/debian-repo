@@ -1,3 +1,9 @@
+haskell-debian-repo (5.68.2) unstable; urgency=low
+
+  * Changes for the new pretty printing system in debian-3.84
+
+ -- David Fox <dsf@seereason.com>  Mon, 15 Sep 2014 14:28:51 -0700
+
 haskell-debian-repo (5.68.1) unstable; urgency=low
 
   * Move source repository to github.com

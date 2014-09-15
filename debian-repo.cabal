@@ -1,5 +1,5 @@
 Name:           debian-repo
-Version:        5.68.1
+Version:        5.68.2
 License:        BSD3
 License-File:	debian/copyright
 Author:         David Fox
@@ -40,9 +40,9 @@ Library
       Build-Depends: hsemail, ListLike, memoize, syb
     else
       Hs-Source-Dirs: ., ../../git/cabal-debian/src
-      Build-Depends: debian >= 3.83.2, hsemail, memoize, syb
+      Build-Depends: debian >= 3.84, hsemail, memoize, syb
   else
-    Build-Depends: cabal-debian >= 4.5, debian >= 3.83.2
+    Build-Depends: cabal-debian >= 4.5, debian >= 3.84
 
   Build-Depends:
         applicative-extras,
@@ -64,6 +64,7 @@ Library
         old-locale,
         old-time,
         parsec >= 3,
+        prettyclass,
         process,
         process-listlike >= 1,
         pureMD5,
@@ -128,7 +129,7 @@ Executable debian-versions
     Hs-Source-Dirs: ., ../../git/debian-haskell
     Build-Depends: applicative-extras, bzlib, bytestring, containers, data-lens, directory, exceptions, filepath, ListLike, network, parsec, process, process-listlike >= 1, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
   else
-    Build-Depends: debian >= 3.83.2, debian-repo >= 5.60
+    Build-Depends: debian >= 3.84, debian-repo >= 5.60
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
@@ -140,7 +141,7 @@ Executable newdist
     Hs-Source-Dirs: ., ../../git/debian-haskell
     Build-Depends: applicative-extras, bzlib, bytestring, containers, data-lens, data-lens-template, directory, exceptions, filepath, ListLike, network, old-locale, old-time, parsec, process, process-listlike >= 1, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
   else
-    Build-Depends: debian >= 3.83.2, debian-repo >= 5.60
+    Build-Depends: debian >= 3.84, debian-repo >= 5.60
 
 Executable speedtest
   Hs-Source-Dirs: Test
@@ -151,7 +152,7 @@ Executable speedtest
   if flag(local-debian)
     Hs-Source-Dirs: ., ../../git/debian-haskell
   else
-    Build-Depends: debian >= 3.83.2, debian-repo >= 5.60
+    Build-Depends: debian >= 3.84, debian-repo >= 5.60
 
 Executable speedtest2
   Hs-Source-Dirs: Test
@@ -162,4 +163,4 @@ Executable speedtest2
   if flag(local-debian)
     Hs-Source-Dirs: ., ../../git/debian-haskell
   else
-    Build-Depends: debian >= 3.83.2, debian-repo >= 5.60
+    Build-Depends: debian >= 3.84, debian-repo >= 5.60

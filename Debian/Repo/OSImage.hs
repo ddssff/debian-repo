@@ -30,7 +30,7 @@ import Data.Data (Data)
 import Data.List (intercalate)
 import Data.Typeable (Typeable)
 import Debian.Arch (Arch)
-import Debian.Pretty (pretty)
+import Debian.Pretty (ppDisplay)
 import Debian.Relation (ParseRelations(parseRelations), Relations)
 import Debian.Release (parseReleaseName, parseSection', ReleaseName(relName))
 import Debian.Repo.EnvPath (EnvPath(EnvPath, envPath, envRoot), EnvRoot(rootPath), outsidePath)
@@ -161,7 +161,7 @@ data UpdateError
     | Flushed
 
 instance Show UpdateError where
-    show (Changed r p l1 l2) = unwords ["Changed", show r, show p, show (pretty l1), show (pretty l2)]
+    show (Changed r p l1 l2) = unwords ["Changed", show r, show p, ppDisplay l1, ppDisplay l2]
     show (Missing r p) = unwords ["Missing", show r, show p]
     show Flushed = "Flushed"
 
@@ -362,7 +362,7 @@ pbuilder top root distro repo _extraEssential _omitEssential _extra =
        os <- createOSImage root distro repo -- arch?  copy?
        let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
        -- Rewrite the sources.list with the local pool added.
-           sources = show $ pretty $ osFullDistro os
+           sources = ppDisplay $ osFullDistro os
        replaceFile sourcesPath' sources
        return os
     where
@@ -400,7 +400,7 @@ debootstrap root distro repo include exclude components =
       os <- createOSImage root distro repo -- arch?  copy?
       let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
       -- Rewrite the sources.list with the local pool added.
-          sources = show $ pretty $ osFullDistro os
+          sources = ppDisplay $ osFullDistro os
       liftIO $ replaceFile sourcesPath' sources
       return os
     where

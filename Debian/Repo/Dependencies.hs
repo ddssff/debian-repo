@@ -25,12 +25,13 @@ import qualified Data.Set as Set (Set, singleton, toList, union)
 import Debian.Arch (Arch(Source, Binary), ArchCPU(..), ArchOS(..))
 import Debian.Control ()
 import qualified Debian.Control.Text as S ()
-import Debian.Pretty (Doc, pretty, text)
+import Debian.Pretty (ppPrint)
 import Debian.Relation (ArchitectureReq(..), BinPkgName(BinPkgName), Relation(..), Relations, VersionReq(..))
 import Debian.Repo.PackageID (PackageID(PackageID, packageName, packageVersion))
 import Debian.Repo.PackageIndex (BinaryPackage, packageID, pProvides)
 import Debian.Repo.Prelude (cartesianProduct)
 import Debian.Version (DebianVersion, parseDebianVersion, prettyDebianVersion)
+import Text.PrettyPrint.HughesPJClass (Doc, text)
 
 type Excuse = String
 
@@ -42,7 +43,7 @@ type SimpleRelation = Maybe (PackageID BinPkgName)
 
 prettySimpleRelation :: SimpleRelation -> Doc
 prettySimpleRelation Nothing = text "Nothing"
-prettySimpleRelation (Just p) = pretty (packageName p) <> text "=" <> prettyDebianVersion (packageVersion p)
+prettySimpleRelation (Just p) = ppPrint (packageName p) <> text "=" <> prettyDebianVersion (packageVersion p)
 
 showSimpleRelation :: PackageID BinPkgName -> String
 showSimpleRelation v = show (prettySimpleRelation (Just v))
@@ -99,7 +100,7 @@ simplifyRelations available relations preferred arch =
                                       let names = packageName (packageID package) : map provides (pProvides package) in
                                       map (\ name -> (name, package)) names) available))
             provides [Rel name Nothing Nothing] = name
-            provides bzzt = error ("Invalid relation in Provides: " ++ show (map pretty bzzt))
+            provides bzzt = error ("Invalid relation in Provides: " ++ show (map ppPrint bzzt))
             relationsOfArch = filter (/= []) (map (nub . filter (testArch arch)) relations)
       prefOrder a b = compare (isPreferred a) (isPreferred b)
           where isPreferred = maybe False (flip elem preferred . packageName)

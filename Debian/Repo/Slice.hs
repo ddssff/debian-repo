@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, PackageImports, StandaloneDeriving, TupleSections #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, PackageImports, StandaloneDeriving, TupleSections #-}
 -- |Types that represent a "slice" of a repository, as defined by a
 -- list of DebSource.  This is called a slice because some sections
 -- may be omitted, and because different repositories may be combined
@@ -19,8 +19,9 @@ module Debian.Repo.Slice
 
 import Control.Exception (Exception)
 import Data.Data (Data)
+import Data.List (intersperse)
 import Data.Typeable (Typeable)
-import Debian.Pretty (Pretty(pretty), vcat)
+import Debian.Pretty (PP(..), ppDisplay, ppPrint)
 import Debian.Release (ReleaseName(relName))
 import Debian.Repo.Prelude (replaceFile)
 import Debian.Repo.Prelude.Verbosity (ePutStr, ePutStrLn)
@@ -29,6 +30,7 @@ import Debian.Sources (DebSource(..), SliceName, SourceType(..))
 import System.Directory (createDirectoryIfMissing, removeFile)
 import System.IO (hGetLine, stdin)
 import System.Unix.Directory (removeRecursiveSafely)
+import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), hcat, text)
 
 data Slice = Slice {sliceRepoKey :: RepoKey, sliceSource :: DebSource} deriving (Eq, Ord, Show)
 
@@ -40,14 +42,14 @@ data NamedSliceList
                      , sliceListName :: SliceName
                      } deriving (Eq, Ord, Show)
 
-instance Pretty SliceList where
-    pretty = vcat . map (pretty . sliceSource) . slices
+instance Pretty (PP SliceList) where
+    pPrint = hcat . intersperse (text "\n") . map (ppPrint . sliceSource) . slices . unPP
 
-instance Pretty NamedSliceList where
-    pretty = pretty . sliceList
+instance Pretty (PP NamedSliceList) where
+    pPrint = ppPrint . sliceList . unPP
 
-instance Pretty ReleaseName where
-    pretty = pretty . relName
+instance Pretty (PP ReleaseName) where
+    pPrint = ppPrint . relName . unPP
 
 deriving instance Show SourceType
 deriving instance Show DebSource
@@ -104,7 +106,7 @@ data UpdateError
 instance Exception UpdateError
 
 instance Show UpdateError where
-    show (Changed r p l1 l2) = unwords ["Changed", show r, show p, show (pretty l1), show (pretty l2)]
+    show (Changed r p l1 l2) = unwords ["Changed", show r, show p, ppDisplay l1, ppDisplay l2]
     show (Missing r p) = unwords ["Missing", show r, show p]
     show Flushed = "Flushed"
 
@@ -119,9 +121,9 @@ doSourcesChangedAction dir sources baseSources fileSources SourcesChangedError =
   ePutStrLn ("The sources.list in the existing '" ++ (relName . sliceListName $ baseSources) ++ "' in " ++ dir ++
              " apt-get environment doesn't match the parameters passed to the autobuilder" ++ ":\n\n" ++
              sources ++ ":\n\n" ++
-             show (pretty fileSources) ++
+             ppDisplay fileSources ++
 	     "\nRun-time parameters:\n\n" ++
-             show (pretty baseSources) ++ "\n" ++
+             ppDisplay baseSources ++ "\n" ++
 	     "It is likely that the build environment in\n" ++
              dir ++ " is invalid and should be rebuilt.")
   ePutStr $ "Remove it and continue (or exit)?  [y/n]: "
@@ -130,18 +132,18 @@ doSourcesChangedAction dir sources baseSources fileSources SourcesChangedError =
     ('y' : _) ->
         do removeRecursiveSafely dir
            createDirectoryIfMissing True dir
-           replaceFile sources (show (pretty baseSources))
+           replaceFile sources (ppDisplay baseSources)
     _ -> error ("Please remove " ++ dir ++ " and restart.")
 
 doSourcesChangedAction dir sources baseSources _fileSources RemoveRelease = do
   ePutStrLn $ "Removing suspect environment: " ++ dir
   removeRecursiveSafely dir
   createDirectoryIfMissing True dir
-  replaceFile sources (show (pretty baseSources))
+  replaceFile sources (ppDisplay baseSources)
 
 doSourcesChangedAction dir sources baseSources _fileSources UpdateSources = do
   -- The sources.list has changed, but it should be
   -- safe to update it.
   ePutStrLn $ "Updating environment with new sources.list: " ++ dir
   removeFile sources
-  replaceFile sources (show (pretty baseSources))
+  replaceFile sources (ppDisplay baseSources)

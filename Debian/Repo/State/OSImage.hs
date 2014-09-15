@@ -17,7 +17,7 @@ import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (empty)
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import qualified Debian.Debianize.Types.Atoms as EnvSet (EnvSet(cleanOS, dependOS))
-import Debian.Pretty (pretty)
+import Debian.Pretty (ppDisplay)
 import Debian.Relation (BinPkgName(BinPkgName))
 import Debian.Release (ReleaseName(relName))
 import Debian.Repo.EnvPath (EnvRoot(EnvRoot, rootPath))
@@ -136,8 +136,8 @@ prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optio
           | ifSourcesChanged == SourcesChangedError =
               error $ "FATAL: Sources for " ++ relName name ++ " in " ++ path ++
                        " don't match computed configuration.\n\ncomputed:\n" ++
-                       show (pretty computed) ++ "\ninstalled:\n" ++
-                       show (pretty installed)
+                       ppDisplay computed ++ "\ninstalled:\n" ++
+                       ppDisplay installed
       recreate reason =
           do let root = EnvSet.cleanOS eset
              base <- osBaseDistro <$> getOS
@@ -149,7 +149,7 @@ prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optio
                          -- ePutStrLn ("createDirectoryIfMissing True " ++ show dist)
                          createDirectoryIfMissing True dist
                          -- ePutStrLn ("writeFile " ++ show sources ++ " " ++ show (show . osBaseDistro $ os))
-                         replaceFile sources (show . pretty $ base)
+                         replaceFile sources (ppDisplay base)
              rebuildOS (EnvRoot root) distro include exclude components
 
       doInclude :: (MonadOS m, MonadIO m, MonadMask m) => m ()

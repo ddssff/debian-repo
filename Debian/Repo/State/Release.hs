@@ -21,7 +21,7 @@ import Data.Text as T (intercalate, pack, Text)
 import Data.Time (getCurrentTime)
 import Debian.Arch (Arch(..), prettyArch)
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile), Field'(Field), fieldValue, Paragraph'(..))
-import Debian.Pretty (pretty)
+import Debian.Pretty (ppDisplay)
 import Debian.Release (ReleaseName, releaseName', Section, sectionName')
 import Debian.Repo.EnvPath (outsidePath)
 import Debian.Repo.Internal.Repos (MonadRepos, findRelease, putRelease)
@@ -129,7 +129,7 @@ writeRelease repo release =
                            S.Field ("Origin", " SeeReason Partners LLC"),
                            S.Field ("Label", " SeeReason")] :: S.Paragraph' Text
              let path = packageIndexDir release index </> "Release"
-             EF.maybeWriteFile (root </> path) (show (pretty para))
+             EF.maybeWriteFile (root </> path) (ppDisplay para)
              return path
       writeMasterRelease :: FilePath -> Release -> IO FilePath
       writeMasterRelease root release =
@@ -148,12 +148,12 @@ writeRelease repo release =
                                      S.Field ("Suite", " " <> (pack . releaseName' . releaseName $ release)),
                                      S.Field ("Codename", " " <> (pack . releaseName' . releaseName $ release)),
                                      S.Field ("Date", " " <> pack timestamp),
-                                     S.Field ("Architectures", " " <> (T.intercalate " " . map (pack . show . pretty) . toList . releaseArchitectures $ release)),
+                                     S.Field ("Architectures", " " <> (T.intercalate " " . map (pack . ppDisplay) . toList . releaseArchitectures $ release)),
                                      S.Field ("Components", " " <> (T.intercalate " " . map (pack . sectionName') . releaseComponents $ release)),
                                      S.Field ("Description", " SeeReason Internal Use - Not Released"),
                                      S.Field ("Md5Sum", "\n" <> pack checksums)] :: S.Paragraph' Text
              let path = "dists" </> (releaseName' . releaseName $ release) </> "Release"
-             liftIO $ EF.maybeWriteFile (root </> path) (show (pretty para))
+             liftIO $ EF.maybeWriteFile (root </> path) (ppDisplay para)
              return path
       indexPaths release index | packageIndexArch index == Source =
           map ((packageIndexDir release index) </>) ["Sources", "Sources.gz", "Sources.bz2", "Sources.diff/Index", "Release"]

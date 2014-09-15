@@ -29,7 +29,7 @@ import Data.Set as Set (Set, toList, toAscList, difference, empty, fromList, map
 import Data.Text (unpack, strip)
 import Data.Typeable (Typeable)
 import qualified Debian.Control.String as S
-import Debian.Pretty (pretty)
+import Debian.Pretty (ppDisplay)
 import Debian.Relation (BinPkgName(..), SrcPkgName)
 import Debian.Repo.Dependencies (readSimpleRelation, showSimpleRelation)
 import Debian.Repo.PackageID (PackageID(packageName, packageVersion))
@@ -227,7 +227,7 @@ showDependencies (Fingerprint {buildDependencyVersions = deps}) = toAscList $ Se
 
 -- | Show the dependency list without the version numbers.
 showDependencies' :: Fingerprint -> [String]
-showDependencies' (Fingerprint {buildDependencyVersions = deps}) = toAscList $ Set.map (show . pretty . packageName) deps
+showDependencies' (Fingerprint {buildDependencyVersions = deps}) = toAscList $ Set.map (ppDisplay . packageName) deps
 
 dependencyChanges :: Maybe DownstreamFingerprint -> Fingerprint -> String
 dependencyChanges old new =

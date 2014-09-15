@@ -14,7 +14,7 @@ import Control.Monad.Trans (liftIO, MonadIO)
 import Data.Data (Data)
 import Data.Typeable (Typeable)
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
-import Debian.Pretty (pretty)
+import Debian.Pretty (ppDisplay)
 import Debian.Relation (PkgName, SrcPkgName(unSrcPkgName))
 import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.Internal.Apt (AptImage(aptImageRoot, aptImageSources), MonadApt(getApt))
@@ -70,8 +70,8 @@ aptGetSource dir packages =
        let p = (proc "apt-get" (args ++ ["source"] ++ map formatPackage packages)) {cwd = Just dir}
        liftIO $ createDirectoryIfMissing True dir >> readProcFailing p "" >> return ()
     where
-      formatPackage (name, Nothing) = show (pretty name)
-      formatPackage (name, Just version) = show (pretty name) ++ "=" ++ show (prettyDebianVersion version)
+      formatPackage (name, Nothing) = ppDisplay name
+      formatPackage (name, Just version) = ppDisplay name ++ "=" ++ show (prettyDebianVersion version)
 
 aptGetUpdate :: (MonadIO m, MonadApt m) => m ()
 aptGetUpdate =

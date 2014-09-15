@@ -4,10 +4,11 @@ module Debian.Repo.RemoteRepository
     ( RemoteRepository(..)
     ) where
 
-import qualified Debian.Pretty as F (Pretty(..))
+import Debian.Pretty (PP(..), ppPrint)
 import Debian.Repo.Release (Release)
 import Debian.Repo.Repo (Repo(repoKey, repoReleaseInfo), RepoKey(Remote))
 import Debian.URI (fromURI', URI')
+import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text)
 
 data RemoteRepository
     = RemoteRepository URI' [Release]
@@ -18,8 +19,8 @@ instance Repo RemoteRepository where
     repoReleaseInfo (RemoteRepository _ info) = info
 
 -- | URI has a bogus show function, which we are using here.
-instance F.Pretty URI' where
-    pretty = F.pretty . show . fromURI'
+instance Pretty (PP URI') where
+    pPrint = text . show . fromURI' . unPP
 
-instance F.Pretty RemoteRepository where
-    pretty (RemoteRepository s _) = F.pretty s
+instance Pretty (PP RemoteRepository) where
+    pPrint (PP (RemoteRepository s _)) = ppPrint s

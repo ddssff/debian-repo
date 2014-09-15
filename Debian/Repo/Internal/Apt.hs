@@ -14,7 +14,7 @@ import Control.Category ((.))
 import Control.Monad.State (MonadState(get, put), StateT)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Debian.Arch (Arch)
-import Debian.Pretty (pretty)
+import Debian.Pretty (ppDisplay)
 import Debian.Release (ReleaseName(relName))
 import Debian.Repo.EnvPath (EnvRoot(EnvRoot, rootPath))
 import Debian.Repo.Internal.IO (buildArchOfRoot)
@@ -75,7 +75,7 @@ createAptImage sources = do
     writeFileIfMissing True (rootPath root ++ "/var/lib/dpkg/diversions") ""
     -- We need to create the local pool before updating so the
     -- sources.list will be valid.
-    let sourceListText = show (pretty (sliceList sources))
+    let sourceListText = ppDisplay (sliceList sources)
     -- ePut ("writeFile " ++ (root ++ "/etc/apt/sources.list") ++ "\n" ++ sourceListText)
     replaceFile (rootPath root ++ "/etc/apt/sources.list") sourceListText
     return apt

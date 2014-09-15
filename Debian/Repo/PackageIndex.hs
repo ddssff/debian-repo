@@ -34,14 +34,15 @@ import Data.Set as Set (map, filter, toList, unions)
 import Data.Text (Text)
 import Debian.Arch (Arch(..), ArchOS(..), ArchCPU(..), prettyArch)
 import qualified Debian.Control.Text as T
-import Debian.Pretty (Pretty(pretty), Doc, text)
 import Debian.Relation (BinPkgName(..), SrcPkgName(..))
 import qualified Debian.Relation as B (Relations)
+import Debian.Pretty (PP(..), ppPrint)
 import Debian.Release (releaseName', Section(..), sectionName')
 import Debian.Repo.PackageID (PackageID(packageName, packageVersion), prettyPackageID)
 import Debian.Repo.Release (Release(..))
 import System.FilePath ((</>))
 import System.Posix.Types (FileOffset)
+import Text.PrettyPrint.HughesPJClass (Doc, Pretty(pPrint), text)
 
 -- | A package index is identified by Section (e.g. main, contrib,
 -- non-free) and architecture (e.g. source, i386, amd64.)
@@ -50,19 +51,19 @@ data PackageIndex
                    , packageIndexArch :: Arch
                    } deriving (Eq, Ord, Show)
 
-instance Pretty PackageIndex where
-    pretty x = pretty (packageIndexComponent x) <> text "_" <> pretty (packageIndexArch x)
+instance Pretty (PP PackageIndex) where
+    pPrint (PP x) = ppPrint (packageIndexComponent x) <> text "_" <> ppPrint (packageIndexArch x)
 
-instance Pretty Section where
-    pretty (Section x) = pretty x
+instance Pretty (PP Section) where
+    pPrint (PP (Section x)) = pPrint x
 
-instance Pretty Arch where
-    pretty Source = text "source"
-    pretty All = text "all"
-    pretty (Binary ArchOSAny ArchCPUAny) = text "any"
-    pretty (Binary (ArchOS os) ArchCPUAny) = pretty os
-    pretty (Binary ArchOSAny (ArchCPU cpu)) = pretty cpu
-    pretty (Binary (ArchOS os) (ArchCPU cpu)) = pretty (os <> "-" <> cpu)
+instance Pretty (PP Arch) where
+    pPrint (PP Source) = text "source"
+    pPrint (PP All) = text "all"
+    pPrint (PP (Binary ArchOSAny ArchCPUAny)) = text "any"
+    pPrint (PP (Binary (ArchOS os) ArchCPUAny)) = ppPrint os
+    pPrint (PP (Binary ArchOSAny (ArchCPU cpu))) = ppPrint cpu
+    pPrint (PP (Binary (ArchOS os) (ArchCPU cpu))) = ppPrint (os <> "-" <> cpu)
 
 {-
 instance PackageVersion BinaryPackage where

@@ -20,7 +20,7 @@ import Data.Monoid ((<>))
 import Data.Text as T (pack, Text, unpack)
 import Debian.Control (Control'(Control), ControlFunctions(parseControl), fieldValue, Paragraph')
 import Debian.Control.Text (decodeParagraph)
-import Debian.Pretty (pretty)
+import Debian.Pretty (ppDisplay)
 import Debian.Release (parseReleaseName, parseSection')
 import Debian.Repo.EnvPath (EnvPath(..), EnvRoot(..), outsidePath)
 import Debian.Repo.Internal.Repos (MonadRepos)
@@ -111,5 +111,5 @@ updateCacheSources sourcesChangedAction baseSources = do
             liftIO (doSourcesChangedAction dir sources baseSources fileSources sourcesChangedAction))
     False -> do
       liftIO $ createDirectoryIfMissing True dir
-      liftIO $ replaceFile sources (show (pretty baseSources))
+      liftIO $ replaceFile sources (ppDisplay baseSources)
   return ()

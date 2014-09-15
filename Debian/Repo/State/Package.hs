@@ -44,8 +44,7 @@ import Debian.Changes (ChangedFileSpec(..), ChangesFile(..), changesFileName)
 import Debian.Control (ControlFunctions(stripWS), formatControl, formatParagraph, Paragraph')
 import qualified Debian.Control.Text as B (appendFields, Control, Control'(Control), ControlFunctions(lookupP), ControlFunctions(parseControlFromHandle), Field, Field'(Field), fieldValue, modifyField, Paragraph, raiseFields, renameField)
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile))
-import Debian.Pretty (cat, pretty, Pretty(..), text)
-import qualified Debian.Pretty as F (Pretty(..))
+import Debian.Pretty (PP(..), ppPrint, ppDisplay)
 import Debian.Relation (BinPkgName, PkgName)
 import qualified Debian.Relation.Text as B (ParseRelations(..), Relations)
 import Debian.Release (parseSection', ReleaseName, releaseName', Section(..), sectionName, sectionName', SubSection(section))
@@ -75,6 +74,7 @@ import qualified System.Posix.Files as F (createLink, fileSize, getFileStatus)
 import System.Posix.Types (FileOffset)
 import System.Process (runInteractiveCommand, waitForProcess)
 import Text.Regex (matchRegex, mkRegex, splitRegex)
+import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text, hcat)
 
 -- | A monad for installing or deleting a repository's packages
 class MonadRepos m => MonadInstall m where
@@ -241,7 +241,7 @@ scanIncoming createSections keyname repo = do
   changes <- liftIO (findChangesFiles (outsidePath (repoRoot repo) </> "incoming"))
   case changes of
     [] -> qPutStrLn "Nothing to install."
-    _ -> qPutStrLn ("To install:\n  " ++ (intercalate "\n  " . List.map (show . pretty) $ changes))
+    _ -> qPutStrLn ("To install:\n  " ++ (intercalate "\n  " . List.map ppDisplay $ changes))
   results <- installPackages createSections keyname repo changes
   case results of
     [] -> return ()
@@ -634,48 +634,48 @@ findLive = do
       changesFilePaths root Pool releases package =
           List.map ((outsidePath root ++ "/installed/") ++) . changesFileNames releases $ package
       changesFileNames releases package =
-          List.map (\ arch -> intercalate "_" [show (pretty (packageName . sourcePackageID $ package)),
+          List.map (\ arch -> intercalate "_" [ppDisplay (packageName . sourcePackageID $ package),
                                                show (prettyDebianVersion . packageVersion . sourcePackageID $ package),
                                                show (prettyArch arch)] ++ ".changes") (toList (architectures releases))
       uploadFilePaths root releases package = Set.map ((outsidePath root ++ "/") ++) . uploadFileNames releases $ package
       uploadFileNames releases package =
-          Set.map (\ arch -> intercalate "_" [show (pretty (packageName . sourcePackageID $ package)),
+          Set.map (\ arch -> intercalate "_" [ppDisplay (packageName . sourcePackageID $ package),
                                               show (prettyDebianVersion . packageVersion . sourcePackageID $ package),
                                               show (prettyArch arch)] ++ ".upload") (architectures releases)
       architectures releases = unions . List.map releaseArchitectures $ releases
 
-instance (F.Pretty r, Repo r) => F.Pretty (r, Release, PackageIndex) where
-    pretty (repo, r, i) = pretty $
-        intercalate "/" [show (F.pretty repo),
+instance (Pretty (PP r), Repo r) => Pretty (PP (r, Release, PackageIndex)) where
+    pPrint (PP (repo, r, i)) = text $
+        intercalate "/" [ppDisplay repo,
                          "dist",
 		         (releaseName' . releaseName $ r),
-		         show (F.pretty (packageIndexComponent i)),
+		         ppDisplay (packageIndexComponent i),
                          show (prettyArch (packageIndexArch i))]
 
-instance F.Pretty (Release, PackageIndex) where
-    pretty (r, i) = pretty $
+instance Pretty (PP (Release, PackageIndex)) where
+    pPrint (PP (r, i)) = text $
         intercalate "/" [(releaseName' . releaseName $ r),
-		         show (F.pretty (packageIndexComponent i)),
+		         ppDisplay (packageIndexComponent i),
                          show (prettyArch (packageIndexArch i))]
 
-instance (F.Pretty r, Repo r) => F.Pretty (r, Release) where
-    pretty (repo, r) = cat [F.pretty repo, text " ", F.pretty r]
+instance (Pretty (PP r), Repo r) => Pretty (PP (r, Release)) where
+    pPrint (PP (repo, r)) = hcat [ppPrint repo, text " ", ppPrint r]
 
-instance F.Pretty Release where
-    pretty r = pretty $ intercalate " " (releaseName' (releaseName r) : List.map (show . F.pretty) (releaseComponents r))
+instance Pretty (PP Release) where
+    pPrint (PP r) = text $ intercalate " " (releaseName' (releaseName r) : List.map ppDisplay (releaseComponents r))
 
-instance F.Pretty (Release, PackageIndex, PackageID BinPkgName) where
-    pretty (r, i, b) = pretty $
+instance Pretty (PP (Release, PackageIndex, PackageID BinPkgName)) where
+    pPrint (PP (r, i, b)) = text $
         intercalate "/" [(releaseName' . releaseName $ r),
-		         show (F.pretty (packageIndexComponent i)),
+		         ppDisplay (packageIndexComponent i),
                          show (prettyArch (packageIndexArch i)),
-                         show (F.pretty b)]
+                         ppDisplay b]
 
-instance PkgName name => F.Pretty (PackageID name) where
-    pretty p = prettyPackageID p -- packageName p ++ "=" ++ show (prettyDebianVersion (packageVersion p))
+instance PkgName name => Pretty (PP (PackageID name)) where
+    pPrint (PP p) = prettyPackageID p -- packageName p ++ "=" ++ show (prettyDebianVersion (packageVersion p))
 
-instance F.Pretty BinaryPackage where
-    pretty p = F.pretty (packageID p)
+instance Pretty (PP BinaryPackage) where
+    pPrint (PP p) = ppPrint (packageID p)
 
 -- |Delete any packages from a dist which are trumped by newer
 -- packages.  These packages are not technically garbage because they
@@ -843,7 +843,7 @@ deleteGarbage = do
 deleteSourcePackages :: MonadInstall m => Bool -> Maybe PGPKey -> [(Release, PackageIndex, PackageID BinPkgName)] -> m [Release]
 deleteSourcePackages _ _ [] = return []
 deleteSourcePackages dry keyname packages =
-    do qPutStrLn ("deleteSourcePackages:\n " ++ intercalate "\n " (List.map (show . F.pretty . (\ (_, _, x) -> x)) packages))
+    do qPutStrLn ("deleteSourcePackages:\n " ++ intercalate "\n " (List.map (ppDisplay . (\ (_, _, x) -> x)) packages))
        releases <- (Set.fromList . repoReleaseInfoLocal . getL repository) <$> getInstall
        mapM doIndex (Set.toList (allIndexes releases))
     where
@@ -853,7 +853,7 @@ deleteSourcePackages dry keyname packages =
         qPutStrLn ("deleteSourcePackages - nothing to remove from " ++ show index)
         return release
       put release index (junk, keep) = do
-        qPutStrLn ("deleteSourcePackages  - Removing packages from " ++ show (F.pretty (release, index)) ++ ":\n  " ++ intercalate "\n " (List.map (show . F.pretty . packageID) junk))
+        qPutStrLn ("deleteSourcePackages  - Removing packages from " ++ ppDisplay (release, index) ++ ":\n  " ++ intercalate "\n " (List.map (ppDisplay . packageID) junk))
         putIndex' keyname release index keep
       allIndexes releases = Set.fold Set.union Set.empty (Set.map (\ r -> Set.fromList (List.map (r,) (packageIndexes r))) releases) -- concatMap allIndexes (Set.toList indexes)
       -- (indexes, invalid) = Set.partition (\ (_, i) -> packageIndexArch i == Source) (Set.fromList (List.map (\ (r, i, _) -> (r, i)) (repoReleaseInfoLocal repo)))
@@ -893,7 +893,7 @@ deleteBinaryPackages dry keyname blacklist = do
           qPutStrLn ("deleteBinaryPackages - nothing to remove from " ++ show index) >>
           return release
       put release index (junk, keep) =
-          qPutStrLn ("deleteBinaryPackages - removing " ++ show (length junk) ++ " packages from " ++ show (F.pretty (release, index)) ++ ", leaving " ++ show (length keep) {- ++ ":\n " ++ intercalate "\n " (List.map (show . F.pretty . packageID) junk) -}) >>
+          qPutStrLn ("deleteBinaryPackages - removing " ++ show (length junk) ++ " packages from " ++ ppDisplay (release, index) ++ ", leaving " ++ show (length keep) {- ++ ":\n " ++ intercalate "\n " (List.map (show . F.pretty . packageID) junk) -}) >>
           putIndex' keyname release index keep
       allIndexes repo = Set.fold Set.union Set.empty (Set.map (\ r -> Set.fromList (List.map (r,) (packageIndexes r))) (Set.fromList (repoReleaseInfoLocal repo)))
 

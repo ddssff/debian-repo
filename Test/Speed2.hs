@@ -8,7 +8,7 @@ import Data.Text.IO as T
 import Data.Word (Word8)
 import Debian.Control
 import Debian.Control.Text as T (parseControl, decodeControl)
-import Debian.Pretty (pretty, render)
+import Debian.Pretty (ppDisplay')
 import System.Environment (getArgs)
 import Text.Parsec.Error
 
@@ -28,7 +28,7 @@ main =
              ("text4" : _) ->  (parseControlFromFile "/srv/deb/ubuntu/dists/precise-seereason/main/binary-i386/Packages" :: IO (Either ParseError (Control' B.ByteString))) >>= either (error . show) (return . useControl . T.decodeControl)
 
 useControl :: Control' Text -> Int
-useControl = force . T.length . render . pretty
+useControl = force . T.length . ppDisplay'
 
 
 decode :: B.ByteString -> T.Text
