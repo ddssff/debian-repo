@@ -99,11 +99,11 @@ withProc task =
            post :: () -> m ()
            post _ = liftIO $ do readProcFailing umountProc L.empty
                                   `catch` (\ (e :: IOError) ->
-                                               ePutStrLn ("Exception unmounting proc, trying lazy: " ++ e) >>
+                                               ePutStrLn ("Exception unmounting proc, trying lazy: " ++ show e) >>
                                                readProcFailing umountProcLazy L.empty)
                                 readProcFailing umountSys L.empty
                                   `catch` (\ (e :: IOError) ->
-                                               ePutStrLn ("Exception unmounting sys, trying lazy: " ++ e) >>
+                                               ePutStrLn ("Exception unmounting sys, trying lazy: " ++ show e) >>
                                                readProcFailing umountSysLazy L.empty)
                                 return ()
            task' :: () -> m c
