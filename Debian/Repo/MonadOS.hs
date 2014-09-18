@@ -15,7 +15,7 @@ module Debian.Repo.MonadOS
 
 import Control.Applicative ((<$>))
 import Control.DeepSeq (force)
-import Control.Exception (evaluate, SomeException)
+import Control.Exception (evaluate, SomeException, catch)
 import Control.Monad.Catch (bracket, MonadCatch, MonadMask, throwM, try)
 import Control.Monad.State (MonadState(get), StateT, evalStateT, get)
 import Control.Monad.Trans (liftIO, MonadIO, lift)
@@ -28,7 +28,7 @@ import Debian.Repo.Internal.Repos (MonadRepos, osFromRoot, putOSImage, syncOS)
 import Debian.Repo.LocalRepository (copyLocalRepo)
 import Debian.Repo.OSImage as OS (OSImage(osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
-import Debian.Repo.Prelude.Verbosity (quieter, timeTask, readProcFailing)
+import Debian.Repo.Prelude.Verbosity (quieter, timeTask, readProcFailing, ePutStrLn)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
 import System.Directory (createDirectoryIfMissing)
@@ -88,6 +88,8 @@ withProc task =
            mountSys = proc "mount" ["--bind", "/sys", sys]
            umountProc = proc "umount" [proc']
            umountSys = proc "umount" [sys]
+           umountProcLazy = proc "umount" ["-l", proc']
+           umountSysLazy = proc "umount" ["-l", sys]
 
            pre = liftIO (do createDirectoryIfMissing True proc'
                             readProcFailing mountProc L.empty
@@ -96,7 +98,13 @@ withProc task =
                             return ())
            post :: () -> m ()
            post _ = liftIO $ do readProcFailing umountProc L.empty
+                                  `catch` (\ (e :: IOError) ->
+                                               ePutStrLn ("Exception unmounting proc, trying lazy: " ++ e) >>
+                                               readProcFailing umountProcLazy L.empty)
                                 readProcFailing umountSys L.empty
+                                  `catch` (\ (e :: IOError) ->
+                                               ePutStrLn ("Exception unmounting sys, trying lazy: " ++ e) >>
+                                               readProcFailing umountSysLazy L.empty)
                                 return ()
            task' :: () -> m c
            task' _ = task
