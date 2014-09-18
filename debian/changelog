@@ -612,4 +612,3 @@ haskell-debian-repo (5.0) unstable; urgency=low
     from the autobuilder package
 
  -- David Fox <dsf@seereason.com>  Wed, 18 Feb 2009 08:52:03 -0800
-

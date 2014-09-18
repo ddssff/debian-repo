@@ -1,58 +1,44 @@
 Source: haskell-debian-repo
-Priority: optional
-Section: haskell
 Maintainer: David Fox <dsf@seereason.com>
+Priority: extra
+Section: haskell
 Build-Depends: debhelper (>= 7.0)
                , haskell-devscripts (>= 0.8)
                , cdbs
                , ghc
                , ghc-prof
+               , libghc-extra-dev
+               , libghc-extra-prof
                , libghc-haxml-dev
                , libghc-haxml-prof
+               , libghc-listlike-dev
+               , libghc-listlike-prof
                , libghc-mime-dev
                , libghc-mime-prof
-               , libghc-unixutils-dev (>= 1.51)
-               , libghc-unixutils-prof (>= 1.51)
-               , libghc-ansi-wl-pprint-dev
-               , libghc-ansi-wl-pprint-prof
+               , libghc-unixutils-dev (>= 1.52.3)
+               , libghc-unixutils-prof (>= 1.52.3)
                , libghc-applicative-extras-dev
                , libghc-applicative-extras-prof
-               , libghc-base-dev | ghc
-               , libghc-base-prof | ghc-prof
-               , libghc-bytestring-dev | ghc
-               , libghc-bytestring-prof | ghc-prof
                , libghc-bzlib-dev
                , libghc-bzlib-prof
-               , libghc-cabal-debian-dev
-               , libghc-cabal-debian-prof
-               , libghc-containers-dev | ghc
-               , libghc-containers-prof | ghc-prof
+               , libghc-cabal-debian-dev (>= 4.5)
+               , libghc-cabal-debian-prof (>= 4.5)
                , libghc-data-lens-dev
                , libghc-data-lens-prof
                , libghc-data-lens-template-dev
                , libghc-data-lens-template-prof
-               , libghc-debian-dev (>= 3.83.2)
-               , libghc-debian-prof (>= 3.83.2)
-               , libghc-deepseq-dev | ghc
-               , libghc-deepseq-prof | ghc-prof
-               , libghc-directory-dev | ghc
-               , libghc-directory-prof | ghc-prof
-               , libghc-exceptions-dev
-               , libghc-exceptions-prof
-               , libghc-filepath-dev | ghc
-               , libghc-filepath-prof | ghc-prof
+               , libghc-debian-dev (>= 3.84)
+               , libghc-debian-prof (>= 3.84)
+               , libghc-exceptions-dev (>= 0.6)
+               , libghc-exceptions-prof (>= 0.6)
                , libghc-mtl-dev
                , libghc-mtl-prof
-               , libghc-network-dev
-               , libghc-network-prof
-               , libghc-old-locale-dev | ghc
-               , libghc-old-locale-prof | ghc-prof
-               , libghc-old-time-dev | ghc
-               , libghc-old-time-prof | ghc-prof
+               , libghc-network-uri-dev
+               , libghc-network-uri-prof
                , libghc-parsec3-dev (>= 3)
                , libghc-parsec3-prof (>= 3)
-               , libghc-process-dev | ghc
-               , libghc-process-prof | ghc-prof
+               , libghc-prettyclass-dev
+               , libghc-prettyclass-prof
                , libghc-process-listlike-dev (>= 1)
                , libghc-process-listlike-prof (>= 1)
                , libghc-puremd5-dev
@@ -61,112 +47,99 @@ Build-Depends: debhelper (>= 7.0)
                , libghc-regex-compat-prof
                , libghc-regex-tdfa-dev
                , libghc-regex-tdfa-prof
-               , libghc-template-haskell-dev | ghc
-               , libghc-template-haskell-prof | ghc-prof
+               , libghc-syb-dev
+               , libghc-syb-prof
                , libghc-text-dev
                , libghc-text-prof
-               , libghc-time-dev | ghc
-               , libghc-time-prof | ghc-prof
-               , libghc-unix-dev | ghc
-               , libghc-unix-prof | ghc-prof
                , libghc-utf8-string-dev
                , libghc-utf8-string-prof
                , libghc-zlib-dev
                , libghc-zlib-prof
+               , libghc-unixutils-dev
+               , libghc-unixutils-prof
+               , libghc-cabal-debian-dev
+               , libghc-cabal-debian-prof
+               , libghc-exceptions-dev
+               , libghc-exceptions-prof
+               , libghc-parsec3-dev (>= 3) | libghc-parsec2-dev (<< 3)
+               , libghc-parsec3-prof (>= 3) | libghc-parsec2-prof (<< 3)
 Build-Depends-Indep: ghc-doc
+                     , libghc-extra-doc
                      , libghc-haxml-doc
+                     , libghc-listlike-doc
                      , libghc-mime-doc
-                     , libghc-unixutils-doc (>= 1.51)
-                     , libghc-ansi-wl-pprint-doc
+                     , libghc-unixutils-doc (>= 1.52.3)
                      , libghc-applicative-extras-doc
-                     , libghc-base-doc | ghc-doc
-                     , libghc-bytestring-doc | ghc-doc
                      , libghc-bzlib-doc
-                     , libghc-cabal-debian-doc
-                     , libghc-containers-doc | ghc-doc
+                     , libghc-cabal-debian-doc (>= 4.5)
                      , libghc-data-lens-doc
                      , libghc-data-lens-template-doc
-                     , libghc-debian-doc (>= 3.83.2)
-                     , libghc-deepseq-doc | ghc-doc
-                     , libghc-directory-doc | ghc-doc
-                     , libghc-exceptions-doc
-                     , libghc-filepath-doc | ghc-doc
+                     , libghc-debian-doc (>= 3.84)
+                     , libghc-exceptions-doc (>= 0.6)
                      , libghc-mtl-doc
-                     , libghc-network-doc
-                     , libghc-old-locale-doc | ghc-doc
-                     , libghc-old-time-doc | ghc-doc
+                     , libghc-network-uri-doc
                      , libghc-parsec3-doc (>= 3)
-                     , libghc-process-doc | ghc-doc
+                     , libghc-prettyclass-doc
                      , libghc-process-listlike-doc (>= 1)
                      , libghc-puremd5-doc
                      , libghc-regex-compat-doc
                      , libghc-regex-tdfa-doc
-                     , libghc-template-haskell-doc | ghc-doc
+                     , libghc-syb-doc
                      , libghc-text-doc
-                     , libghc-time-doc | ghc-doc
-                     , libghc-unix-doc | ghc-doc
                      , libghc-utf8-string-doc
                      , libghc-zlib-doc
-Standards-Version: 3.9.3
-Homepage: http://src.seereason.com/haskell-debian-repo
+X-Description: Modules for working with Debian repositories
+ This library includes modules covering the management of Debian
+ package repositories, local caches of remote debian repositories,
+ and Debian build environments.
 
 Package: libghc-debian-repo-dev
 Architecture: any
-Section: libdevel
-Depends: ${haskell:Depends},
-         debootstrap
-Conflicts: build-env
-Replaces: build-env
-Description: Modules for working with the Debian package system
-  This library includes modules covering almost every aspect of the Debian
-  packaging system, including low level data types such as version numbers
-  and dependency relations, on up to the types necessary for computing and
-  installing build dependencies, building source and binary packages,
-  and inserting them into a repository.
+Depends: ${haskell:Depends}
+         , ${misc:Depends}
+         , ${shlibs:Depends}
+Recommends: ${haskell:Recommends}
+Suggests: ${haskell:Suggests}
+Conflicts: ${haskell:Conflicts}
+Provides: ${haskell:Provides}
+Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
+  ${haskell:LongDescription}
   .
-  Author: David Fox
-  .
-  This package contains the normal library files.
+  ${haskell:Blurb}
 
 Package: libghc-debian-repo-prof
 Architecture: any
-Section: libdevel
-Depends: ${haskell:Depends},
-         libghc-debian-repo-dev
-Description: Modules for working with the Debian package system
-  This library includes modules covering almost every aspect of the Debian
-  packaging system, including low level data types such as version numbers
-  and dependency relations, on up to the types necessary for computing and
-  installing build dependencies, building source and binary packages,
-  and inserting them into a repository.
+Depends: ${haskell:Depends}
+         , ${misc:Depends}
+Recommends: ${haskell:Recommends}
+Suggests: ${haskell:Suggests}
+Conflicts: ${haskell:Conflicts}
+Provides: ${haskell:Provides}
+Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
+  ${haskell:LongDescription}
   .
-  Author: David Fox
-  .
-  This package contains the profiling library files.
+  ${haskell:Blurb}
 
 Package: libghc-debian-repo-doc
-Architecture: any
-Section: libdevel
-Depends: ${haskell:Depends},
-         libghc-haxml-doc
-Description: Modules for working with the Debian package system
-  This library includes modules covering almost every aspect of the Debian
-  packaging system, including low level data types such as version numbers
-  and dependency relations, on up to the types necessary for computing and
-  installing build dependencies, building source and binary packages,
-  and inserting them into a repository.
+Architecture: all
+Section: doc
+Depends: ${haskell:Depends}
+         , ${misc:Depends}
+Recommends: ${haskell:Recommends}
+Suggests: ${haskell:Suggests}
+Conflicts: ${haskell:Conflicts}
+Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
+  ${haskell:LongDescription}
   .
-  Author: David Fox
-  .
-  This package contains the documentation files.
+  ${haskell:Blurb}
 
 Package: newdist
 Replaces: autobuilder-newdist
 Conflicts: autobuilder-newdist
 Section: devel
 Architecture: any
-Depends: ${shlibs:Depends},
-         ${haskell:Depends},
-         dpkg-dev
+Depends: ${haskell:Depends}
+         , ${misc:Depends}
+         , dpkg-dev
 Suggests: seereason-keyring
 Description: Debian pool manager
