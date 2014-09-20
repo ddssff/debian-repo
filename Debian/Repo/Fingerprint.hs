@@ -32,7 +32,6 @@ import Debian.Repo.Dependencies (readSimpleRelation, showSimpleRelation)
 import Debian.Repo.PackageID (PackageID(packageName, packageVersion))
 import Debian.Repo.PackageIndex (SourcePackage(sourceParagraph, sourcePackageID))
 import Debian.Version (DebianVersion, parseDebianVersion, prettyDebianVersion)
-import Distribution.Compiler (CompilerFlavor)
 import Extra.Misc(columns)
 
 -- | The methods we know for obtaining source code.
@@ -60,7 +59,7 @@ data RetrieveMethod
     | Twice RetrieveMethod                   -- ^ Perform the build twice (should be a package flag)
     | Uri String String                      -- ^ Download a tarball from the URI.  The checksum is used to implement caching.
     | Zero                                   -- ^ Nothing, do not build
-    deriving (Read, Show, Eq, Data, Typeable)
+    deriving (Read, Show, Data, Typeable)
 
 -- | If there is some identifying characteristic of the source tree
 -- resulting from a retrieve, use a set of RetrieveResult values to
@@ -105,7 +104,7 @@ data Fingerprint
           -- ^ The names and version numbers of the build dependencies which
           -- were present when the package was build.
         }
-    deriving (Show, Eq)
+    deriving Show
 
 data DownstreamFingerprint
     = DownstreamFingerprint
