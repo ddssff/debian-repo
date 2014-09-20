@@ -49,6 +49,7 @@ Library
         base,
         bytestring,
         bzlib,
+        Cabal,
         containers,
         data-lens,
         data-lens-template,

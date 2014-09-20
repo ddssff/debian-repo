@@ -3,12 +3,10 @@ module Debian.Repo.Fingerprint
     ( RetrieveMethod(..)
     , RetrieveAttribute(..)
     , GitSpec(..)
-    , DebSpec(..)
     , Fingerprint(..)
     , readUpstreamFingerprint
     , DownstreamFingerprint(..)
     , packageFingerprint
-    , modernizeMethod
     , showFingerprint
     , dependencyChanges
     , showDependencies
@@ -23,24 +21,25 @@ import Data.Char (isSpace)
 import Control.Applicative.Error (maybeRead)
 import Data.ByteString (ByteString)
 import Data.Data (Data)
-import Data.Generics (everywhere, mkT)
 import Data.List as List (intercalate, map)
 import Data.Set as Set (Set, toList, toAscList, difference, empty, fromList, map, filter)
 import Data.Text (unpack, strip)
 import Data.Typeable (Typeable)
 import qualified Debian.Control.String as S
 import Debian.Pretty (ppDisplay)
-import Debian.Relation (BinPkgName(..), SrcPkgName)
+import Debian.Relation (BinPkgName(..))
 import Debian.Repo.Dependencies (readSimpleRelation, showSimpleRelation)
 import Debian.Repo.PackageID (PackageID(packageName, packageVersion))
 import Debian.Repo.PackageIndex (SourcePackage(sourceParagraph, sourcePackageID))
 import Debian.Version (DebianVersion, parseDebianVersion, prettyDebianVersion)
+import Distribution.Compiler (CompilerFlavor)
 import Extra.Misc(columns)
 
 -- | The methods we know for obtaining source code.
 data RetrieveMethod
     = Apt String String                      -- ^ Apt dist name - download using apt-get (FIXME: Apt String SrcPkgName would be better, but that breaks read/show)
     | Bzr String                             -- ^ Download from a Bazaar repository
+    | Cabal CompilerFlavor RetrieveMethod    -- ^ Yet another replacement for the old Debianize methods.
     | Cd FilePath RetrieveMethod             -- ^ Get the source code from a subdirectory of another download
     | Darcs String                           -- ^ Download from a Darcs repository
     | DataFiles RetrieveMethod RetrieveMethod FilePath
@@ -49,7 +48,6 @@ data RetrieveMethod
                                              -- the cabal file to add entries to the Data-Files list.
     | DebDir RetrieveMethod RetrieveMethod   -- ^ Combine the upstream download with a download for a debian directory
     | Debianize RetrieveMethod               -- ^ Retrieve a cabal package from Hackage and use cabal-debian to debianize it
-    | Debianize' RetrieveMethod [DebSpec]    -- ^ Retrieve a cabal package from Hackage and use cabal-debian to debianize it
     | Dir FilePath                           -- ^ Retrieve the source code from a directory on a local machine
     | Git String [GitSpec]                   -- ^ Download from a Git repository, optional commit hashes and/or branch names
     | Hackage String                         -- ^ Download a cabal package from hackage
@@ -78,15 +76,13 @@ data RetrieveAttribute
     -- ^ The id of the most recent commit
     | DarcsChangesId String
     -- ^ The checksum of the output of darcs changes --xml-output
+    | SourceDebName String
+    -- ^ The name of the Debian source package
     deriving (Read, Show, Eq, Ord, Data, Typeable)
 
 data GitSpec
     = Branch String
     | Commit String
-    deriving (Read, Show, Eq, Data, Typeable)
-
-data DebSpec
-    = SrcDeb SrcPkgName
     deriving (Read, Show, Eq, Data, Typeable)
 
 -- | This type represents a package's fingerprint, (formerly its
@@ -131,54 +127,13 @@ packageFingerprint package =
                                                      , downstreamVersion = packageVersion . sourcePackageID $ package })
                 (readUpstreamFingerprint s)
 
+-- | Read a Fingerprint from the string written by showFingerprint
+-- into the .dsc file.
 readUpstreamFingerprint :: String -> Maybe Fingerprint
 readUpstreamFingerprint s =
-#if 0
-    -- Convert code to use a state monad.  The state will be the
-    -- remainder of the string, the result will be the value read.
-    evalState readFingerprint s
-    where
-      readFingerprint :: State String (Maybe Fingerprint)
-      readFingerprint = do
-        m <- readMethod
-        r <- readRetrieveAttributes
-        v <- readSourceVersion
-        d <- readBuildDeps
-        return $ Just $ Fingerprint m r v d
-      readString :: State String String
-      readString = do
-        s <- get
-        case reads s of
-          [(string, s')] -> put s' >> return string
-          _ -> fail $ "readString " ++ show s
-      readMethod :: State String RetrieveMethod
-      readMethod = do
-        s <- readString
-        case maybeRead s :: Maybe RetrieveMethod of
-          Nothing -> fail $ "readMethod " ++ show s
-          Just method -> return method
-      readRetrieveAttributes :: State String (Set RetrieveAttribute)
-      readRetrieveAttributes = do
-        s <- get
-        case reads s :: [([RetrieveAttribute], String)] of
-          [(attrs, s')] -> put s' >> return $ fromList attrs
-          _ -> return empty
-      readSourceVersion :: State String DebianVersion
-      readSourceVersion = do
-        s <- get
-        let (v, s') = break isSpace (dropWhile isSpace s)
-        put s'
-        maybe (fail $ "readSourceVersion " ++ show s) return (parseDebianVersion v)
-      readBuildDeps :: State String (Set (PackageID BinPkgName))
-      readBuildDeps = do
-        rs <- (fromList . List.map readSimpleRelation . words) <$> get
-        put ""
-        return rs
-#else
     case readMethod s of
       Nothing -> Nothing
       Just (m, etc) ->
-          let m' = modernizeMethod m in
           -- See if there is a list of RetrieveAttribute - if not use the empty list
           let (attrs, etc') = case reads etc :: [([RetrieveAttribute], String)] of
                                 [(x, etc'')] -> (x, etc'')
@@ -186,7 +141,7 @@ readUpstreamFingerprint s =
           case words etc' of
             (sourceVersion : buildDeps)
                 | not (elem '=' sourceVersion) ->
-                    Just $ Fingerprint { method = m'
+                    Just $ Fingerprint { method = m
                                        , upstreamVersion = parseDebianVersion sourceVersion
                                        , retrievedAttributes = Set.fromList attrs
                                        , buildDependencyVersions = fromList (List.map readSimpleRelation buildDeps) }
@@ -206,15 +161,17 @@ readMethod s =
                              Nothing -> Nothing
                              Just m' -> Just (m', etc)
              _ -> Nothing
-#endif
 
+{-
 modernizeMethod :: RetrieveMethod -> RetrieveMethod
 modernizeMethod = everywhere (mkT modernizeMethod1)
 
 modernizeMethod1 :: RetrieveMethod -> RetrieveMethod
 modernizeMethod1 (Debianize p) = Debianize' p []
 modernizeMethod1 x = x
+-}
 
+-- | The value that goes into the Fingerprint: field in the .dsc file.
 showFingerprint :: Fingerprint -> String
 showFingerprint (Fingerprint {method = m, upstreamVersion = sourceVersion, retrievedAttributes = attrs, buildDependencyVersions = versions}) =
     intercalate " " ["(" ++ show m ++ ")",
