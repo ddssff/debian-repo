@@ -39,7 +39,6 @@ import Extra.Misc(columns)
 data RetrieveMethod
     = Apt String String                      -- ^ Apt dist name - download using apt-get (FIXME: Apt String SrcPkgName would be better, but that breaks read/show)
     | Bzr String                             -- ^ Download from a Bazaar repository
-    | Cabal CompilerFlavor RetrieveMethod    -- ^ Yet another replacement for the old Debianize methods.
     | Cd FilePath RetrieveMethod             -- ^ Get the source code from a subdirectory of another download
     | Darcs String                           -- ^ Download from a Darcs repository
     | DataFiles RetrieveMethod RetrieveMethod FilePath
@@ -60,6 +59,7 @@ data RetrieveMethod
     | Tla String                             -- ^ Download from a TLA repository
     | Twice RetrieveMethod                   -- ^ Perform the build twice (should be a package flag)
     | Uri String String                      -- ^ Download a tarball from the URI.  The checksum is used to implement caching.
+    | Zero                                   -- ^ Nothing, do not build
     deriving (Read, Show, Eq, Data, Typeable)
 
 -- | If there is some identifying characteristic of the source tree
