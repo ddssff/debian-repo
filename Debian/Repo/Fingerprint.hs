@@ -46,6 +46,7 @@ data RetrieveMethod
                                              -- the cabal file to add entries to the Data-Files list.
     | DebDir RetrieveMethod RetrieveMethod   -- ^ Combine the upstream download with a download for a debian directory
     | Debianize RetrieveMethod               -- ^ Retrieve a cabal package from Hackage and use cabal-debian to debianize it
+    | Debianize' RetrieveMethod [()]         -- ^ This is only here so we can read old fingerprints
     | Dir FilePath                           -- ^ Retrieve the source code from a directory on a local machine
     | Git String [GitSpec]                   -- ^ Download from a Git repository, optional commit hashes and/or branch names
     | Hackage String                         -- ^ Download a cabal package from hackage
@@ -153,13 +154,16 @@ readMethod :: String -> Maybe (RetrieveMethod, String)
 readMethod s =
     -- New style: read the method directly from the beginning of s
     case reads s :: [(RetrieveMethod, String)] of
-      [(m, etc)] -> Just (m, etc)
+      [(m, etc)] -> Just (fix m, etc)
       -- Old style: read a string, then read the method out of it
       _ -> case reads s :: [(String, String)] of
              [(m, etc)] -> case maybeRead m of
                              Nothing -> Nothing
-                             Just m' -> Just (m', etc)
+                             Just m' -> Just (fix m', etc)
              _ -> Nothing
+    where
+      fix (Debianize' x _) = Debianize x
+      fix x = x
 
 {-
 modernizeMethod :: RetrieveMethod -> RetrieveMethod
