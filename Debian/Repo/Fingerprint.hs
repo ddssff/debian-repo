@@ -82,7 +82,7 @@ data GitSpec
 -- to reconstruct the specific source tree.  Instead we checksum the
 -- entire darcs change history.
 data RetrieveAttribute
-    = AptVersion DebianVersion
+    = AptVersion String
     -- ^ The version number of a package retrieved by apt-get source
     | GitCommit String
     -- ^ The id of the most recent commit
