@@ -43,7 +43,7 @@ data RetrieveMethod
                                              -- the first at the location specified by FilePath.  Typically you would then patch
                                              -- the cabal file to add entries to the Data-Files list.
     | DebDir RetrieveMethod RetrieveMethod   -- ^ Combine the upstream download with a download for a debian directory
-    | Debianize RetrieveMethod (Maybe String) -- ^ Retrieve a cabal package from Hackage and use cabal-debian to
+    | Debianize' RetrieveMethod (Maybe String) -- ^ Retrieve a cabal package from Hackage and use cabal-debian to
                                               -- debianize it.  The optional string is used as the debian source
                                               -- package name if provided, this allows us to build several versions of
                                               -- the same source package - e.g. one with ghc, one with ghcjs.
@@ -51,6 +51,8 @@ data RetrieveMethod
                                               -- package name, so this is the only attribute that needs to be part of
                                               -- the RetrieveMethod for a Debianization.  If not supplied the name is
                                               -- derived from the cabal package name.
+    | Debianize RetrieveMethod               -- ^ Old Debianize constructor retained for backwards compatibility.
+                                             -- we read this value from the old source packages.
     | Dir FilePath                           -- ^ Retrieve the source code from a directory on a local machine
     | Git String [GitSpec]                   -- ^ Download from a Git repository, optional commit hashes and/or branch names
     | Hackage String                         -- ^ Download a cabal package from hackage
@@ -162,14 +164,17 @@ readMethod :: String -> Maybe (RetrieveMethod, String)
 readMethod s =
     -- New style: read the method directly from the beginning of s
     case reads s :: [(RetrieveMethod, String)] of
-      [(m, etc)] -> Just (m, etc)
+      [(m, etc)] -> Just (fix m, etc)
       -- Old (broken) style: read a string, then read the method out
       -- of it
       _ -> case reads s :: [(String, String)] of
              [(m, etc)] -> case maybeRead m of
                              Nothing -> Nothing
-                             Just m' -> Just (m', etc)
+                             Just m' -> Just (fix m', etc)
              _ -> Nothing
+    where
+      fix (Debianize x) = Debianize' x Nothing
+      fix x = x
 
 {-
 modernizeMethod :: RetrieveMethod -> RetrieveMethod
