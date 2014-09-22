@@ -1,9 +1,10 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable, OverloadedStrings #-}
 module Debian.Repo.Fingerprint
     ( RetrieveMethod(..)
     , RetrieveAttribute(..)
     , GitSpec(..)
     , Fingerprint(..)
+    , retrieveMethodMD5
     , readUpstreamFingerprint
     , DownstreamFingerprint(..)
     , packageFingerprint
@@ -13,14 +14,11 @@ module Debian.Repo.Fingerprint
     , showDependencies'
     ) where
 
-#if 0
-import Control.Applicative ((<$>))
-import Control.Monad.State (State, evalState, get, put)
-import Data.Char (isSpace)
-#endif
 import Control.Applicative.Error (maybeRead)
 import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Data (Data)
+import Data.Digest.Pure.MD5 (md5)
 import Data.List as List (intercalate, map)
 import Data.Set as Set (Set, toList, toAscList, difference, empty, fromList, map, filter)
 import Data.Text (unpack, strip)
@@ -45,8 +43,14 @@ data RetrieveMethod
                                              -- the first at the location specified by FilePath.  Typically you would then patch
                                              -- the cabal file to add entries to the Data-Files list.
     | DebDir RetrieveMethod RetrieveMethod   -- ^ Combine the upstream download with a download for a debian directory
-    | Debianize RetrieveMethod               -- ^ Retrieve a cabal package from Hackage and use cabal-debian to debianize it
-    | Debianize' RetrieveMethod [()]         -- ^ This is only here so we can read old fingerprints
+    | Debianize RetrieveMethod (Maybe String) -- ^ Retrieve a cabal package from Hackage and use cabal-debian to
+                                              -- debianize it.  The optional string is used as the debian source
+                                              -- package name if provided, this allows us to build several versions of
+                                              -- the same source package - e.g. one with ghc, one with ghcjs.
+                                              -- Remember we can't build more than one package with a given source
+                                              -- package name, so this is the only attribute that needs to be part of
+                                              -- the RetrieveMethod for a Debianization.  If not supplied the name is
+                                              -- derived from the cabal package name.
     | Dir FilePath                           -- ^ Retrieve the source code from a directory on a local machine
     | Git String [GitSpec]                   -- ^ Download from a Git repository, optional commit hashes and/or branch names
     | Hackage String                         -- ^ Download a cabal package from hackage
@@ -62,13 +66,19 @@ data RetrieveMethod
     | Zero                                   -- ^ Nothing, do not build
     deriving (Read, Show, Data, Typeable)
 
--- | If there is some identifying characteristic of the source tree
--- resulting from a retrieve, use a set of RetrieveResult values to
--- identify it so that a build can be triggered if it changes.
--- Examples include the latest Git commit identifier, or a darcs
--- repository tag.  A darcs commit string is not a suitable identifier
--- because darcs commits are not totally ordered, so it can't reliably
--- be used to reconstruct the specific source tree.
+data GitSpec
+    = Branch String
+    | Commit String
+    deriving (Read, Show, Eq, Data, Typeable)
+
+-- | Information gathered as a result of the retrieveal.  If these
+-- identifying characteristic of the source tree change between one
+-- retrieve and the next, a build should be triggered.  Examples
+-- include the latest Git commit identifier, or a darcs repository
+-- tag.  A darcs commit string is not a suitable identifier because
+-- darcs commits are not totally ordered, so it can't reliably be used
+-- to reconstruct the specific source tree.  Instead we checksum the
+-- entire darcs change history.
 data RetrieveAttribute
     = AptVersion DebianVersion
     -- ^ The version number of a package retrieved by apt-get source
@@ -80,10 +90,8 @@ data RetrieveAttribute
     -- ^ The name of the Debian source package
     deriving (Read, Show, Eq, Ord, Data, Typeable)
 
-data GitSpec
-    = Branch String
-    | Commit String
-    deriving (Read, Show, Eq, Data, Typeable)
+retrieveMethodMD5 :: RetrieveMethod -> String
+retrieveMethodMD5 = show . md5 . L.pack . show
 
 -- | This type represents a package's fingerprint, (formerly its
 -- revision string,) which includes three pieces of information: how
@@ -154,16 +162,14 @@ readMethod :: String -> Maybe (RetrieveMethod, String)
 readMethod s =
     -- New style: read the method directly from the beginning of s
     case reads s :: [(RetrieveMethod, String)] of
-      [(m, etc)] -> Just (fix m, etc)
-      -- Old style: read a string, then read the method out of it
+      [(m, etc)] -> Just (m, etc)
+      -- Old (broken) style: read a string, then read the method out
+      -- of it
       _ -> case reads s :: [(String, String)] of
              [(m, etc)] -> case maybeRead m of
                              Nothing -> Nothing
-                             Just m' -> Just (fix m', etc)
+                             Just m' -> Just (m', etc)
              _ -> Nothing
-    where
-      fix (Debianize' x _) = Debianize x
-      fix x = x
 
 {-
 modernizeMethod :: RetrieveMethod -> RetrieveMethod
