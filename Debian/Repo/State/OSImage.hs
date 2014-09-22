@@ -122,7 +122,7 @@ prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optio
                        case arch of
                          Left _ -> evalMonadOS (syncOS dependRoot) cleanRoot
                          Right _ ->
-                             do ePutStrLn "createOSImage dependRoot?  I don't understand why this would be done."
+                             do -- ePutStrLn "createOSImage dependRoot?  I don't understand why this would be done."
                                 os <- liftIO (createOSImage dependRoot distro repo)
                                 putOSImage os
          Just _ -> return ()
