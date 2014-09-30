@@ -13,10 +13,12 @@ module Debian.Repo.LocalRepository
     , uploadLocal
     ) where
 
+import Control.Applicative ((<$>))
 import Control.Applicative.Error (Failing(Success, Failure))
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (ByteString, empty)
-import Data.List (groupBy, isPrefixOf, isSuffixOf, partition, sort, sortBy)
+import Data.List (groupBy, isPrefixOf, partition, sort, sortBy)
+import Data.Maybe (catMaybes, listToMaybe)
 import qualified Data.Set as Set (fromList, member)
 import Data.Text as T (unpack)
 import Data.Time (NominalDiffTime)
@@ -191,17 +193,21 @@ uploadRemote :: LocalRepository		-- ^ Local repository holding the packages.
              -> URI			-- ^ URI of upload repository
              -> IO [Failing ([Chunk L.ByteString], NominalDiffTime)]
 uploadRemote repo uri =
-    do uploaded <- uploadFind (outsidePath root) >>=
-                   return . Set.fromList . map uploadKey . successes
-       -- Find the changes files
+    do let dir = (outsidePath root)
        changesFiles <- findChangesFiles (outsidePath root)
-       -- Check that they have not yet been uploaded
-       let changesFiles' = map (\ f -> if notUploaded uploaded f then Success f else Failure ["Already uploaded: " ++ ppDisplay f]) changesFiles
-       -- Create groups of common name and dist, and sort so latest version appears first.
-       let changesFileGroups = map (sortBy compareVersions) . groupByNameAndDist $ changesFiles'
-       let changesFiles'' = concatMap keepNewest changesFileGroups
-       changesFiles''' <- mapM validRevision' changesFiles''
-       mapM dupload' changesFiles'''
+       let changesFileGroups = map (sortBy compareVersions) . groupByNameAndDist $ changesFiles
+       let newestChangesFiles = catMaybes (map listToMaybe changesFileGroups)
+       -- hPutStrLn stderr $ "Newest: " ++ show newestChangesFiles
+       uploaded <- (Set.fromList .
+                    map (\ [_, name', version, arch] -> (name', parseDebianVersion version, parseArch arch)) .
+                    catMaybes .
+                    map (matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.upload$"))) <$> getDirectoryContents dir
+       let (readyChangesFiles, uploadedChangesFiles) = partition (\ f -> not . Set.member (changeKey f) $ uploaded) newestChangesFiles
+       -- hPutStrLn stderr $ "Uploaded: " ++ show uploadedChangesFiles
+       -- hPutStrLn stderr $ "Ready: " ++ show readyChangesFiles
+       validChangesFiles <- mapM validRevision' readyChangesFiles
+       -- hPutStrLn stderr $ "Valid: " ++ show validChangesFiles
+       mapM dupload' validChangesFiles
     where
       keepNewest (Success newest : older) =
           Success newest : map tooOld older
@@ -225,28 +231,20 @@ uploadRemote repo uri =
                 sortedGroups = map (sortBy compareVersions) (groupByNameAndDist accept)
                 tag x = (x, "Not the newest version in incoming")
 -}
-      compareVersions (Success a) (Success b) = compare (changeVersion b) (changeVersion a)
-      compareVersions (Failure _) (Success _) = LT
-      compareVersions (Success _) (Failure _) = GT
-      compareVersions (Failure _) (Failure _) = EQ
-      groupByNameAndDist :: [Failing ChangesFile] -> [[Failing ChangesFile]]
+      compareVersions a b = compare (changeVersion b) (changeVersion a)
+      groupByNameAndDist :: [ChangesFile] -> [[ChangesFile]]
       groupByNameAndDist = groupBy equalNameAndDist . sortBy compareNameAndDist
       equalNameAndDist a b = compareNameAndDist a b == EQ
-      compareNameAndDist (Success a) (Success b) =
+      compareNameAndDist a b =
           case compare (changePackage a) (changePackage b) of
             EQ -> compare (changeRelease a) (changeRelease b)
             x -> x
-      compareNameAndDist (Failure _) (Success _) = LT
-      compareNameAndDist (Success _) (Failure _) = GT
-      compareNameAndDist (Failure _) (Failure _) = EQ
-      notUploaded uploaded changes = not . Set.member (changeKey changes) $ uploaded
       --showReject (changes, tag) = Debian.Repo.Changes.name changes ++ ": " ++ tag
       dupload' (Failure x) = return (Failure x)
       dupload' (Success c) = liftIO (dupload uri (outsidePath root) (changePath c))
 
-validRevision' :: Failing ChangesFile -> IO (Failing ChangesFile)
-validRevision' (Failure x) = return (Failure x)
-validRevision' (Success c) = validRevision
+validRevision' :: ChangesFile -> IO (Failing ChangesFile)
+validRevision' c = validRevision
     where
       validRevision :: IO (Failing ChangesFile)
       validRevision =
@@ -282,12 +280,6 @@ validRevision' (Success c) = validRevision
 
 uploadKey :: UploadFile -> (String, DebianVersion, Arch)
 uploadKey (Upload _ name ver arch) = (name, ver, arch)
-
--- |Find all the .upload files in a directory and parse their names.
-uploadFind :: FilePath -> IO [Failing UploadFile]
-uploadFind dir =
-    getDirectoryContents dir >>=
-    return . map (parseUploadFilename dir) . filter (isSuffixOf ".upload")
 
 -- |Parse the name of a .upload file
 parseUploadFilename :: FilePath
