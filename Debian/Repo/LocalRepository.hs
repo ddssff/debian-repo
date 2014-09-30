@@ -17,7 +17,6 @@ import Control.Applicative.Error (Failing(Success, Failure))
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (ByteString, empty)
 import Data.List (groupBy, isPrefixOf, isSuffixOf, partition, sort, sortBy)
-import Data.Monoid (mempty)
 import qualified Data.Set as Set (fromList, member)
 import Data.Text as T (unpack)
 import Data.Time (NominalDiffTime)
@@ -43,7 +42,7 @@ import System.Exit (ExitCode(ExitFailure), ExitCode(ExitSuccess))
 import System.FilePath ((</>), splitFileName)
 import qualified System.Posix.Files as F (createLink, getSymbolicLinkStatus, isSymbolicLink, readSymbolicLink, removeLink)
 import System.Process (readProcessWithExitCode, CreateProcess(cwd, cmdspec), showCommandForUser, proc)
-import System.Process.ListLike (Chunk(..), foldChunks, showCmdSpecForUser)
+import System.Process.Chunks (Chunk(..), collectProcessResult, showCmdSpecForUser)
 import Text.Regex (matchRegex, mkRegex)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text)
 
@@ -336,7 +335,7 @@ dupload uri dir changesFile  =
         qPutStrLn ("Uploading " ++ show changesFile)
         (chunks, elapsed) <- timeTask $ readProcFailing cmd L.empty
         qPutStrLn ("Upload finished, elapsed time " ++ show elapsed)
-        let (code, out) = foldChunks (\ (code, out) chunk -> case chunk of Result x -> (x, out); Stdout _ -> (code, chunk : out); Stderr _ -> (code, chunk : out); _ -> (code, out)) mempty chunks
+        let (code, out) = collectProcessResult chunks
         case code of
           ExitFailure _ ->
               do let message = "dupload in " ++ dir ++ " failed: " ++ showCmdSpecForUser (cmdspec cmd) ++ " -> " ++ show code

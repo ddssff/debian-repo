@@ -35,7 +35,7 @@ import System.Directory (createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitFailure))
 import System.FilePath ((</>))
 import System.Process (proc)
-import System.Process.ListLike (collectProcessTriple)
+import System.Process.Chunks (collectProcessTriple)
 import System.Unix.Chroot (useEnv)
 
 -- | The problem with having an OSImage in the state of MonadOS is

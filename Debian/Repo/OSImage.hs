@@ -48,8 +48,7 @@ import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>))
 import System.Posix.Files (createLink, deviceID, fileID, FileStatus, modificationTime)
 import System.Process (shell)
-import System.Process.ListLike (Chunk(Result), foldChunks, collectProcessTriple)
--- import System.Process.Progress (collectOutputs, doOutput)
+import System.Process.Chunks (collectProcessTriple, collectProcessResult)
 import System.Unix.Chroot (useEnv)
 import System.Unix.Directory (removeRecursiveSafely)
 import System.Unix.Mount (umountBelow)
@@ -169,7 +168,7 @@ syncOS' :: OSImage -> EnvRoot -> IO OSImage
 syncOS' src dst = do
   mkdir
   umount
-  rsync ["--exclude=/work/build/*"] (rootPath (osRoot src)) (rootPath dst) :: IO (ExitCode, String, String)
+  (_result, _, _) <- rsync ["--exclude=/work/build/*"] (rootPath (osRoot src)) (rootPath dst)
   cloneOSImage src dst
     where
       mkdir = createDirectoryIfMissing True (rootPath dst ++ "/work")
@@ -395,7 +394,7 @@ debootstrap root distro repo include exclude components =
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
       -- then add them back in.
-      readProcFailing (shell cmd) "" >>= foldChunks (\ _ c -> case c of Result code -> codefn code; _ -> return ()) (return ())
+      readProcFailing (shell cmd) "" >>= codefn . fst . collectProcessResult
       ePutStrLn "done."
       os <- createOSImage root distro repo -- arch?  copy?
       let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"

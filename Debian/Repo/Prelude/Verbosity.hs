@@ -32,19 +32,18 @@ import Data.ByteString.Lazy as L (ByteString)
 import Data.String (IsString)
 import System.IO (hPutStr, hPutStrLn, stderr)
 import System.Posix.Env (setEnv, getEnv, unsetEnv)
-import System.Process.ByteString.Lazy (Chunk, putIndentedShowCommand, putMappedChunks, insertCommandStart, eraseOutput)
 
 import Control.Exception (evaluate)
 import Data.Time (NominalDiffTime, getCurrentTime, diffUTCTime)
 
 import Control.Exception (throw)
+import GHC.IO.Exception (IOErrorType(OtherError))
 import System.Environment (getEnvironment)
 import System.Exit (ExitCode(..))
-import System.Process.ByteString.Lazy (foldChunk, Chunk(..), showCmdSpecForUser)
 import System.IO.Error (mkIOError)
 import System.Process (CreateProcess(cmdspec, cwd, env))
-import System.Process.ListLike (ListLikePlus, readProcessChunks)
-import GHC.IO.Exception (IOErrorType(OtherError))
+import System.Process.Chunks (Chunk(..), insertCommandStart, putIndentedShowCommand, putMappedChunks, showCmdSpecForUser, readCreateProcessChunks)
+import System.Process.ListLike (ListLikeLazyIO)
 
 -- | Generalization of Posix setEnv/unSetEnv.
 modifyEnv :: String -> (Maybe String -> Maybe String) -> IO ()
@@ -97,18 +96,23 @@ readProcLazy :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteStr
 readProcLazy p input = do
   v <- verbosity
   case v of
-    n | n <= 0 -> liftIO $ readProcessChunks p input
-    1 -> liftIO $ readProcessChunks p input >>= putMappedChunks (insertCommandStart p . eraseOutput)
-    _ -> liftIO $ readProcessChunks p input >>= putIndentedShowCommand p " 1> " " 1> "
+    n | n <= 0 -> liftIO $ readCreateProcessChunks p input
+    1 -> liftIO $ readCreateProcessChunks p input >>= putMappedChunks (insertCommandStart p . filter (not . isOutput))
+    _ -> liftIO $ readCreateProcessChunks p input >>= putIndentedShowCommand p " 1> " " 1> "
+
+isOutput :: Chunk a -> Bool
+isOutput (Stdout _) = True
+isOutput (Stderr _) = True
+isOutput _ = False
 
 -- | Verbosity enabled process reader.  (Why MonadIO and not IO?)
-readProcLazy' :: (ListLikePlus a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
-readProcLazy' p input = do
+readProcLazy' :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
+readProcLazy' p input = liftIO $ do
   v <- verbosity
   case v of
-    n | n <= 0 -> liftIO $ readProcessChunks p input
-    1 -> liftIO $ readProcessChunks p input >>= putMappedChunks (insertCommandStart p . eraseOutput)
-    _ -> liftIO $ readProcessChunks p input >>= putIndentedShowCommand p " 1> " " 1> "
+    n | n <= 0 -> readCreateProcessChunks p input
+    1 -> readCreateProcessChunks p input >>= putMappedChunks (insertCommandStart p . filter (not . isOutput))
+    _ -> readCreateProcessChunks p input >>= putIndentedShowCommand p " 1> " " 1> "
 
 throwProcessResult' :: (ExitCode -> Maybe IOError) -> CreateProcess -> [Chunk a] -> IO [Chunk a]
 throwProcessResult' f p chunks = mapResultM (\ code -> maybe (return $ Result code) (throw $ processException p code) (f code)) chunks
@@ -120,7 +124,7 @@ throwProcessFailure :: CreateProcess -> [Chunk a] -> IO [Chunk a]
 throwProcessFailure p = throwProcessResult' (testExit Nothing (Just . processException p . ExitFailure)) p
 
 mapResultM :: Monad m => (ExitCode -> m (Chunk a)) -> [Chunk a] -> m [Chunk a]
-mapResultM f chunks = mapM (foldChunk (return . ProcessHandle) (return . Stdout) (return . Stderr) (return . Exception) f) chunks
+mapResultM f chunks = mapM (\ x -> case x of Result code -> f code; _ -> return x) chunks
 
 testExit :: a -> (Int -> a) -> ExitCode -> a
 testExit s _ ExitSuccess = s
