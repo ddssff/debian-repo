@@ -46,7 +46,7 @@ import System.Exit (ExitCode(ExitFailure), ExitCode(ExitSuccess))
 import System.FilePath ((</>))
 import System.IO (hGetContents, IOMode(ReadMode), withFile)
 import System.Process (CmdSpec(..), CreateProcess(cwd, env, cmdspec), proc, readProcessWithExitCode, showCommandForUser)
-import System.Process.Chunks (collectProcessTriple)
+import System.Process.ChunkE (collectProcessTriple)
 import System.Unix.Chroot (useEnv)
 
 class HasTopDir t where

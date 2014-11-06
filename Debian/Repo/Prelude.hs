@@ -44,7 +44,7 @@ import Language.Haskell.TH (Exp(LitE), Lit(StringL), Name, nameBase, nameModule,
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
 import System.Process (CreateProcess, proc)
-import System.Process.Chunks (collectProcessTriple)
+import System.Process.ChunkE (collectProcessTriple)
 import System.Process.ListLike.LazyString ()
 import Text.Printf (printf)
 

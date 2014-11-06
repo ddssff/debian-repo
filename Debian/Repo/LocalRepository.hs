@@ -45,7 +45,7 @@ import System.Exit (ExitCode(ExitFailure), ExitCode(ExitSuccess))
 import System.FilePath ((</>), splitFileName)
 import qualified System.Posix.Files as F (createLink, getSymbolicLinkStatus, isSymbolicLink, readSymbolicLink, removeLink)
 import System.Process (readProcessWithExitCode, CreateProcess(cwd, cmdspec), showCommandForUser, proc)
-import System.Process.Chunks (Chunk(..), collectProcessResult, showCmdSpecForUser)
+import System.Process.ChunkE (Chunk(..), collectProcessResult, showCmdSpecForUser)
 import Text.Regex (matchRegex, mkRegex)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text)
 

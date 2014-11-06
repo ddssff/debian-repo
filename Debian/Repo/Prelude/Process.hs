@@ -26,7 +26,7 @@ import System.Environment (getEnvironment)
 import System.Exit (ExitCode(..))
 import System.IO.Error (mkIOError)
 import System.Process (CreateProcess(cmdspec, cwd, env))
-import System.Process.Chunks (Chunk(..), insertCommandStart, putIndentedShowCommand, putMappedChunks, readCreateProcessChunks, showCmdSpecForUser)
+import System.Process.ChunkE (Chunk(..), insertCommandStart, putIndentedShowCommand, putMappedChunks, readCreateProcessChunks, showCmdSpecForUser)
 import System.Process.ListLike (ListLikeLazyIO)
 
 -- | Run a task and return the elapsed time along with its result.
