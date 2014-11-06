@@ -8,7 +8,7 @@ module Debian.Repo.Prelude
     , (~=)
     , (%=)
     , symbol
-    , Debian.Repo.Prelude.Verbosity.readProcFailing -- re-export
+    , Debian.Repo.Prelude.Process.readProcFailing -- re-export
     , rsync
     , partitionM
     , maybeWriteFile
@@ -38,7 +38,8 @@ import Debian.Repo.Prelude.Files (getSubDirectories, maybeWriteFile, replaceFile
 import Debian.Repo.Prelude.GPGSign (cd)
 import Debian.Repo.Prelude.List (cartesianProduct, dropPrefix, isSublistOf, listIntersection, partitionM)
 import Debian.Repo.Prelude.Misc (sameInode, sameMd5sum)
-import Debian.Repo.Prelude.Verbosity (ePutStrLn, readProcLazy', throwProcessResult'', readProcFailing)
+import Debian.Repo.Prelude.Process (readProcLazy', throwProcessResult'', readProcFailing)
+import Debian.Repo.Prelude.Verbosity (ePutStrLn)
 import Language.Haskell.TH (Exp(LitE), Lit(StringL), Name, nameBase, nameModule, Q)
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)

@@ -1,5 +1,5 @@
 Name:           debian-repo
-Version:        5.68.2
+Version:        5.69
 License:        BSD3
 License-File:	debian/copyright
 Author:         David Fox
@@ -102,6 +102,7 @@ Library
         Debian.Repo.Prelude.List,
         Debian.Repo.Prelude.Lock,
         Debian.Repo.Prelude.Misc,
+        Debian.Repo.Prelude.Process,
         Debian.Repo.Prelude.SSH,
         Debian.Repo.Prelude.Time,
         Debian.Repo.Prelude.Verbosity,

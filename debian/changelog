@@ -1,3 +1,9 @@
+haskell-debian-repo (5.69) unstable; urgency=low
+
+  * Split Prelude.Process out of Prelude.Verbosity
+
+ -- David Fox <dsf@seereason.com>  Thu, 06 Nov 2014 05:23:56 -0800
+
 haskell-debian-repo (5.68.2) unstable; urgency=low
 
   * Changes for the new pretty printing system in debian-3.84
