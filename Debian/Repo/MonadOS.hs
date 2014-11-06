@@ -77,7 +77,7 @@ updateLists = quieter 1 $
     where
        update = proc "apt-get" ["update"]
        configure = proc "dpkg" ["--configure", "-a"]
-       upgrade = proc "apt-get" ["-y", "--force-yes", "dist-upgrade"]
+       upgrade = proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]
 
 -- | Do an IO task in the build environment with /proc mounted.
 withProc :: forall m c. (MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m c -> m c
