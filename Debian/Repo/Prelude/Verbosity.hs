@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -Wall #-}
 module Debian.Repo.Prelude.Verbosity
     ( modifyEnv
@@ -8,7 +9,6 @@ module Debian.Repo.Prelude.Verbosity
     , quieter
     , noisier
     , withModifiedVerbosity
-    , defaultVerbosity
     , verbosity
     ) where
 
@@ -50,8 +50,9 @@ withModifiedVerbosity f action =
             (\ v0 -> liftIO (modifyEnv "VERBOSITY" (const (Just (show v0))))) -- release
             (\ v0 -> liftIO (modifyEnv "VERBOSITY" (const (Just (show (f v0))))) >> action)
 
-defaultVerbosity :: Int
-defaultVerbosity = 0
-
 verbosity :: MonadIO m => m Int
+#ifdef NO_VERBOSITY_CONTROL
+verbosity = return 1
+#else
 verbosity = liftIO $ getEnv "VERBOSITY" >>= return . maybe 1 read
+#endif

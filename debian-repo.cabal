@@ -28,9 +28,17 @@ flag local-debian
   Default: False
   Manual: True
 
+flag no-verbosity-control
+  Description: Disable the code that makes process execution less verbose
+  Default: False
+  Manual: True
+
 Library
   Buildable: True
   ghc-options: -O2 -threaded -Wall
+
+  if flag(no-verbosity-control)
+    cpp-options: -DNO_VERBOSITY_CONTROL
 
   if flag(local-cabal-debian)
     cpp-options: -DMIN_VERSION_Cabal(a,b,c)=1
