@@ -13,14 +13,18 @@ module Debian.Repo.MonadOS
     , Debian.Repo.MonadOS.syncOS
     ) where
 
-import Control.Applicative ((<$>))
-import Control.DeepSeq (force)
+import Control.Applicative (Applicative, pure, (<$>), (<*>))
+import Control.DeepSeq (NFData, force)
 import Control.Exception (evaluate, SomeException, catch)
+import Control.Monad (MonadPlus, liftM, msum, mzero)
 import Control.Monad.Catch (bracket, MonadCatch, MonadMask, throwM, try)
 import Control.Monad.State (MonadState(get), StateT, evalStateT, get)
 import Control.Monad.Trans (liftIO, MonadIO, lift)
-import Data.ByteString.Lazy as L (empty)
+import Control.Monad.Trans.Except () -- instances
+import Data.ByteString.Lazy as L (ByteString, empty)
+import Data.Monoid (Monoid, mappend)
 import Data.Time (NominalDiffTime)
+import Data.Traversable
 import Debian.Pretty (ppDisplay)
 import Debian.Relation (PkgName, Relations)
 import Debian.Repo.EnvPath (EnvPath(EnvPath, envPath, envRoot), EnvRoot(rootPath))
@@ -28,16 +32,17 @@ import Debian.Repo.Internal.Repos (MonadRepos, osFromRoot, putOSImage, syncOS)
 import Debian.Repo.LocalRepository (copyLocalRepo)
 import Debian.Repo.OSImage as OS (OSImage(osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
-import Debian.Repo.Prelude.Process (timeTask, readProcFailing)
+import Debian.Repo.Prelude.Process (timeTask, readProcessV)
 import Debian.Repo.Prelude.Verbosity (quieter, ePutStrLn)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
+import Prelude hiding (mapM, sequence)
 import System.Directory (createDirectoryIfMissing)
-import System.Exit (ExitCode(ExitFailure))
+import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>))
 import System.Process (proc)
 import System.Process.ListLike (readCreateProcess)
-import System.Process.ChunkE (collectProcessTriple, putIndentedShowCommand, collectProcessResult)
+import System.Process.ChunkE (Chunk, collectProcessTriple, putIndentedShowCommand, collectProcessResult)
 import System.Unix.Chroot (useEnv)
 
 -- | The problem with having an OSImage in the state of MonadOS is
@@ -54,30 +59,40 @@ instance MonadRepos m => MonadOS (StateT EnvRoot m) where
     putOS = lift . putOSImage
     modifyOS f = getOS >>= putOS . f
 
+useOS :: (MonadOS m, MonadIO m, NFData a) => IO a -> m a
+useOS action =
+  do root <- rootPath . osRoot <$> getOS
+     liftIO $ useEnv root (return . force) action
+
 -- | Run MonadOS and update the osImageMap with the modified value
 evalMonadOS :: MonadRepos m => StateT EnvRoot m a -> EnvRoot -> m a
 evalMonadOS task root = do
   a <- evalStateT task root
   return a
 
+instance NFData (Chunk ByteString)
+
 -- | Run @apt-get update@ and @apt-get dist-upgrade@.  If @update@
 -- fails, run @dpkg --configure -a@ before running @dist-upgrade@.
-updateLists :: (MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m NominalDiffTime
-updateLists = quieter 1 $
-    do root <-rootPath . osRoot <$> getOS
-       withProc $ liftIO $ do
-         (code, _, _) <- useEnv root forceList (readProcFailing update "") >>= return . collectProcessTriple
-         _ <- case code of
-                ExitFailure _ ->
-                    do _ <- useEnv root forceList (readProcFailing configure "")
-                       useEnv root forceList (readProcFailing update "")
-                _ -> return []
-         (_, elapsed) <- timeTask (useEnv root forceList (readProcFailing upgrade ""))
-         return elapsed
+updateLists :: forall m. (Applicative m, MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m Bool
+updateLists = do
+  r1 <- f update
+  r2 <- if r1 then pure True else or <$> sequence [f aptinstall, f configure, f update]
+  if r2 then f upgrade else pure False
     where
-       update = proc "apt-get" ["update"]
-       configure = proc "dpkg" ["--configure", "-a"]
-       upgrade = proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]
+      f :: m [Chunk ByteString] -> m Bool
+      f xs = xs >>= \ xs' ->
+             case collectProcessResult xs' of
+               (Right ExitSuccess, _) -> return True
+               _ -> return False
+      update :: m [Chunk ByteString]
+      update = useOS (readProcessV (proc "apt-get" ["update"]) L.empty)
+      aptinstall :: m [Chunk ByteString]
+      aptinstall = useOS (readProcessV (proc "apt-get" ["-f", "--yes", "install"]) L.empty)
+      configure :: m [Chunk ByteString]
+      configure = useOS (readProcessV (proc "dpkg" ["--configure", "-a"]) L.empty)
+      upgrade :: m [Chunk ByteString]
+      upgrade = useOS (readProcessV (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
 
 -- | Do an IO task in the build environment with /proc mounted.
 withProc :: forall m c. (MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m c -> m c
@@ -94,19 +109,19 @@ withProc task =
            umountSysLazy = proc "umount" ["-l", sys]
 
            pre = liftIO (do createDirectoryIfMissing True proc'
-                            readProcFailing mountProc L.empty
+                            readProcessV mountProc L.empty
                             createDirectoryIfMissing True sys
-                            readProcFailing mountSys L.empty
+                            readProcessV mountSys L.empty
                             return ())
            post :: () -> m ()
-           post _ = liftIO $ do readProcFailing umountProc L.empty
+           post _ = liftIO $ do readProcessV umountProc L.empty
                                   `catch` (\ (e :: IOError) ->
                                                ePutStrLn ("Exception unmounting proc, trying lazy: " ++ show e) >>
-                                               readProcFailing umountProcLazy L.empty)
-                                readProcFailing umountSys L.empty
+                                               readProcessV umountProcLazy L.empty)
+                                readProcessV umountSys L.empty
                                   `catch` (\ (e :: IOError) ->
                                                ePutStrLn ("Exception unmounting sys, trying lazy: " ++ show e) >>
-                                               readProcFailing umountSysLazy L.empty)
+                                               readProcessV umountSysLazy L.empty)
                                 return ()
            task' :: () -> m c
            task' _ = task
@@ -121,10 +136,10 @@ withTmp task =
            umountTmp = proc "umount" [dir]
            pre :: m ()
            pre = liftIO $ do createDirectoryIfMissing True dir
-                             readProcFailing mountTmp L.empty
+                             readProcessV mountTmp L.empty
                              return ()
            post :: () -> m ()
-           post _ = liftIO $ readProcFailing umountTmp L.empty >> return ()
+           post _ = liftIO $ readProcessV umountTmp L.empty >> return ()
            task' :: () -> m c
            task' _ = try task >>= either (\ (e :: SomeException) -> throwM e) return
        bracket pre post task'
@@ -136,7 +151,7 @@ aptGetInstall :: (MonadOS m, MonadIO m, PkgName n) => [(n, Maybe DebianVersion)]
 aptGetInstall packages =
     do root <- rootPath . osRoot <$> getOS
        liftIO $ useEnv root (return . force) $ do
-         readProcFailing p L.empty
+         readProcessV p L.empty
          return ()
     where
       p = proc "apt-get" args'
@@ -153,7 +168,7 @@ forceList output = evaluate (length output) >> return output
 -- environment where apt can see and install the packages.  On the
 -- assumption that we are doing this because the pool changed, we also
 -- flush the cached package lists.
-syncLocalPool :: (MonadIO m, MonadOS m, MonadCatch m, MonadMask m) => m ()
+syncLocalPool :: (Applicative m, MonadIO m, MonadOS m, MonadCatch m, MonadMask m) => m ()
 syncLocalPool =
     do os <- getOS
        repo' <- copyLocalRepo (EnvPath {envRoot = osRoot os, envPath = "/work/localpool"}) (osLocalMaster os)

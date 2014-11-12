@@ -15,6 +15,7 @@ module Debian.Repo.LocalRepository
 
 import Control.Applicative ((<$>))
 import Control.Applicative.Error (Failing(Success, Failure))
+import Control.Exception (SomeException, try)
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (ByteString, empty)
 import Data.List (groupBy, isPrefixOf, partition, sort, sortBy)
@@ -32,20 +33,21 @@ import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath(envPath), outsidePath)
 import Debian.Repo.Fingerprint (readUpstreamFingerprint)
 import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile, rsync)
-import Debian.Repo.Prelude.Process (timeTask, readProcFailing)
+import Debian.Repo.Prelude.Process (readProcessV, timeTask)
 import Debian.Repo.Prelude.SSH (sshVerify)
-import Debian.Repo.Prelude.Verbosity (qPutStrLn)
+import Debian.Repo.Prelude.Verbosity (qPutStrLn, ePutStrLn)
 import Debian.Repo.Release (parseReleaseFile, Release)
 import Debian.Repo.Repo (compatibilityFile, libraryCompatibilityLevel, Repo(..), RepoKey(..))
 import Debian.URI (URI(uriAuthority, uriPath), URIAuth(uriPort, uriRegName, uriUserInfo), uriToString')
 import Debian.Version (DebianVersion, parseDebianVersion, prettyDebianVersion)
 import Network.URI (URI(..))
 import System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
-import System.Exit (ExitCode(ExitFailure), ExitCode(ExitSuccess))
+import System.Exit (ExitCode, ExitCode(ExitSuccess, ExitFailure))
 import System.FilePath ((</>), splitFileName)
 import qualified System.Posix.Files as F (createLink, getSymbolicLinkStatus, isSymbolicLink, readSymbolicLink, removeLink)
 import System.Process (readProcessWithExitCode, CreateProcess(cwd, cmdspec), showCommandForUser, proc)
-import System.Process.ChunkE (Chunk(..), collectProcessResult, showCmdSpecForUser)
+import System.Process.ChunkE (Chunk(..), collectProcessOutput, showCmdSpecForUser)
+import System.Process.ListLike (readCreateProcess)
 import Text.Regex (matchRegex, mkRegex)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text)
 
@@ -129,9 +131,9 @@ isSymLink path = F.getSymbolicLinkStatus path >>= return . F.isSymbolicLink
 copyLocalRepo :: MonadIO m => EnvPath -> LocalRepository -> m LocalRepository
 copyLocalRepo dest repo =
     do liftIO $ createDirectoryIfMissing True (outsidePath dest)
-       (result :: (ExitCode, String, String)) <- liftIO $ rsync [] (outsidePath (repoRoot repo)) (outsidePath dest)
+       (result :: (Either SomeException ExitCode, String, String)) <- liftIO $ rsync [] (outsidePath (repoRoot repo)) (outsidePath dest)
        case result of
-         (ExitSuccess, _, _) -> return $ repo {repoRoot = dest}
+         (Right ExitSuccess, _, _) -> return $ repo {repoRoot = dest}
          code -> error $ "*** FAILURE syncing local repository " ++ src ++ " -> " ++ dst ++ ": " ++ show code
     where
       src = outsidePath (repoRoot repo)
@@ -326,15 +328,16 @@ dupload uri dir changesFile  =
         replaceFile (dir ++ "/dupload.conf") config
         let cmd = (proc "dupload" ["--to", "default", "-c", changesFile]) {cwd = Just dir}
         qPutStrLn ("Uploading " ++ show changesFile)
-        (chunks, elapsed) <- timeTask $ readProcFailing cmd L.empty
-        qPutStrLn ("Upload finished, elapsed time " ++ show elapsed)
-        let (code, out) = collectProcessResult chunks
-        case code of
-          ExitFailure _ ->
-              do let message = "dupload in " ++ dir ++ " failed: " ++ showCmdSpecForUser (cmdspec cmd) ++ " -> " ++ show code
+        (chunks, elapsed) <- timeTask $ readProcessV cmd L.empty
+        case collectProcessOutput chunks of
+          (Right ExitSuccess, _) ->
+              do qPutStrLn ("Upload finished, elapsed time " ++ show elapsed)
+                 return $ Success (chunks, elapsed)
+          (fail, result) ->
+              do let message = "dupload in " ++ dir ++ " failed: " ++ showCmdSpecForUser (cmdspec cmd) ++ " -> " ++
+                               {- either (\ (e :: SomeException) -> show e) (\ (chunks, _elapsed) -> show (collectProcessOutput chunks)) -} show result
                  qPutStrLn message
                  return $ Failure [message]
-          ExitSuccess -> return $ Success (out, elapsed)
 
 ignore :: forall a. IO (Either String [Chunk L.ByteString]) -> a -> IO (Either String [Chunk L.ByteString])
 ignore result _ = result

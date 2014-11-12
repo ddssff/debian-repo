@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, RankNTypes #-}
 {-# OPTIONS_GHC -Wall #-}
 module Debian.Repo.Prelude.Verbosity
     ( modifyEnv
@@ -6,6 +6,7 @@ module Debian.Repo.Prelude.Verbosity
     , qPutStrLn
     , ePutStr
     , ePutStrLn
+    , eBracket
     , quieter
     , noisier
     , withModifiedVerbosity
@@ -13,7 +14,7 @@ module Debian.Repo.Prelude.Verbosity
     ) where
 
 import Control.Monad (when)
-import Control.Monad.Catch (bracket, MonadMask)
+import Control.Monad.Catch (bracket, bracket_, MonadMask)
 import Control.Monad.Trans (liftIO, MonadIO)
 import System.IO (hPutStr, hPutStrLn, stderr)
 import System.Posix.Env (getEnv, setEnv, unsetEnv)
@@ -46,13 +47,23 @@ noisier n action = withModifiedVerbosity (\ v -> v + n) action
 
 withModifiedVerbosity :: (MonadIO m, MonadMask m) => (Int -> Int) -> m a -> m a
 withModifiedVerbosity f action =
+#ifdef FIXED_VERBOSITY_LEVEL
+    action
+#else
     bracket verbosity -- acquire
             (\ v0 -> liftIO (modifyEnv "VERBOSITY" (const (Just (show v0))))) -- release
             (\ v0 -> liftIO (modifyEnv "VERBOSITY" (const (Just (show (f v0))))) >> action)
+#endif
 
 verbosity :: MonadIO m => m Int
 #ifdef NO_VERBOSITY_CONTROL
-verbosity = return 1
+verbosity = return 1000
 #else
 verbosity = liftIO $ getEnv "VERBOSITY" >>= return . maybe 1 read
 #endif
+
+eBracket :: (MonadIO m, MonadMask m) => String -> m a -> m a
+eBracket message action =
+    bracket_ (ePutStrLn (" -> " ++ message))
+             (ePutStrLn (" <- " ++ message))
+             action

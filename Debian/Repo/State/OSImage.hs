@@ -8,7 +8,7 @@ module Debian.Repo.State.OSImage
     , updateOS
     ) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative (Applicative, (<$>))
 import Control.DeepSeq (force)
 import Control.Exception (SomeException, throw)
 import Control.Monad (when)
@@ -30,7 +30,7 @@ import Debian.Repo.OSImage (createOSImage, OSImage(osArch, osBaseDistro, osLocal
 import Debian.Repo.MonadOS (MonadOS(getOS, modifyOS), evalMonadOS, aptGetInstall, syncLocalPool, syncOS)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
 import Debian.Repo.Prelude (replaceFile)
-import Debian.Repo.Prelude.Process (readProcFailing)
+import Debian.Repo.Prelude.Process (readProcessV)
 import Debian.Repo.Prelude.SSH (sshCopy)
 import Debian.Repo.Prelude.Verbosity (ePutStrLn, quieter, qPutStrLn)
 import Debian.Repo.Slice (NamedSliceList(sliceListName), Slice(sliceSource), SliceList(slices), SourcesChangedAction(SourcesChangedError), UpdateError(..))
@@ -90,9 +90,14 @@ osBinaryPackages = do
         return pkgs
 
 -- |Find or create and update an OS image.  Returns paths to clean and
--- depend os images.
+-- depend os images.  This involves several fallback actions - first
+-- we get the values from MonadRepos, if anything files we look at the
+-- file system and construct the value from that (replacing the value
+-- in MonadRepos), and if anything fails from that point forward we
+-- remove the value in the file system, rebuild everything, and
+-- proceed from there.  If that fails we are out of options.
 prepareOS
-    :: (MonadRepos m, MonadTop m, MonadMask m, MonadIO m) =>
+    :: (Applicative m, MonadRepos m, MonadTop m, MonadMask m, MonadIO m) =>
        EnvSet.EnvSet		-- ^ The location where image is to be built
     -> NamedSliceList		-- ^ The sources.list of the base distribution
     -> LocalRepository           -- ^ The location of the local upload repository
@@ -110,10 +115,14 @@ prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optio
     do cleanOS <- osFromRoot cleanRoot >>= maybe (do os <- liftIO (createOSImage cleanRoot distro repo)
                                                      putOSImage os
                                                      return os) return
-       if flushRoot then evalMonadOS (recreate Flushed) cleanRoot else (qPutStrLn ("Updating " ++ show cleanRoot) >>
-                                                                        evalMonadOS updateOS cleanRoot `catch` (\ (e :: UpdateError) -> evalMonadOS (recreate e) cleanRoot))
+       case flushRoot of
+         True -> evalMonadOS (recreate Flushed) cleanRoot
+         False -> do result <- try (evalMonadOS updateOS cleanRoot)
+                     case result of
+                       Right _ -> return ()
+                       Left e -> evalMonadOS (recreate e) cleanRoot
        evalMonadOS (doInclude >> doLocales) cleanRoot
-       when flushDepends (ePutStrLn "sync clean -> depend" >> evalMonadOS (syncOS dependRoot) cleanRoot)
+       when flushDepends (evalMonadOS (syncOS dependRoot) cleanRoot)
        -- Try running a command in the depend environment, if it fails
        -- sync dependOS from cleanOS.
        dependOS <- osFromRoot dependRoot
@@ -131,7 +140,7 @@ prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optio
     where
       cleanRoot = EnvRoot (EnvSet.cleanOS eset)
       dependRoot = EnvRoot (EnvSet.dependOS eset)
-      recreate :: (MonadOS m, MonadTop m, MonadMask m, MonadRepos m, MonadIO m) => UpdateError -> m ()
+      recreate :: (Applicative m, MonadOS m, MonadTop m, MonadMask m, MonadRepos m, MonadIO m) => UpdateError -> m ()
       recreate (Changed name path computed installed)
           | ifSourcesChanged == SourcesChangedError =
               error $ "FATAL: Sources for " ++ relName name ++ " in " ++ path ++
@@ -139,18 +148,17 @@ prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optio
                        ppDisplay computed ++ "\ninstalled:\n" ++
                        ppDisplay installed
       recreate reason =
-          do let root = EnvSet.cleanOS eset
-             base <- osBaseDistro <$> getOS
+          do base <- osBaseDistro <$> getOS
              sources <- sourcesPath (sliceListName base)
              dist <- distDir (sliceListName base)
-             liftIO $ do ePutStrLn $ "Removing and recreating build environment at " ++ root ++ ": " ++ show reason
-                         -- ePutStrLn ("removeRecursiveSafely " ++ rootPath root)
-                         removeRecursiveSafely root
+             liftIO $ do ePutStrLn $ "Removing and recreating build environment at " ++ ppDisplay cleanRoot ++ ": " ++ show reason
+                         -- ePutStrLn ("removeRecursiveSafely " ++ cleanRoot))
+                         removeRecursiveSafely (rootPath cleanRoot)
                          -- ePutStrLn ("createDirectoryIfMissing True " ++ show dist)
                          createDirectoryIfMissing True dist
                          -- ePutStrLn ("writeFile " ++ show sources ++ " " ++ show (show . osBaseDistro $ os))
                          replaceFile sources (ppDisplay base)
-             rebuildOS (EnvRoot root) distro include exclude components
+             rebuildOS cleanRoot distro include exclude components
 
       doInclude :: (MonadOS m, MonadIO m, MonadMask m) => m ()
       doInclude =
@@ -178,7 +186,7 @@ _pbuilderBuild root distro repo _extraEssential _omitEssential _extra =
        try (evalMonadOS updateOS root) >>= either (\ (e :: SomeException) -> error (show e)) return
        return os
 
-rebuildOS :: (MonadOS m, MonadRepos m, MonadTop m, MonadMask m) =>
+rebuildOS :: (Applicative m, MonadOS m, MonadRepos m, MonadTop m, MonadMask m) =>
              EnvRoot			-- ^ The location where image is to be built
            -> NamedSliceList		-- ^ The sources.list of the base distribution
            -> [String]			-- ^ Extra packages to install - e.g. keyrings
@@ -209,7 +217,7 @@ buildOS root distro repo include exclude components =
 
 -- | Try to update an existing build environment: run apt-get update
 -- and dist-upgrade.
-updateOS :: (MonadOS m, MonadRepos m, MonadMask m) => m ()
+updateOS :: (Applicative m, MonadOS m, MonadRepos m, MonadMask m) => m ()
 updateOS = quieter 1 $ do
   root <- (rootPath . osRoot) <$> getOS
   liftIO $ createDirectoryIfMissing True (root </> "etc")
@@ -301,5 +309,5 @@ prepareDevs root = do
                      let cmd = "mknod " ++ path ++ " " ++ typ ++ " " ++ show major ++ " " ++ show minor ++ " 2> /dev/null"
                      exists <- doesFileExist path
                      case exists of
-                       False -> readProcFailing (shell cmd) L.empty >>= return . collectProcessTriple >>= \ (result, _, _) -> return result
-                       True -> return ExitSuccess
+                       False -> readProcessV (shell cmd) L.empty >>= return . collectProcessTriple >>= \ (result, _, _) -> return result
+                       True -> return $ Right ExitSuccess

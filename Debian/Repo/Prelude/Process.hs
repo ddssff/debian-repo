@@ -1,15 +1,13 @@
 {-# OPTIONS_GHC -Wall #-}
 module Debian.Repo.Prelude.Process
     ( timeTask
-    , readProcLazy
-    , readProcLazy'
+    , readProcessV
     , throwProcessResult'
     , throwProcessResult''
     , throwProcessFailure
     , mapResultM
     , testExit
     , processException
-    , readProcFailing
     , insertProcessEnv
     , modifyProcessEnv
     ) where
@@ -17,7 +15,6 @@ module Debian.Repo.Prelude.Process
 import Control.Arrow (second)
 import Control.Exception (evaluate, Exception, throw)
 import Control.Monad.Trans (liftIO, MonadIO)
-import Data.ByteString.Lazy as L (ByteString)
 import Data.String (IsString)
 import Data.Time (diffUTCTime, getCurrentTime, NominalDiffTime)
 import Debian.Repo.Prelude.Verbosity (verbosity)
@@ -26,8 +23,8 @@ import System.Environment (getEnvironment)
 import System.Exit (ExitCode(..))
 import System.IO.Error (mkIOError)
 import System.Process (CreateProcess(cmdspec, cwd, env))
-import System.Process.ChunkE (Chunk(..), insertCommandStart, putIndentedShowCommand, putMappedChunks, readCreateProcessChunks, showCmdSpecForUser)
-import System.Process.ListLike (ListLikeLazyIO)
+import System.Process.ChunkE (Chunk(..), insertCommandStart, putIndentedShowCommand, putMappedChunks, showCmdSpecForUser)
+import System.Process.ListLike (ListLikeLazyIO, readCreateProcess)
 
 -- | Run a task and return the elapsed time along with its result.
 timeTask :: IO a -> IO (a, NominalDiffTime)
@@ -37,32 +34,47 @@ timeTask x =
        finish <- getCurrentTime
        return (result, diffUTCTime finish start)
 
+{-
 -- | Verbosity enabled process reader.  (Why MonadIO and not IO?)
 readProcLazy :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteString]
 readProcLazy p input = do
   v <- verbosity
   case v of
-    n | n <= 0 -> liftIO $ readCreateProcessChunks p input
-    1 -> liftIO $ readCreateProcessChunks p input >>= putMappedChunks (insertCommandStart p . filter (not . isOutput))
-    _ -> liftIO $ readCreateProcessChunks p input >>= putIndentedShowCommand p " 1> " " 1> "
+    n | n <= 0 -> liftIO $ readCreateProcess p input
+    1 -> liftIO $ readCreateProcess p input >>= putMappedChunks (insertCommandStart p . filter (not . isOutput))
+    _ -> liftIO $ readCreateProcess p input >>= putIndentedShowCommand p " 1> " " 1> "
+-}
 
 isOutput :: Chunk a -> Bool
 isOutput (Stdout _) = True
 isOutput (Stderr _) = True
 isOutput _ = False
 
--- | Verbosity enabled process reader.  (Why MonadIO and not IO?)
-readProcLazy' :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
-readProcLazy' p input = liftIO $ do
+-- | Verbose process reader.  This never throws an IO exception, it
+-- just returns an Exception chunk.
+readProcessE :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
+readProcessE p input = liftIO $ readCreateProcess p input >>= putIndentedShowCommand p " 1> " " 2> "
+
+-- | Like readProcessE, but three levels of verbosity are controlled
+-- by the VERBOSITY environment variable.
+-- readProcessV :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
+readProcessV :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
+readProcessV p input = liftIO $ do
   v <- verbosity
   case v of
-    n | n <= 0 -> readCreateProcessChunks p input
-    1 -> readCreateProcessChunks p input >>= putMappedChunks (insertCommandStart p . filter (not . isOutput))
-    _ -> readCreateProcessChunks p input >>= putIndentedShowCommand p " 1> " " 1> "
+    n | n <= 0 -> readCreateProcess p input
+    1 -> readCreateProcess p input >>= putMappedChunks (insertCommandStart p . filter (not . isOutput))
+    _ -> readCreateProcess p input >>= putIndentedShowCommand p " 1> " " 2> "
 
+-- readProcFailing :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
+-- readProcFailing p input = readProcLazy p input >>= liftIO . throwProcessFailure p
+
+-- | Turn process exit codes into exceptions.
 throwProcessResult' :: (ExitCode -> Maybe IOError) -> CreateProcess -> [Chunk a] -> IO [Chunk a]
 throwProcessResult' f p chunks = mapResultM (\ code -> maybe (return $ Result code) (throw $ processException p code) (f code)) chunks
 
+-- | Turn process exit codes into exceptions with access to the
+-- original CreateProcess record.
 throwProcessResult'' :: Exception e => (CreateProcess -> ExitCode -> Maybe e) -> CreateProcess -> [Chunk a] -> IO [Chunk a]
 throwProcessResult'' f p chunks = mapResultM (\ code -> maybe (return $ Result code) throw (f p code)) chunks
 
@@ -82,10 +94,6 @@ testExit _ f (ExitFailure n) = f n
 processException :: CreateProcess -> ExitCode -> IOError
 processException p code =
     mkIOError OtherError (showCmdSpecForUser (cmdspec p) ++ maybe "" (\ d -> "(in " ++ show d ++ ")") (cwd p) ++ " -> " ++ show code) Nothing Nothing
-
--- | Verbosity enabled process reader that throws an exception on ExitFailure.
-readProcFailing :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteString]
-readProcFailing p input = readProcLazy p input >>= liftIO . throwProcessFailure p
 
 -- | Set an environment variable in the CreateProcess, initializing it
 -- with what is in the current environment.

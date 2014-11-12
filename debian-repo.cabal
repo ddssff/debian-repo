@@ -33,12 +33,20 @@ flag no-verbosity-control
   Default: False
   Manual: True
 
+flag fixed-verbosity-level
+  Description: Disable the code that allows the verbosity level to change during execution
+  Default: True
+  Manual: True
+
 Library
   Buildable: True
   ghc-options: -O2 -threaded -Wall
 
   if flag(no-verbosity-control)
     cpp-options: -DNO_VERBOSITY_CONTROL
+
+  if flag(fixed-verbosity-level)
+    cpp-options: -DFIXED_VERBOSITY_LEVEL
 
   if flag(local-cabal-debian)
     cpp-options: -DMIN_VERSION_Cabal(a,b,c)=1
@@ -75,6 +83,7 @@ Library
         parsec >= 3,
         prettyclass,
         process,
+        process-chunk,
         process-extras >= 0.2.1,
         pureMD5,
         regex-compat,
@@ -83,6 +92,8 @@ Library
         template-haskell,
         text,
         time,
+        transformers,
+        transformers-compat,
         unix,
         Unixutils >= 1.52.3,
         utf8-string,
@@ -137,7 +148,34 @@ Executable debian-versions
   ghc-options: -O2 -threaded -Wall
   if flag(local-debian)
     Hs-Source-Dirs: ., ../../git/debian-haskell
-    Build-Depends: applicative-extras, bzlib, bytestring, containers, data-lens, directory, exceptions, filepath, ListLike, network, parsec, process, process-extras >= 0.2.1, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
+    Build-Depends:
+      applicative-extras,
+      bzlib,
+      bytestring,
+      containers,
+      data-lens,
+      directory,
+      exceptions,
+      Extra,
+      filepath,
+      ListLike,
+      network-uri,
+      parsec,
+      pretty,
+      prettyclass,
+      process,
+      process-chunk,
+      process-extras >= 0.2.1,
+      pureMD5,
+      regex-compat,
+      regex-tdfa,
+      template-haskell,
+      text,
+      time,
+      unix,
+      Unixutils,
+      utf8-string,
+      zlib
   else
     Build-Depends: debian >= 3.84, debian-repo >= 5.60
 
@@ -149,28 +187,123 @@ Executable newdist
   ghc-options: -O2 -threaded -Wall -rtsopts
   if flag(local-debian)
     Hs-Source-Dirs: ., ../../git/debian-haskell
-    Build-Depends: applicative-extras, bzlib, bytestring, containers, data-lens, data-lens-template, directory, exceptions, filepath, ListLike, network, old-locale, old-time, parsec, process, process-extras >= 0.2.1, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
+    Build-Depends:
+      applicative-extras,
+      bzlib,
+      bytestring,
+      containers,
+      data-lens,
+      data-lens-template,
+      directory,
+      exceptions,
+      Extra,
+      filepath,
+      ListLike,
+      network-uri,
+      old-locale,
+      old-time,
+      parsec,
+      pretty,
+      prettyclass,
+      process,
+      process-chunk,
+      process-extras >= 0.2.1,
+      pureMD5,
+      regex-compat,
+      regex-tdfa,
+      template-haskell,
+      text,
+      time,
+      unix,
+      Unixutils,
+      utf8-string,
+      zlib
   else
     Build-Depends: debian >= 3.84, debian-repo >= 5.60
 
 Executable speedtest
   Hs-Source-Dirs: Test
-  Build-Depends: applicative-extras, base, bytestring, bzlib, cabal-debian, containers, data-lens, data-lens-template, deepseq, directory, exceptions, filepath, ListLike, mtl, network-uri, old-locale, old-time, parsec, process, process-extras >= 0.2.1, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
+  Build-Depends:
+    applicative-extras,
+      base,
+      bytestring,
+      bzlib,
+      cabal-debian,
+      containers,
+      data-lens,
+      data-lens-template,
+      deepseq,
+      directory,
+      exceptions,
+      Extra,
+      filepath,
+      ListLike,
+      mtl,
+      network-uri,
+      old-locale,
+      old-time,
+      parsec,
+      process,
+      process-chunk,
+      process-extras >= 0.2.1,
+      pureMD5,
+      regex-compat,
+      regex-tdfa,
+      template-haskell,
+      text,
+      transformers-compat,
+      time,
+      unix,
+      Unixutils,
+      utf8-string,
+      zlib
   Buildable: True
   Main-is: Speed.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
   if flag(local-debian)
     Hs-Source-Dirs: ., ../../git/debian-haskell
+    Build-Depends: pretty, prettyclass
   else
     Build-Depends: debian >= 3.84, debian-repo >= 5.60
 
 Executable speedtest2
   Hs-Source-Dirs: Test
-  Build-Depends: applicative-extras, base, bytestring, bzlib, cabal-debian, containers, data-lens, data-lens-template, deepseq, directory, exceptions, filepath, ListLike, mtl, network-uri, old-locale, old-time, parsec, process, process-extras >= 0.2.1, pureMD5, regex-compat, regex-tdfa, template-haskell, text, time, unix, Unixutils, utf8-string, zlib
+  Build-Depends:
+    applicative-extras,
+    base,
+    bytestring,
+    bzlib,
+    cabal-debian,
+    containers,
+    data-lens,
+    data-lens-template,
+    deepseq,
+    directory,
+    exceptions,
+    filepath,
+    ListLike,
+    mtl,
+    network-uri,
+    old-locale,
+    old-time,
+    parsec,
+    process,
+    process-extras >= 0.2.1,
+    pureMD5,
+    regex-compat,
+    regex-tdfa,
+    template-haskell,
+    text,
+    time,
+    unix,
+    Unixutils,
+    utf8-string,
+    zlib
   Buildable: True
   Main-is: Speed2.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
   if flag(local-debian)
     Hs-Source-Dirs: ., ../../git/debian-haskell
+    Build-Depends: pretty, prettyclass
   else
     Build-Depends: debian >= 3.84, debian-repo >= 5.60

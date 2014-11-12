@@ -26,6 +26,7 @@ import Control.Applicative ((<$>), (<*>), pure)
 import Control.Exception (evaluate, SomeException, try, throw)
 import Control.Monad (foldM)
 import Control.Monad.Trans (MonadIO(..))
+import qualified Data.ByteString as B
 import Data.List (intercalate, nubBy, sortBy)
 import Data.Time (NominalDiffTime)
 import Debian.Changes (ChangeLogEntry(..), ChangesFile(..), parseEntries)
@@ -37,7 +38,7 @@ import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.MonadOS (MonadOS(getOS))
 import Debian.Repo.OSImage (osRoot)
 import Debian.Repo.Prelude (rsync, getSubDirectories, replaceFile, dropPrefix)
-import Debian.Repo.Prelude.Process (readProcFailing, timeTask, modifyProcessEnv)
+import Debian.Repo.Prelude.Process (readProcessV, timeTask, modifyProcessEnv)
 import Debian.Repo.Prelude.Verbosity (noisier)
 import qualified Debian.Version as V (version)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist)
@@ -46,7 +47,7 @@ import System.Exit (ExitCode(ExitFailure), ExitCode(ExitSuccess))
 import System.FilePath ((</>))
 import System.IO (hGetContents, IOMode(ReadMode), withFile)
 import System.Process (CmdSpec(..), CreateProcess(cwd, env, cmdspec), proc, readProcessWithExitCode, showCommandForUser)
-import System.Process.ChunkE (collectProcessTriple)
+import System.Process.ChunkE (Chunk(Result), collectProcessTriple)
 import System.Unix.Chroot (useEnv)
 
 class HasTopDir t where
@@ -128,7 +129,7 @@ buildDebs noClean _twice setEnv buildTree decision =
               liftIO $ do
                 cmd' <- modifyProcessEnv (("LOGNAME", Just "root") : setEnv) cmd
                 let cmd'' = cmd' {cwd = dropPrefix root path}
-                timeTask $ useEnv root forceList $ readProcFailing cmd'' ""
+                timeTask $ useEnv root forceList $ readProcessV cmd'' ("" :: String)
       _ <- liftIO $ run (proc "chmod" ["ugo+x", "debian/rules"])
       let buildCmd = proc "dpkg-buildpackage" (concat [["-sa"],
                                                        case decision of Arch _ -> ["-B"]; _ -> [],
@@ -136,8 +137,8 @@ buildDebs noClean _twice setEnv buildTree decision =
                                                        if noClean then ["-nc"] else []])
       (result, elapsed) <- liftIO . noisier 4 $ run buildCmd
       case collectProcessTriple result of
-        (ExitFailure n, _, _) -> fail $ "*** FAILURE: " ++ showCmd (cmdspec buildCmd) ++ " -> " ++ show n
-        _ -> return elapsed
+        (Right ExitSuccess, _, _) -> return elapsed
+        result -> fail $ "*** FAILURE: " ++ showCmd (cmdspec buildCmd) ++ " -> " ++ show result
     where
       path = debdir buildTree
       showCmd (RawCommand cmd args) = showCommandForUser cmd args
@@ -294,14 +295,14 @@ instance HasSourceTree DebianBuildTree where
         where
           copySource = createDirectoryIfMissing True dest >> rsync [] (topdir' build) dest
           -- copySource = DebianBuildTree <$> pure dest <*> pure (subdir' tree) <*> copySourceTree (debTree' tree) (dest </> subdir' tree)
-          copyTarball (ExitFailure _, _, _) = error $ "Failed to copy source tree: " ++ topdir' build ++ " -> " ++ dest
-          copyTarball (ExitSuccess, _, _) =
+          copyTarball (Right ExitSuccess, _, _) =
               do exists <- liftIO $ doesFileExist origPath
                  case exists of
-                   False -> return (ExitSuccess, "", "")
-                   True -> liftIO $ readProcessWithExitCode "cp" ["-p", origPath, dest ++ "/"] ""
-          moveBuild (ExitFailure _, _, _) = error $ "Failed to copy Tarball: " ++ origPath ++ " -> " ++ dest ++ "/"
-          moveBuild (ExitSuccess, _, _) = build {topdir' = dest, debTree' = moveSource (debTree' build)}
+                   False -> return (Right ExitSuccess, B.empty, B.empty)
+                   True -> liftIO $ readProcessV (proc "cp" ["-p", origPath, dest ++ "/"]) B.empty >>= return . collectProcessTriple
+          copyTarball _result = error $ "Failed to copy source tree: " ++ topdir' build ++ " -> " ++ dest
+          moveBuild (Right ExitSuccess, _, _) = build {topdir' = dest, debTree' = moveSource (debTree' build)}
+          moveBuild _result = error $ "Failed to copy Tarball: " ++ origPath ++ " -> " ++ dest ++ "/"
           moveSource source = source {tree' = SourceTree {dir' = dest </> subdir build}}
           origPath = topdir build </> orig
           orig = name ++ "_" ++ version ++ ".orig.tar.gz"

@@ -11,12 +11,14 @@ module Debian.Repo.State.Repository
     ) where
 
 import Control.Monad (filterM, when)
+import Control.Monad.Catch (MonadMask)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Data.Maybe (catMaybes)
 import Debian.Release (ReleaseName(ReleaseName), Section(Section))
 import Debian.Repo.EnvPath (EnvPath, EnvPath(EnvPath), EnvRoot(EnvRoot), outsidePath)
 import Debian.Repo.Internal.Repos (MonadRepos(..), repoByURI, putRepo)
 import Debian.Repo.LocalRepository (Layout(..), LocalRepository(..), readLocalRepo)
+import Debian.Repo.Prelude.Verbosity (ePutStrLn, eBracket)
 import Debian.Repo.Release (getReleaseInfoRemote, parseArchitectures, Release(Release, releaseAliases, releaseArchitectures, releaseComponents, releaseName))
 import Debian.Repo.RemoteRepository (RemoteRepository, RemoteRepository(RemoteRepository))
 import Debian.Repo.Repo (RepoKey(..))
@@ -28,7 +30,7 @@ import System.IO.Unsafe (unsafeInterleaveIO)
 import qualified System.Posix.Files as F (fileMode, getFileStatus, setFileMode)
 import Text.Regex (matchRegex, mkRegex)
 
-repairLocalRepository :: MonadIO m => LocalRepository -> m LocalRepository
+repairLocalRepository :: (MonadIO m, MonadMask m) => LocalRepository -> m LocalRepository
 repairLocalRepository r = prepareLocalRepository (repoRoot r) (repoLayout r) (repoReleaseInfoLocal r)
 
 createLocalRepository :: MonadIO m => EnvPath -> Maybe Layout -> m (Maybe Layout)
@@ -62,11 +64,11 @@ readLocalRepository root layout = createLocalRepository root layout >>= readLoca
 -- | Create or verify the existance of the directories which will hold
 -- a repository on the local machine.  Verify the index files for each of
 -- its existing releases.
-prepareLocalRepository :: MonadIO m => EnvPath -> Maybe Layout -> [Release] -> m LocalRepository
+prepareLocalRepository :: (MonadIO m, MonadMask m) => EnvPath -> Maybe Layout -> [Release] -> m LocalRepository
 prepareLocalRepository root layout releases =
     readLocalRepository root layout >>= maybe (return $ makeLocalRepo root layout releases) return
 
-prepareLocalRepository' :: MonadIO m => EnvPath -> Maybe Layout -> m LocalRepository
+prepareLocalRepository' :: (MonadIO m, MonadMask m) => EnvPath -> Maybe Layout -> m LocalRepository
 prepareLocalRepository' root layout =
     prepareLocalRepository root layout [Release { releaseName = ReleaseName "precise-seereason"
                                                 , releaseAliases = []

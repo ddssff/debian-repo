@@ -79,11 +79,11 @@ initState = ReposState
             }
 
 -- | A monad to support the IO requirements of the autobuilder.
-class (MonadCatch m, MonadIO m, Functor m) => MonadRepos m where
+class (MonadCatch m, MonadMask m, MonadIO m, Functor m) => MonadRepos m where
     getRepos :: m ReposState
     putRepos :: ReposState -> m ()
 
-instance (MonadCatch m, MonadIO m, Functor m) => MonadRepos (StateT ReposState m) where
+instance (MonadCatch m, MonadMask m, MonadIO m, Functor m) => MonadRepos (StateT ReposState m) where
     getRepos = get
     putRepos = put
 
@@ -115,9 +115,9 @@ runReposCachedT top action = do
   qPutStrLn "Exited MonadReposCached..."
   return r
 
-instance (MonadCatch m, MonadIO m, Functor m) => MonadReposCached (ReposCachedT m)
+instance (MonadCatch m, MonadMask m, MonadIO m, Functor m) => MonadReposCached (ReposCachedT m)
 
-instance (MonadCatch m, MonadIO m, Functor m) => MonadRepos (ReposCachedT m) where
+instance (MonadCatch m, MonadMask m, MonadIO m, Functor m) => MonadRepos (ReposCachedT m) where
     getRepos = lift get
     putRepos = lift . put
 
@@ -186,7 +186,7 @@ loadRepoCache =
                Nothing ->
                    error ("Ignoring invalid repoCache: " ++ show file)
                Just pairs ->
-                   qPutStrLn ("Loaded " ++ show (length pairs) ++ " entries from the repo cache.") >>
+                   qPutStrLn ("Loaded " ++ show (length pairs) ++ " entries from the repo cache in " ++ show repoCache) >>
                    return (fromList pairs)
 
 -- | Write the repo cache map into a file.

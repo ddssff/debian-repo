@@ -8,6 +8,9 @@ module Debian.Repo.EnvPath
     , rootEnvPath
     ) where
 
+import Debian.Pretty (PP(PP))
+import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text)
+
 -- |The root directory of an OS image.
 data EnvRoot = EnvRoot { rootPath :: FilePath } deriving (Ord, Eq, Read, Show)
 
@@ -24,3 +27,6 @@ appendPath suff path = path { envPath = envPath path ++ suff }
 
 rootEnvPath :: FilePath -> EnvPath
 rootEnvPath s = EnvPath { envRoot = EnvRoot "", envPath = s }
+
+instance Pretty (PP EnvRoot) where
+    pPrint (PP x) = text (rootPath x)

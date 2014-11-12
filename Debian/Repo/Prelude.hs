@@ -8,7 +8,6 @@ module Debian.Repo.Prelude
     , (~=)
     , (%=)
     , symbol
-    , Debian.Repo.Prelude.Process.readProcFailing -- re-export
     , rsync
     , partitionM
     , maybeWriteFile
@@ -25,7 +24,7 @@ module Debian.Repo.Prelude
     , dropPrefix
     ) where
 
-import Control.Exception (Exception)
+import Control.Exception (Exception, SomeException, toException)
 import Control.Monad.State (get, modify, MonadIO, MonadState)
 import Control.Monad.Trans (liftIO)
 import Data.Lens.Lazy (getL, Lens, modL)
@@ -38,13 +37,13 @@ import Debian.Repo.Prelude.Files (getSubDirectories, maybeWriteFile, replaceFile
 import Debian.Repo.Prelude.GPGSign (cd)
 import Debian.Repo.Prelude.List (cartesianProduct, dropPrefix, isSublistOf, listIntersection, partitionM)
 import Debian.Repo.Prelude.Misc (sameInode, sameMd5sum)
-import Debian.Repo.Prelude.Process (readProcLazy', throwProcessResult'', readProcFailing)
+import Debian.Repo.Prelude.Process (readProcessV, throwProcessResult'')
 import Debian.Repo.Prelude.Verbosity (ePutStrLn)
 import Language.Haskell.TH (Exp(LitE), Lit(StringL), Name, nameBase, nameModule, Q)
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
 import System.Process (CreateProcess, proc)
-import System.Process.ChunkE (collectProcessTriple)
+import System.Process.ChunkE (Chunk(Result, Exception), collectProcessTriple)
 import System.Process.ListLike.LazyString ()
 import Text.Printf (printf)
 
@@ -99,12 +98,25 @@ readProc :: MonadIO m => CreateProcess -> m [Chunk B.ByteString]
 readProc p = quieter 1 $ runProcess p L.empty
 #endif
 
-rsync :: forall m. (Functor m, MonadIO m) => [String] -> FilePath -> FilePath -> m (ExitCode, String, String)
+rsync :: forall m. (Functor m, MonadIO m) => [String] -> FilePath -> FilePath -> m (Either SomeException ExitCode, String, String)
 rsync extra source dest =
-    do let p = proc "rsync" (["-aHxSpDt", "--delete"] ++ extra ++
-                             [dropTrailingPathSeparator source ++ "/",
-                              dropTrailingPathSeparator dest])
-       readProcLazy' p (mempty :: String) >>= liftIO . throwProcessResult'' throwRsyncError p >>= return . collectProcessTriple
+    let p = proc "rsync" (["-aHxSpDt", "--delete"] ++ extra ++
+                          [dropTrailingPathSeparator source ++ "/",
+                           dropTrailingPathSeparator dest]) in
+    readProcessV p (mempty :: String) >>=
+    -- Turn error result codes into exceptions
+    return . mapResult (toChunk p) >>=
+    -- liftIO . throwProcessResult'' buildRsyncError p >>=
+    return . collectProcessTriple
+
+-- | Map the result code of a chunk list.
+mapResult :: (ExitCode -> Chunk a) -> [Chunk a] -> [Chunk a]
+mapResult f [] = []
+mapResult f (Result x : xs) = f x : mapResult f xs
+mapResult f (x : xs) = x : mapResult f xs
+
+toChunk :: CreateProcess -> ExitCode -> Chunk a
+toChunk p code = maybe (Result code) (Exception . toException) (buildRsyncError p code)
 
 #if 1
 instance Exception RsyncError
@@ -162,9 +174,9 @@ rsyncErrorInfo 35 = (TimeoutWaitingForDaemonConnection, "rsync: Timeout waiting 
 rsyncErrorInfo n = (RsyncUnexpected n, "Unexpected rsync error: " ++ show n)
 #endif
 
-throwRsyncError :: CreateProcess -> ExitCode -> Maybe RsyncError
-throwRsyncError _ ExitSuccess = Nothing
-throwRsyncError _ (ExitFailure n) = Just $ fst $ rsyncErrorInfo n
+buildRsyncError :: CreateProcess -> ExitCode -> Maybe RsyncError
+buildRsyncError _ ExitSuccess = Nothing
+buildRsyncError _ (ExitFailure n) = Just $ fst $ rsyncErrorInfo n
 #if 0
     case n of
       1 -> error "rsync: Syntax or usage error"
