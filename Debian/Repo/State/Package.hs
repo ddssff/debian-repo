@@ -76,6 +76,9 @@ import System.Process (runInteractiveCommand, waitForProcess)
 import Text.Regex (matchRegex, mkRegex, splitRegex)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text, hcat)
 
+instance Pretty FileOffset where
+    pPrint = text . show
+
 -- | A monad for installing or deleting a repository's packages
 class MonadRepos m => MonadInstall m where
     getInstall :: m InstallState
@@ -120,7 +123,7 @@ data InstallResult
     = Ok
     | Failed [Problem]		-- Package can not currently be installed
     | Rejected [Problem]	-- Package can not ever be installed
-    deriving (Show, Eq)
+    deriving Eq
 
 data Problem
     = NoSuchRelease ReleaseName
@@ -144,24 +147,26 @@ data Problem
     | InvalidControlInfo FilePath String
     -- ^ Badly formatted control file
     | DuplicatePackage Duplicate
-    -- ^ A package in incoming has the same ID as a package already in the index
+    -- ^ A binary deb in incoming has the same ID as a deb already in
+    -- the index - maybe an old source package has a binary package
+    -- name that conflicts with the package being uploaded.
     | OtherProblem String
     deriving (Eq)
 
 data Duplicate
     = Duplicate {release :: Release, index :: PackageIndex, newPackage :: BinaryPackage, oldPackage :: BinaryPackage} deriving (Eq, Show)
 
-instance Show Problem where
-    show (NoSuchRelease rel) = "NoSuchRelease  " ++ releaseName' rel
-    show (NoSuchSection rel sect) = "NoSuchSection " ++ releaseName' rel ++ " " ++ show (List.map sectionName' sect)
-    show (ShortFile path a b) = "ShortFile " ++ path ++ " " ++ show a ++ " " ++ show b
-    show (LongFile path a b) = "LongFile " ++ path ++ " " ++ show a ++ " " ++ show b
-    show (MissingFromIncoming path) = "MissingFromIncoming " ++ path
-    show (MissingFromPool path) = "MissingFromPool " ++ path
-    show (BadChecksum path a b) = "BadChecksum " ++ path ++ " " ++ show a ++ " " ++ show b
-    show (DuplicatePackage (Duplicate rel idx old _new)) = "DuplicatePackage in " ++ show rel ++ ":" ++ show idx ++ ": " ++ show (packageID old)
-    show (InvalidControlInfo path a) = "InvalidControlInfo " ++ path ++ " " ++ show a
-    show (OtherProblem s) = "OtherProblem " ++ show s
+instance Pretty (PP Problem) where
+    pPrint (PP (NoSuchRelease rel)) = text "NoSuchRelease  " <> text (releaseName' rel)
+    pPrint (PP (NoSuchSection rel sect)) = text "NoSuchSection " <> text (releaseName' rel) <> text " " <> pPrint (List.map sectionName' sect)
+    pPrint (PP (ShortFile path a b)) = text "ShortFile " <> text path <> text " " <> pPrint a <> text " " <> pPrint b
+    pPrint (PP (LongFile path a b)) = text "LongFile " <> text path <> text " " <> pPrint a <> text " " <> pPrint b
+    pPrint (PP (MissingFromIncoming path)) = text "MissingFromIncoming " <> text path
+    pPrint (PP (MissingFromPool path)) = text "MissingFromPool " <> text path
+    pPrint (PP (BadChecksum path a b)) = text "BadChecksum " <> text path <> text " " <> pPrint a <> text " " <> pPrint b
+    pPrint (PP (DuplicatePackage (Duplicate rel idx old _new))) = text "DuplicatePackage in " <> pPrint rel <> text ":" <> pPrint (PP idx) <> text ": " <> pPrint (PP (packageID old)) <> " - maybe an old source deb had a binary deb name that conflicts with the newer source deb being uploaded?  sourceIdent: " <> pPrint (PP (sourceIdent (rel, idx, old)))
+    pPrint (PP (InvalidControlInfo path a)) = text "InvalidControlInfo " <> text path <> text " " <> pPrint a
+    pPrint (PP (OtherProblem s)) = text "OtherProblem " <> pPrint s
 
 releaseKey :: MonadInstall m => Release -> m ReleaseKey
 releaseKey release = do
@@ -222,7 +227,7 @@ explainError (BadChecksum path _ _) =
      "is different from the value in the .changes file.\n" ++
      "This can happen when the --force-build option is used.  In this case the\n" ++
      "--flush-pool option should help.  It may also mean a hardware failure.")
-explainError other = show other
+explainError other = show (pPrint (PP other))
 
 plural :: String -> [a] -> String
 plural "do" [_] = "does"
@@ -252,8 +257,8 @@ scanIncoming createSections keyname repo = do
           changesFileName changes ++ ": " ++
           case result of
             Ok -> "Ok"
-            Failed lst -> "Failed -\n      " ++ (intercalate "\n      " $ List.map show lst)
-            Rejected lst -> "Rejected -\n      " ++ (intercalate "\n      " $ List.map show lst)
+            Failed lst -> "Failed -\n      " ++ (intercalate "\n      " $ List.map (show . pPrint . PP) lst)
+            Rejected lst -> "Rejected -\n      " ++ (intercalate "\n      " $ List.map (show . pPrint . PP) lst)
 
 -- | Install several packages into a repository.  This means
 -- 1. getting the list of files from the .changes file,

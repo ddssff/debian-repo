@@ -55,7 +55,7 @@ instance Pretty (PP PackageIndex) where
     pPrint (PP x) = ppPrint (packageIndexComponent x) <> text "_" <> ppPrint (packageIndexArch x)
 
 instance Pretty (PP Section) where
-    pPrint (PP (Section x)) = pPrint x
+    pPrint (PP (Section x)) = text x
 
 instance Pretty (PP Arch) where
     pPrint (PP Source) = text "source"

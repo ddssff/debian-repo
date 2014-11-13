@@ -13,8 +13,9 @@ import Control.Applicative ((<$>), Applicative((<*>)))
 import Control.Applicative.Error (Failing(Success, Failure))
 import Control.Exception (ErrorCall(ErrorCall), Exception(toException), SomeException, try)
 import Control.Monad.Trans (liftIO)
-import Data.List (intercalate)
+import Data.List (intercalate, intersperse)
 import Data.Maybe (catMaybes)
+import Data.Monoid ((<>), mconcat)
 import Data.Set (Set, fromList)
 import Data.Text (Text, unpack)
 import qualified Data.Text as T (Text, unpack)
@@ -27,6 +28,8 @@ import Debian.URI (dirFromURI, fileFromURI, URI(uriPath), uriToString')
 import Debian.UTF8 as Deb (decode)
 import Prelude hiding (readFile)
 import System.FilePath ((</>))
+import Text.PrettyPrint.HughesPJClass as PP (Pretty(pPrint))
+import qualified Text.PrettyPrint.HughesPJClass as PP (text)
 import Text.Regex (mkRegex, splitRegex)
 
 -- |A file whose contents have been read into memory.
@@ -52,6 +55,15 @@ data Release = Release { releaseName :: ReleaseName
                        -- package has architecture "all" or a source package has architecture "any" it means this.
                        , releaseComponents :: [Section] -- ^ Typically main, contrib, non-free
                        } deriving (Eq, Ord, Read, Show)
+
+instance Pretty Release where
+    pPrint x = pPrint (releaseName x)
+
+instance Pretty ReleaseName where
+    pPrint = PP.text . relName
+
+instance Pretty Section where
+    pPrint (Section s) = PP.text s
 
 parseComponents :: Text -> [Section]
 parseComponents compList =
