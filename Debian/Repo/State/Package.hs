@@ -164,7 +164,7 @@ instance Pretty (PP Problem) where
     pPrint (PP (MissingFromIncoming path)) = text "MissingFromIncoming " <> text path
     pPrint (PP (MissingFromPool path)) = text "MissingFromPool " <> text path
     pPrint (PP (BadChecksum path a b)) = text "BadChecksum " <> text path <> text " " <> pPrint a <> text " " <> pPrint b
-    pPrint (PP (DuplicatePackage (Duplicate rel idx old _new))) = text "DuplicatePackage in " <> pPrint rel <> text ":" <> pPrint (PP idx) <> text ": " <> pPrint (PP (packageID old)) <> " - maybe an old source deb had a binary deb name that conflicts with the newer source deb being uploaded?  sourceIdent: " <> pPrint (PP (sourceIdent (rel, idx, old)))
+    pPrint (PP (DuplicatePackage (Duplicate rel idx old _new))) = text "DuplicatePackage in " <> pPrint rel <> text ":" <> pPrint (PP idx) <> text ": " <> pPrint (PP (packageID old)) <> " - does the old source deb (" <> pPrint (PP (sourceIdent (rel, idx, old))) <> ") have a binary deb name that conflicts with the newer deb in incoming?  Try hiding the incoming directory and doing newdist --expire."
     pPrint (PP (InvalidControlInfo path a)) = text "InvalidControlInfo " <> text path <> text " " <> pPrint a
     pPrint (PP (OtherProblem s)) = text "OtherProblem " <> pPrint s
 
