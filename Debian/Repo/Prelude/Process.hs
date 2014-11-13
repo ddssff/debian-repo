@@ -15,15 +15,17 @@ module Debian.Repo.Prelude.Process
 import Control.Arrow (second)
 import Control.Exception (evaluate, Exception, throw)
 import Control.Monad.Trans (liftIO, MonadIO)
-import Data.String (IsString)
+import Data.ListLike (head)
+import Data.String (IsString(fromString))
 import Data.Time (diffUTCTime, getCurrentTime, NominalDiffTime)
 import Debian.Repo.Prelude.Verbosity (verbosity)
 import GHC.IO.Exception (IOErrorType(OtherError))
+import Prelude hiding (head)
 import System.Environment (getEnvironment)
 import System.Exit (ExitCode(..))
 import System.IO.Error (mkIOError)
 import System.Process (CreateProcess(cmdspec, cwd, env))
-import System.Process.ChunkE (Chunk(..), insertCommandStart, putIndentedShowCommand, putMappedChunks, showCmdSpecForUser)
+import System.Process.ChunkE (Chunk(..), insertResult, insertStart, dotifyChunks, putIndentedShowCommand, putMappedChunks, showCmdSpecForUser)
 import System.Process.ListLike (ListLikeLazyIO, readCreateProcess)
 
 -- | Run a task and return the elapsed time along with its result.
@@ -63,7 +65,7 @@ readProcessV p input = liftIO $ do
   v <- verbosity
   case v of
     n | n <= 0 -> readCreateProcess p input
-    1 -> readCreateProcess p input >>= putMappedChunks (insertCommandStart p . filter (not . isOutput))
+    1 -> readCreateProcess p input >>= putMappedChunks (insertResult . insertStart p . insertString " " . dotifyChunks 100 {-filter (not . isOutput)-})
     _ -> readCreateProcess p input >>= putIndentedShowCommand p " 1> " " 2> "
 
 -- readProcFailing :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]

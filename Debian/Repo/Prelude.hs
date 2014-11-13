@@ -26,7 +26,6 @@ module Debian.Repo.Prelude
 
 import Control.Exception (Exception, SomeException, toException)
 import Control.Monad.State (get, modify, MonadIO, MonadState)
-import Control.Monad.Trans (liftIO)
 import Data.Lens.Lazy (getL, Lens, modL)
 import Data.List (group, sort)
 import Data.List as List (map)
@@ -37,7 +36,7 @@ import Debian.Repo.Prelude.Files (getSubDirectories, maybeWriteFile, replaceFile
 import Debian.Repo.Prelude.GPGSign (cd)
 import Debian.Repo.Prelude.List (cartesianProduct, dropPrefix, isSublistOf, listIntersection, partitionM)
 import Debian.Repo.Prelude.Misc (sameInode, sameMd5sum)
-import Debian.Repo.Prelude.Process (readProcessV, throwProcessResult'')
+import Debian.Repo.Prelude.Process (readProcessV)
 import Debian.Repo.Prelude.Verbosity (ePutStrLn)
 import Language.Haskell.TH (Exp(LitE), Lit(StringL), Name, nameBase, nameModule, Q)
 import System.Exit (ExitCode(..))
@@ -111,7 +110,7 @@ rsync extra source dest =
 
 -- | Map the result code of a chunk list.
 mapResult :: (ExitCode -> Chunk a) -> [Chunk a] -> [Chunk a]
-mapResult f [] = []
+mapResult _ [] = []
 mapResult f (Result x : xs) = f x : mapResult f xs
 mapResult f (x : xs) = x : mapResult f xs
 
