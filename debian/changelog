@@ -1,3 +1,9 @@
+haskell-debian-repo (5.70) unstable; urgency=low
+
+  * Revamp subprocess running
+
+ -- David Fox <dsf@seereason.com>  Thu, 13 Nov 2014 12:17:18 -0800
+
 haskell-debian-repo (5.69) unstable; urgency=low
 
   * Split Prelude.Process out of Prelude.Verbosity

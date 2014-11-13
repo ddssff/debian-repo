@@ -65,7 +65,7 @@ readProcessV p input = liftIO $ do
   v <- verbosity
   case v of
     n | n <= 0 -> readCreateProcess p input
-    1 -> readCreateProcess p input >>= putMappedChunks (insertResult . insertStart p . insertString " " . dotifyChunks 100 {-filter (not . isOutput)-})
+    1 -> readCreateProcess p input >>= putMappedChunks (insertResult . insertStart p . dotifyChunks 100)
     _ -> readCreateProcess p input >>= putIndentedShowCommand p " 1> " " 2> "
 
 -- readProcFailing :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]

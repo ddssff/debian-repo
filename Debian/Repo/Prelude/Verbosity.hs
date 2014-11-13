@@ -9,6 +9,7 @@ module Debian.Repo.Prelude.Verbosity
     , eBracket
     , quieter
     , noisier
+    , withVerbosity
     , withModifiedVerbosity
     , verbosity
     ) where
@@ -44,6 +45,9 @@ quieter n action = withModifiedVerbosity (\ v -> v - n) action
 
 noisier :: (MonadIO m, MonadMask m) => Int -> m a -> m a
 noisier n action = withModifiedVerbosity (\ v -> v + n) action
+
+withVerbosity :: Int -> m a -> m a
+withVerbosity v action = setEnv "VERBOSITY" (show v) True
 
 withModifiedVerbosity :: (MonadIO m, MonadMask m) => (Int -> Int) -> m a -> m a
 withModifiedVerbosity f action =
