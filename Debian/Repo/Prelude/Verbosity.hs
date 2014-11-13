@@ -46,8 +46,8 @@ quieter n action = withModifiedVerbosity (\ v -> v - n) action
 noisier :: (MonadIO m, MonadMask m) => Int -> m a -> m a
 noisier n action = withModifiedVerbosity (\ v -> v + n) action
 
-withVerbosity :: Int -> m a -> m a
-withVerbosity v action = setEnv "VERBOSITY" (show v) True
+withVerbosity :: (MonadIO m, MonadMask m) => Int -> m a -> m a
+withVerbosity v action = liftIO (setEnv "VERBOSITY" (show v) True) >> action
 
 withModifiedVerbosity :: (MonadIO m, MonadMask m) => (Int -> Int) -> m a -> m a
 withModifiedVerbosity f action =
