@@ -40,6 +40,7 @@ flag fixed-verbosity-level
 
 Library
   Buildable: True
+  Hs-Source-Dirs: .
   ghc-options: -O2 -threaded -Wall
 
   if flag(no-verbosity-control)
@@ -48,17 +49,19 @@ Library
   if flag(fixed-verbosity-level)
     cpp-options: -DFIXED_VERBOSITY_LEVEL
 
-  if flag(local-cabal-debian)
-    cpp-options: -DMIN_VERSION_Cabal(a,b,c)=1
-    ghc-options: -package Cabal-1.21.0.0
-    if flag(local-debian)
-      Hs-Source-Dirs: ., ../../git/cabal-debian/src, ../../git/debian-haskell
-      Build-Depends: hsemail, ListLike, memoize, syb
-    else
-      Hs-Source-Dirs: ., ../../git/cabal-debian/src
-      Build-Depends: debian >= 3.84, hsemail, memoize, syb
+  if !flag (local-cabal-debian)
+    Build-Depends: cabal-debian >= 4.5
   else
-    Build-Depends: cabal-debian >= 4.5, debian >= 3.84
+    Hs-Source-Dirs: ../cabal-debian/src
+    Build-Depends: hsemail
+    -- cpp-options: -DMIN_VERSION_Cabal(a,b,c)=1
+    -- ghc-options: -package Cabal-1.21.1.0
+
+  if !flag (local-debian)
+    Build-Depends: debian >= 3.84
+  else
+    Hs-Source-Dirs: ../debian-haskell
+    Build-Depends: pretty
 
   Build-Depends:
         applicative-extras,
@@ -75,6 +78,7 @@ Library
         Extra,
         filepath,
         HaXml,
+        ListLike >= 4,
         MIME,
         mtl,
         network-uri,
