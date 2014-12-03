@@ -15,6 +15,7 @@ import Control.Monad (when)
 import Control.Monad.Catch (catch, try, MonadMask)
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (empty)
+import Data.Monoid (mempty)
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import qualified Debian.Debianize.Types.Atoms as EnvSet (EnvSet(cleanOS, dependOS))
 import Debian.Pretty (ppDisplay)
@@ -30,7 +31,7 @@ import Debian.Repo.OSImage (createOSImage, OSImage(osArch, osBaseDistro, osLocal
 import Debian.Repo.MonadOS (MonadOS(getOS, modifyOS), evalMonadOS, aptGetInstall, syncLocalPool, syncOS)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
 import Debian.Repo.Prelude (replaceFile)
-import Debian.Repo.Prelude.Process (readProcessV)
+import Debian.Repo.Prelude.Process (readProcessE, readProcessV)
 import Debian.Repo.Prelude.SSH (sshCopy)
 import Debian.Repo.Prelude.Verbosity (ePutStrLn, quieter, qPutStrLn)
 import Debian.Repo.Slice (NamedSliceList(sliceListName), Slice(sliceSource), SliceList(slices), SourcesChangedAction(SourcesChangedError), UpdateError(..))
@@ -45,7 +46,6 @@ import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), splitFileName)
 import System.Posix.Env (setEnv)
 import System.Process (readProcessWithExitCode, shell)
-import System.Process.ChunkE (collectProcessTriple)
 import System.Unix.Chroot (useEnv)
 import System.Unix.Directory (removeRecursiveSafely)
 
@@ -309,5 +309,5 @@ prepareDevs root = do
                      let cmd = "mknod " ++ path ++ " " ++ typ ++ " " ++ show major ++ " " ++ show minor ++ " 2> /dev/null"
                      exists <- doesFileExist path
                      case exists of
-                       False -> readProcessV (shell cmd) L.empty >>= return . collectProcessTriple >>= \ (result, _, _) -> return result
-                       True -> return $ Right ExitSuccess
+                       False -> readProcessE (shell cmd) L.empty
+                       True -> return $ Right (ExitSuccess, mempty, mempty)

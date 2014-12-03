@@ -1,11 +1,12 @@
 {-# OPTIONS_GHC -Wall #-}
 module Debian.Repo.Prelude.Process
     ( timeTask
+    , readProcessE
     , readProcessV
-    , throwProcessResult'
-    , throwProcessResult''
-    , throwProcessFailure
-    , mapResultM
+    -- , throwProcessResult'
+    -- , throwProcessResult''
+    -- , throwProcessFailure
+    -- , mapResultM
     , testExit
     , processException
     , insertProcessEnv
@@ -13,20 +14,29 @@ module Debian.Repo.Prelude.Process
     ) where
 
 import Control.Arrow (second)
-import Control.Exception (evaluate, Exception, throw)
+import Control.DeepSeq (NFData)
+import Control.Exception (evaluate, Exception, SomeException, throw, try)
 import Control.Monad.Trans (liftIO, MonadIO)
+import Data.ByteString.Lazy (ByteString)
 import Data.ListLike (head)
+import Data.Monoid (Monoid(..))
 import Data.String (IsString(fromString))
 import Data.Time (diffUTCTime, getCurrentTime, NominalDiffTime)
-import Debian.Repo.Prelude.Verbosity (verbosity)
+import Debian.Repo.Prelude.Verbosity (verbosity, ePutStrLn)
 import GHC.IO.Exception (IOErrorType(OtherError))
 import Prelude hiding (head)
 import System.Environment (getEnvironment)
 import System.Exit (ExitCode(..))
 import System.IO.Error (mkIOError)
-import System.Process (CreateProcess(cmdspec, cwd, env))
-import System.Process.ChunkE (Chunk(..), insertResult, insertStart, dotifyChunks, putIndentedShowCommand, putMappedChunks, showCmdSpecForUser)
-import System.Process.ListLike (ListLikeLazyIO, readCreateProcess)
+import System.Process (CreateProcess(cwd, env))
+import System.Process.Extras (ListLikeProcessIO(readCreateProcessWithExitCode), showCreateProcessForUser)
+
+instance NFData ExitCode
+
+instance Monoid ExitCode where
+    mappend x (ExitFailure 0) = x
+    mappend (ExitFailure 0) x = x
+    mappend _ x = x
 
 -- | Run a task and return the elapsed time along with its result.
 timeTask :: IO a -> IO (a, NominalDiffTime)
@@ -36,42 +46,39 @@ timeTask x =
        finish <- getCurrentTime
        return (result, diffUTCTime finish start)
 
+readProcessE :: (ListLikeProcessIO a, MonadIO m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+readProcessE p input = do
+  ePutStrLn (" -> " ++ showCreateProcessForUser p)
+  result <- liftIO $ try $ readCreateProcessWithExitCode p input
+  ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++  either show (\ (code, _, _) -> show code) result)
+  return result
+
+readProcessV :: (ListLikeProcessIO a, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
+readProcessV p input = do
+  ePutStrLn (" -> " ++ showCreateProcessForUser p)
+  result@(code, _, _) <- liftIO $ readCreateProcessWithExitCode p input
+  ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++ show code)
+  return result
 {-
--- | Verbosity enabled process reader.  (Why MonadIO and not IO?)
-readProcLazy :: MonadIO m => CreateProcess -> L.ByteString -> m [Chunk L.ByteString]
-readProcLazy p input = do
-  v <- verbosity
-  case v of
-    n | n <= 0 -> liftIO $ readCreateProcess p input
-    1 -> liftIO $ readCreateProcess p input >>= putMappedChunks (insertCommandStart p . filter (not . isOutput))
-    _ -> liftIO $ readCreateProcess p input >>= putIndentedShowCommand p " 1> " " 1> "
--}
-
-isOutput :: Chunk a -> Bool
-isOutput (Stdout _) = True
-isOutput (Stderr _) = True
-isOutput _ = False
-
--- | Verbose process reader.  This never throws an IO exception, it
--- just returns an Exception chunk.
-readProcessE :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
-readProcessE p input = liftIO $ readCreateProcess p input >>= putIndentedShowCommand p " 1> " " 2> "
-
--- | Like readProcessE, but three levels of verbosity are controlled
--- by the VERBOSITY environment variable.
--- readProcessV :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
-readProcessV :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
 readProcessV p input = liftIO $ do
   v <- verbosity
   case v of
-    n | n <= 0 -> readCreateProcess p input
-    1 -> readCreateProcess p input >>= putMappedChunks (insertResult . insertStart p . dotifyChunks 100)
+    n | n <= 0 -> readCreateProcessWithExitCode p input >>= putMapped (insertResult . insertStart p . filter (not . isOutput))
+    1 -> readCreateProcess p input >>= putMapped (insertResult . insertStart p . dotifyChunks 100)
     _ -> readCreateProcess p input >>= putIndentedShowCommand p " 1> " " 2> "
+    where
+      putMapped :: (OutputChunks a -> OutputChunks a) -> OutputChunks a -> IO (OutputChunks a)
+      putMapped f ocs = putMappedChunks (\ xs -> unOutputChunks $ f $ OutputChunks xs) (unOutputChunks ocs)
+      isOutput (Stdout _) = True
+      isOutput (Stderr _) = True
+      isOutput _ = False
+-}
 
 -- readProcFailing :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
 -- readProcFailing p input = readProcLazy p input >>= liftIO . throwProcessFailure p
 
 -- | Turn process exit codes into exceptions.
+{-
 throwProcessResult' :: (ExitCode -> Maybe IOError) -> CreateProcess -> [Chunk a] -> IO [Chunk a]
 throwProcessResult' f p chunks = mapResultM (\ code -> maybe (return $ Result code) (throw $ processException p code) (f code)) chunks
 
@@ -85,6 +92,7 @@ throwProcessFailure p = throwProcessResult' (testExit Nothing (Just . processExc
 
 mapResultM :: Monad m => (ExitCode -> m (Chunk a)) -> [Chunk a] -> m [Chunk a]
 mapResultM f chunks = mapM (\ x -> case x of Result code -> f code; _ -> return x) chunks
+-}
 
 testExit :: a -> (Int -> a) -> ExitCode -> a
 testExit s _ ExitSuccess = s
@@ -95,7 +103,7 @@ testExit _ f (ExitFailure n) = f n
 -- 'ExitFailure'.
 processException :: CreateProcess -> ExitCode -> IOError
 processException p code =
-    mkIOError OtherError (showCmdSpecForUser (cmdspec p) ++ maybe "" (\ d -> "(in " ++ show d ++ ")") (cwd p) ++ " -> " ++ show code) Nothing Nothing
+    mkIOError OtherError (showCreateProcessForUser p ++ maybe "" (\ d -> "(in " ++ show d ++ ")") (cwd p) ++ " -> " ++ show code) Nothing Nothing
 
 -- | Set an environment variable in the CreateProcess, initializing it
 -- with what is in the current environment.

@@ -38,7 +38,7 @@ import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.MonadOS (MonadOS(getOS))
 import Debian.Repo.OSImage (osRoot)
 import Debian.Repo.Prelude (rsync, getSubDirectories, replaceFile, dropPrefix)
-import Debian.Repo.Prelude.Process (readProcessV, timeTask, modifyProcessEnv)
+import Debian.Repo.Prelude.Process (readProcessE, readProcessV, timeTask, modifyProcessEnv)
 import Debian.Repo.Prelude.Verbosity (noisier)
 import qualified Debian.Version as V (version)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist)
@@ -47,7 +47,6 @@ import System.Exit (ExitCode(ExitFailure), ExitCode(ExitSuccess))
 import System.FilePath ((</>))
 import System.IO (hGetContents, IOMode(ReadMode), withFile)
 import System.Process (CmdSpec(..), CreateProcess(cwd, env, cmdspec), proc, readProcessWithExitCode, showCommandForUser)
-import System.Process.ChunkE (Chunk(Result), collectProcessTriple)
 import System.Unix.Chroot (useEnv)
 
 class HasTopDir t where
@@ -129,15 +128,15 @@ buildDebs noClean _twice setEnv buildTree decision =
               liftIO $ do
                 cmd' <- modifyProcessEnv (("LOGNAME", Just "root") : setEnv) cmd
                 let cmd'' = cmd' {cwd = dropPrefix root path}
-                timeTask $ useEnv root forceList $ readProcessV cmd'' ("" :: String)
+                timeTask $ useEnv root return $ readProcessE cmd'' ("" :: String)
       _ <- liftIO $ run (proc "chmod" ["ugo+x", "debian/rules"])
       let buildCmd = proc "dpkg-buildpackage" (concat [["-sa"],
                                                        case decision of Arch _ -> ["-B"]; _ -> [],
                                                        if noSecretKey then ["-us", "-uc"] else [],
                                                        if noClean then ["-nc"] else []])
       (result, elapsed) <- liftIO . noisier 4 $ run buildCmd
-      case collectProcessTriple result of
-        (Right ExitSuccess, _, _) -> return elapsed
+      case result of
+        (Right (ExitSuccess, _, _)) -> return elapsed
         result -> fail $ "*** FAILURE: " ++ showCmd (cmdspec buildCmd) ++ " -> " ++ show result
     where
       path = debdir buildTree
@@ -298,10 +297,10 @@ instance HasSourceTree DebianBuildTree where
           copyTarball (Right ExitSuccess, _, _) =
               do exists <- liftIO $ doesFileExist origPath
                  case exists of
-                   False -> return (Right ExitSuccess, B.empty, B.empty)
-                   True -> liftIO $ readProcessV (proc "cp" ["-p", origPath, dest ++ "/"]) B.empty >>= return . collectProcessTriple
+                   False -> return (Right (ExitSuccess, B.empty, B.empty))
+                   True -> liftIO $ readProcessE (proc "cp" ["-p", origPath, dest ++ "/"]) B.empty
           copyTarball _result = error $ "Failed to copy source tree: " ++ topdir' build ++ " -> " ++ dest
-          moveBuild (Right ExitSuccess, _, _) = build {topdir' = dest, debTree' = moveSource (debTree' build)}
+          moveBuild (Right (ExitSuccess, _, _)) = build {topdir' = dest, debTree' = moveSource (debTree' build)}
           moveBuild _result = error $ "Failed to copy Tarball: " ++ origPath ++ " -> " ++ dest ++ "/"
           moveSource source = source {tree' = SourceTree {dir' = dest </> subdir build}}
           origPath = topdir build </> orig

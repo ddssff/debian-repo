@@ -42,8 +42,6 @@ import Language.Haskell.TH (Exp(LitE), Lit(StringL), Name, nameBase, nameModule,
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
 import System.Process (CreateProcess, proc)
-import System.Process.ChunkE (Chunk(Result, Exception), collectProcessTriple)
-import System.Process.ListLike.LazyString ()
 import Text.Printf (printf)
 
 -- | Perform a list of tasks with log messages.
@@ -102,21 +100,11 @@ rsync extra source dest =
     let p = proc "rsync" (["-aHxSpDt", "--delete"] ++ extra ++
                           [dropTrailingPathSeparator source ++ "/",
                            dropTrailingPathSeparator dest]) in
-    readProcessV p (mempty :: String) >>=
+    readProcessV p mempty >>= \ (code, out, err) ->
     -- Turn error result codes into exceptions
-    return . mapResult (toChunk p) >>=
-    -- liftIO . throwProcessResult'' buildRsyncError p >>=
-    return . collectProcessTriple
+    return $ (maybe (Right ExitSuccess) (Left . toException) (buildRsyncError p code), out, err)
 
 -- | Map the result code of a chunk list.
-mapResult :: (ExitCode -> Chunk a) -> [Chunk a] -> [Chunk a]
-mapResult _ [] = []
-mapResult f (Result x : xs) = f x : mapResult f xs
-mapResult f (x : xs) = x : mapResult f xs
-
-toChunk :: CreateProcess -> ExitCode -> Chunk a
-toChunk p code = maybe (Result code) (Exception . toException) (buildRsyncError p code)
-
 #if 1
 instance Exception RsyncError
 

@@ -33,7 +33,7 @@ import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath(envPath), outsidePath)
 import Debian.Repo.Fingerprint (readUpstreamFingerprint)
 import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile, rsync)
-import Debian.Repo.Prelude.Process (readProcessV, timeTask)
+import Debian.Repo.Prelude.Process (readProcessE, readProcessV)
 import Debian.Repo.Prelude.SSH (sshVerify)
 import Debian.Repo.Prelude.Verbosity (qPutStrLn, ePutStrLn)
 import Debian.Repo.Release (parseReleaseFile, Release)
@@ -46,8 +46,7 @@ import System.Exit (ExitCode, ExitCode(ExitSuccess, ExitFailure))
 import System.FilePath ((</>), splitFileName)
 import qualified System.Posix.Files as F (createLink, getSymbolicLinkStatus, isSymbolicLink, readSymbolicLink, removeLink)
 import System.Process (readProcessWithExitCode, CreateProcess(cwd, cmdspec), showCommandForUser, proc)
-import System.Process.ChunkE (Chunk(..), collectProcessOutput, showCmdSpecForUser)
-import System.Process.ListLike (readCreateProcess)
+import System.Process.Extras (showCmdSpecForUser)
 import Text.Regex (matchRegex, mkRegex)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text)
 
@@ -194,7 +193,7 @@ uriDest uri =
 -- directory of a remote repository (using dupload.)
 uploadRemote :: LocalRepository		-- ^ Local repository holding the packages.
              -> URI			-- ^ URI of upload repository
-             -> IO [Failing ([Chunk L.ByteString], NominalDiffTime)]
+             -> IO [Failing (ExitCode, L.ByteString, L.ByteString)]
 uploadRemote repo uri =
     do let dir = (outsidePath root)
        changesFiles <- findChangesFiles (outsidePath root)
@@ -310,7 +309,7 @@ acceptM p tag (accept, reject) =
 dupload :: URI		-- user
         -> FilePath	-- The directory containing the .changes file
         -> String	-- The name of the .changes file to upload
-        -> IO (Failing ([Chunk L.ByteString], NominalDiffTime))
+        -> IO (Failing (ExitCode, L.ByteString, L.ByteString))
 dupload uri dir changesFile  =
     case uriAuthority uri of
       Nothing -> error ("Invalid Upload-URI: " ++ uriToString' uri)
@@ -328,18 +327,17 @@ dupload uri dir changesFile  =
         replaceFile (dir ++ "/dupload.conf") config
         let cmd = (proc "dupload" ["--to", "default", "-c", changesFile]) {cwd = Just dir}
         qPutStrLn ("Uploading " ++ show changesFile)
-        (chunks, elapsed) <- timeTask $ readProcessV cmd L.empty
-        case collectProcessOutput chunks of
-          (Right ExitSuccess, _) ->
-              do qPutStrLn ("Upload finished, elapsed time " ++ show elapsed)
-                 return $ Success (chunks, elapsed)
-          (fail, result) ->
+        chunks <- readProcessE cmd L.empty
+        case chunks of
+          (Right output@(ExitSuccess, _, _)) ->
+              return $ Success output
+          e ->
               do let message = "dupload in " ++ dir ++ " failed: " ++ showCmdSpecForUser (cmdspec cmd) ++ " -> " ++
-                               {- either (\ (e :: SomeException) -> show e) (\ (chunks, _elapsed) -> show (collectProcessOutput chunks)) -} show result
+                               {- either (\ (e :: SomeException) -> show e) (\ (chunks, _elapsed) -> show (collectProcessOutput chunks)) -} show e
                  qPutStrLn message
                  return $ Failure [message]
 
-ignore :: forall a. IO (Either String [Chunk L.ByteString]) -> a -> IO (Either String [Chunk L.ByteString])
+ignore :: forall a. IO (Either String (ExitCode, L.ByteString, L.ByteString)) -> a -> IO (Either String (ExitCode, L.ByteString, L.ByteString))
 ignore result _ = result
 
 -- | Move a build result into a local repository's 'incoming' directory.

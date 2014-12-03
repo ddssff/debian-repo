@@ -113,7 +113,7 @@ simplifyRelations available relations preferred arch =
 -- package versions which are actually available in the current
 -- environment and satisfy the original relation.
 expandVirtual :: Arch -> ProvidesMap -> ProvidesMap -> Relations -> SimpleRelations
-expandVirtual Source _ _ _ = undefined
+expandVirtual Source _ _ _ = error "expandVirtual Source"
 expandVirtual arch nameMap providesMap relations =
     map (nub . concat . map expand) relations
     where

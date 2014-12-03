@@ -23,6 +23,7 @@ module Debian.Repo.OSImage
     , removeEnv
     ) where
 
+import Control.DeepSeq (force)
 import Control.Exception (evaluate, SomeException)
 import Control.Monad.Catch (try)
 import Control.Monad.State (MonadIO(..))
@@ -40,7 +41,7 @@ import Debian.Repo.Internal.IO (buildArchOfRoot)
 import Debian.Repo.LocalRepository (copyLocalRepo, LocalRepository)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
 import Debian.Repo.Prelude (isSublistOf, replaceFile, rsync, sameInode, sameMd5sum)
-import Debian.Repo.Prelude.Process (readProcessV)
+import Debian.Repo.Prelude.Process (readProcessE, readProcessV)
 import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn)
 import Debian.Repo.Repo (repoKey, repoURI)
 import Debian.Repo.Slice (NamedSliceList(sliceList), NamedSliceList(sliceListName), Slice(Slice, sliceRepoKey, sliceSource), SliceList(..))
@@ -51,7 +52,7 @@ import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>))
 import System.Posix.Files (createLink, deviceID, fileID, FileStatus, modificationTime)
 import System.Process (shell)
-import System.Process.ChunkE (Chunk, collectProcessTriple, collectProcessResult)
+import System.Process.ByteString ()
 import System.Unix.Chroot (useEnv)
 import System.Unix.Directory (removeRecursiveSafely)
 import System.Unix.Mount (umountBelow)
@@ -187,10 +188,10 @@ localeGen :: OSImage -> String -> IO ()
 localeGen os locale =
     do let root = osRoot os
        qPutStr ("Generating locale " ++  locale ++ " (" ++ stripDist (rootPath root) ++ ")...")
-       chunks <- useEnv (rootPath root) forceList (readProcessV (shell cmd) B.empty)
-       case collectProcessTriple chunks of
-         (Right ExitSuccess, _, _) -> qPutStrLn "done"
-         (code, _, _) -> error $ "Failed to generate locale " ++ rootPath root ++ ": " ++ cmd ++ " -> " ++ show code
+       chunks <- useEnv (rootPath root) return (readProcessE (shell cmd) B.empty)
+       case chunks of
+         (Right output@(ExitSuccess, _, _)) -> qPutStrLn "done"
+         e -> error $ "Failed to generate locale " ++ rootPath root ++ ": " ++ cmd ++ " -> " ++ show e
     where
       cmd = "locale-gen " ++ locale
 
@@ -354,9 +355,9 @@ pbuilder top root distro repo _extraEssential _omitEssential _extra =
       -- then add them back in.
     do ePutStrLn ("Creating clean build environment (" ++ relName (sliceListName distro) ++ ")")
        ePutStrLn ("# " ++ cmd top)
-       let codefn (Right ExitSuccess) = return ()
+       let codefn (Right (ExitSuccess, _, _)) = return ()
            codefn failure = error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show failure)
-       liftIO (readProcessV (shell (cmd top)) B.empty) >>= return . collectProcessTriple >>= \ (result, _, _) -> codefn result
+       liftIO (readProcessE (shell (cmd top)) B.empty) >>= codefn
        ePutStrLn "done."
        os <- createOSImage root distro repo -- arch?  copy?
        let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
@@ -394,7 +395,7 @@ debootstrap root distro repo include exclude components =
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
       -- then add them back in.
-      readProcessV (shell cmd) B.empty >>= codefn . collectProcessResult
+      readProcessE (shell cmd) B.empty >>= codefn
       ePutStrLn "done."
       os <- createOSImage root distro repo -- arch?  copy?
       let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
@@ -403,8 +404,8 @@ debootstrap root distro repo include exclude components =
       liftIO $ replaceFile sourcesPath' sources
       return os
     where
-      codefn (Right ExitSuccess, _) = return ()
-      codefn (code, out) = error ("Could not create build environment:\n " ++ cmd ++ " -> " ++ show code)
+      codefn (Right (ExitSuccess, _, _)) = return ()
+      codefn e = error ("Could not create build environment:\n " ++ cmd ++ " -> " ++ show e)
 
       woot = rootPath root
       wootNew = woot ++ ".new"

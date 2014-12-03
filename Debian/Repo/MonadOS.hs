@@ -32,7 +32,7 @@ import Debian.Repo.Internal.Repos (MonadRepos, osFromRoot, putOSImage, syncOS)
 import Debian.Repo.LocalRepository (copyLocalRepo)
 import Debian.Repo.OSImage as OS (OSImage(osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
-import Debian.Repo.Prelude.Process (timeTask, readProcessV)
+import Debian.Repo.Prelude.Process (timeTask, readProcessE, readProcessV)
 import Debian.Repo.Prelude.Verbosity (quieter, ePutStrLn)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
@@ -41,9 +41,9 @@ import System.Directory (createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>))
 import System.Process (proc)
-import System.Process.ListLike (readCreateProcess)
-import System.Process.ChunkE (Chunk, collectProcessTriple, putIndentedShowCommand, collectProcessResult)
 import System.Unix.Chroot (useEnv)
+
+instance NFData SomeException
 
 -- | The problem with having an OSImage in the state of MonadOS is
 -- that then we are modifying a copy of the OSImage in MonadRepos, we
@@ -70,29 +70,25 @@ evalMonadOS task root = do
   a <- evalStateT task root
   return a
 
-instance NFData (Chunk ByteString)
-
 -- | Run @apt-get update@ and @apt-get dist-upgrade@.  If @update@
 -- fails, run @dpkg --configure -a@ before running @dist-upgrade@.
 updateLists :: forall m. (Applicative m, MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m Bool
 updateLists = do
-  r1 <- f update
-  r2 <- if r1 then pure True else or <$> sequence [f aptinstall, f configure, f update]
-  if r2 then f upgrade else pure False
+  r1 <- update >>= f
+  r2 <- if r1 then pure True else or <$> sequence [aptinstall >>= f, configure >>= f, update >>= f]
+  if r2 then upgrade >>= f else pure False
     where
-      f :: m [Chunk ByteString] -> m Bool
-      f xs = xs >>= \ xs' ->
-             case collectProcessResult xs' of
-               (Right ExitSuccess, _) -> return True
-               _ -> return False
-      update :: m [Chunk ByteString]
-      update = useOS (readProcessV (proc "apt-get" ["update"]) L.empty)
-      aptinstall :: m [Chunk ByteString]
-      aptinstall = useOS (readProcessV (proc "apt-get" ["-f", "--yes", "install"]) L.empty)
-      configure :: m [Chunk ByteString]
-      configure = useOS (readProcessV (proc "dpkg" ["--configure", "-a"]) L.empty)
-      upgrade :: m [Chunk ByteString]
-      upgrade = useOS (readProcessV (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
+      f :: (Either SomeException (ExitCode, ByteString, ByteString)) -> m Bool
+      f (Right (ExitSuccess, _, _)) = return True
+      f _ = return False
+      update :: m (Either SomeException (ExitCode, ByteString, ByteString))
+      update = useOS (readProcessE (proc "apt-get" ["update"]) L.empty)
+      aptinstall :: m (Either SomeException (ExitCode, ByteString, ByteString))
+      aptinstall = useOS (readProcessE (proc "apt-get" ["-f", "--yes", "install"]) L.empty)
+      configure :: m (Either SomeException (ExitCode, ByteString, ByteString))
+      configure = useOS (readProcessE (proc "dpkg" ["--configure", "-a"]) L.empty)
+      upgrade :: m (Either SomeException (ExitCode, ByteString, ByteString))
+      upgrade = useOS (readProcessE (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
 
 -- | Do an IO task in the build environment with /proc mounted.
 withProc :: forall m c. (MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m c -> m c
