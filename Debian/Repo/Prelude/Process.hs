@@ -33,7 +33,7 @@ import System.Exit (ExitCode(..))
 import System.IO (stdout, stderr)
 import System.IO.Error (mkIOError)
 import System.Process (CreateProcess(cwd, env))
-import System.Process.Extras (Chunk(..), collectOutput, ListLikeProcessIO, ProcessOutput, readCreateProcessLazy, readCreateProcessWithExitCode, showCreateProcessForUser)
+import System.Process.ListLike (Chunk(..), collectOutput, ListLikeProcessIO, ProcessOutput, readCreateProcessLazy, readCreateProcessWithExitCode, showCreateProcessForUser)
 
 instance NFData ExitCode
 
