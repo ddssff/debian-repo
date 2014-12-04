@@ -59,10 +59,10 @@ instance MonadRepos m => MonadOS (StateT EnvRoot m) where
     putOS = lift . putOSImage
     modifyOS f = getOS >>= putOS . f
 
-useOS :: (MonadOS m, MonadIO m, NFData a) => IO a -> m a
+useOS :: (MonadOS m, MonadIO m, MonadMask m, NFData a) => IO a -> m a
 useOS action =
   do root <- rootPath . osRoot <$> getOS
-     liftIO $ useEnv root (return . force) action
+     withProc $ liftIO $ useEnv root (return . force) action
 
 -- | Run MonadOS and update the osImageMap with the modified value
 evalMonadOS :: MonadRepos m => StateT EnvRoot m a -> EnvRoot -> m a
