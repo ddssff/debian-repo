@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
 module Debian.Repo.Prelude.Process
     ( timeTask
@@ -13,30 +14,28 @@ module Debian.Repo.Prelude.Process
     , modifyProcessEnv
     ) where
 
+import Control.Applicative ((<$>), (<*>))
 import Control.Arrow (second)
 import Control.DeepSeq (NFData)
 import Control.Exception (evaluate, Exception, SomeException, throw, try)
+import Control.Monad.State (evalState, StateT, get, put)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Data.ByteString.Lazy (ByteString)
-import Data.ListLike (head)
-import Data.Monoid (Monoid(..))
+import Data.ListLike (break, head, hPutStr, null, singleton, tail)
+import Data.Monoid (Monoid(..), (<>))
 import Data.String (IsString(fromString))
 import Data.Time (diffUTCTime, getCurrentTime, NominalDiffTime)
-import Debian.Repo.Prelude.Verbosity (verbosity, ePutStrLn)
+import Debian.Repo.Prelude.Verbosity (verbosity, ePutStr, ePutStrLn)
 import GHC.IO.Exception (IOErrorType(OtherError))
-import Prelude hiding (head)
+import Prelude hiding (break, head, null, tail)
 import System.Environment (getEnvironment)
 import System.Exit (ExitCode(..))
+import System.IO (stdout, stderr)
 import System.IO.Error (mkIOError)
 import System.Process (CreateProcess(cwd, env))
-import System.Process.Extras (ListLikeProcessIO(readCreateProcessWithExitCode), showCreateProcessForUser)
+import System.Process.Extras (Chunk(..), collectOutput, ListLikeProcessIO, ProcessOutput, readCreateProcessLazy, readCreateProcessWithExitCode, showCreateProcessForUser)
 
 instance NFData ExitCode
-
-instance Monoid ExitCode where
-    mappend x (ExitFailure 0) = x
-    mappend (ExitFailure 0) x = x
-    mappend _ x = x
 
 -- | Run a task and return the elapsed time along with its result.
 timeTask :: IO a -> IO (a, NominalDiffTime)
@@ -46,19 +45,71 @@ timeTask x =
        finish <- getCurrentTime
        return (result, diffUTCTime finish start)
 
-readProcessE :: (ListLikeProcessIO a, MonadIO m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+readProcessE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
 readProcessE p input = do
+    -- liftIO $ try $ readProcessV p input
   ePutStrLn (" -> " ++ showCreateProcessForUser p)
-  result <- liftIO $ try $ readCreateProcessWithExitCode p input
+  result <- liftIO $ try $ readCreateProcessLazy p input >>= putIndented >>= return . collectOutput
   ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++  either show (\ (code, _, _) -> show code) result)
   return result
 
-readProcessV :: (ListLikeProcessIO a, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
+readProcessV :: forall a c m. (Eq c, IsString a, ProcessOutput a (ExitCode, a, a), ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
 readProcessV p input = do
   ePutStrLn (" -> " ++ showCreateProcessForUser p)
-  result@(code, _, _) <- liftIO $ readCreateProcessWithExitCode p input
+  result@(code, _, _) <- liftIO $ readCreateProcessLazy p input >>= putIndented >>= return . collectOutput
   ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++ show code)
   return result
+
+putIndented :: forall a c. (Eq c, ListLikeProcessIO a c, IsString a) => [Chunk a] -> IO [Chunk a]
+putIndented chunks =
+    mapM_ echo (indentChunks "     1> " "     2> " chunks) >> return chunks
+    where
+      echo :: Chunk a -> IO (Chunk a)
+      echo c@(Stdout x) = hPutStr stdout x >> return c
+      echo c@(Stderr x) = hPutStr stderr x >> return c
+      echo c = return c
+
+-- | Pure function to indent the text of a chunk list.
+indentChunks :: forall a c. (ListLikeProcessIO a c, Eq c, IsString a) => String -> String -> [Chunk a] -> [Chunk a]
+indentChunks outp errp chunks =
+    evalState (Prelude.concat <$> mapM (indentChunk nl (fromString outp) (fromString errp)) chunks) BOL
+    where
+      nl :: c
+      nl = Data.ListLike.head (fromString "\n" :: a)
+
+-- | The monad state, are we at the beginning of a line or the middle?
+data BOL = BOL | MOL deriving (Eq)
+
+-- | Indent the text of a chunk with the prefixes given for stdout and
+-- stderr.  The state monad keeps track of whether we are at the
+-- beginning of a line - when we are and more text comes we insert one
+-- of the prefixes.
+indentChunk :: forall a c m. (Monad m, Functor m, ListLikeProcessIO a c, Eq c) => c -> a -> a -> Chunk a -> StateT BOL m [Chunk a]
+indentChunk nl outp errp chunk =
+    case chunk of
+      Stdout x -> doText Stdout outp x
+      Stderr x -> doText Stderr errp x
+      _ -> return [chunk]
+    where
+      doText :: (a -> Chunk a) -> a -> a -> StateT BOL m [Chunk a]
+      doText con pre x = do
+        let (hd, tl) = break (== nl) x
+        (<>) <$> doHead con pre hd <*> doTail con pre tl
+      doHead :: (a -> Chunk a) -> a -> a -> StateT BOL m [Chunk a]
+      doHead _ _ x | null x = return []
+      doHead con pre x = do
+        bol <- get
+        case bol of
+          BOL -> put MOL >> return [con (pre <> x)]
+          MOL -> return [con x]
+      doTail :: (a -> Chunk a) -> a -> a -> StateT BOL m [Chunk a]
+      doTail _ _ x | null x = return []
+      doTail con pre x = do
+        bol <- get
+        put BOL
+        tl <- doText con pre (tail x)
+        return $ (if bol == BOL then [con pre] else []) <> [con (singleton nl)] <> tl
+
 {-
 readProcessV p input = liftIO $ do
   v <- verbosity
