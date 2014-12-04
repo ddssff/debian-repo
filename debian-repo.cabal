@@ -38,6 +38,10 @@ flag fixed-verbosity-level
   Default: True
   Manual: True
 
+flag listlike
+  Description: Use process-listlike package instead of process-extras
+  Default: True
+
 Library
   Buildable: True
   Hs-Source-Dirs: .
@@ -87,7 +91,6 @@ Library
         parsec >= 3,
         prettyclass,
         process,
-        process-extras >= 0.2.2,
         pureMD5,
         regex-compat,
         regex-tdfa,
@@ -101,6 +104,10 @@ Library
         Unixutils >= 1.52.3,
         utf8-string,
         zlib
+  if flag(listlike)
+    Build-Depends: process-listlike >= 1.0
+  else
+    Build-Depends: process-extras >= 0.2.2
   Exposed-modules:
         Debian.Repo,
         Debian.Repo.AptImage,
@@ -243,7 +250,6 @@ Executable speedtest
       old-time,
       parsec,
       process,
-      process-extras >= 0.2.2,
       pureMD5,
       regex-compat,
       regex-tdfa,
@@ -255,6 +261,10 @@ Executable speedtest
       Unixutils,
       utf8-string,
       zlib
+  if flag(listlike)
+    Build-Depends: process-listlike >= 1.0
+  else
+    Build-Depends: process-extras >= 0.2.2
   Buildable: True
   Main-is: Speed.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
@@ -286,7 +296,6 @@ Executable speedtest2
     old-time,
     parsec,
     process,
-    process-extras >= 0.2.2,
     pureMD5,
     regex-compat,
     regex-tdfa,
@@ -297,6 +306,10 @@ Executable speedtest2
     Unixutils,
     utf8-string,
     zlib
+  if flag(listlike)
+    Build-Depends: process-listlike >= 1.0
+  else
+    Build-Depends: process-extras >= 0.2.2
   Buildable: True
   Main-is: Speed2.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
