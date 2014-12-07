@@ -32,12 +32,13 @@ import Debian.Release (parseReleaseName, ReleaseName(..), releaseName', Section(
 import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath(envPath), outsidePath)
 import Debian.Repo.Fingerprint (readUpstreamFingerprint)
-import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile, rsync)
+import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile)
 import Debian.Repo.Prelude.Process (readProcessE, readProcessV)
 import Debian.Repo.Prelude.SSH (sshVerify)
 import Debian.Repo.Prelude.Verbosity (qPutStrLn, ePutStrLn)
 import Debian.Repo.Release (parseReleaseFile, Release)
 import Debian.Repo.Repo (compatibilityFile, libraryCompatibilityLevel, Repo(..), RepoKey(..))
+import Debian.Repo.Rsync (rsyncOld, RsyncError)
 import Debian.URI (URI(uriAuthority, uriPath), URIAuth(uriPort, uriRegName, uriUserInfo), uriToString')
 import Debian.Version (DebianVersion, parseDebianVersion, prettyDebianVersion)
 import Network.URI (URI(..))
@@ -127,10 +128,10 @@ isSymLink path = F.getSymbolicLinkStatus path >>= return . F.isSymbolicLink
 -- repoCD :: EnvPath -> LocalRepository -> LocalRepository
 -- repoCD path repo = repo { repoRoot_ = path }
 
-copyLocalRepo :: MonadIO m => EnvPath -> LocalRepository -> m LocalRepository
+copyLocalRepo :: (MonadIO m, Functor m) => EnvPath -> LocalRepository -> m LocalRepository
 copyLocalRepo dest repo =
     do liftIO $ createDirectoryIfMissing True (outsidePath dest)
-       (result :: (Either SomeException ExitCode, String, String)) <- liftIO $ rsync [] (outsidePath (repoRoot repo)) (outsidePath dest)
+       (result :: (Either SomeException ExitCode, String, String)) <- rsyncOld [] (outsidePath (repoRoot repo)) (outsidePath dest)
        case result of
          (Right ExitSuccess, _, _) -> return $ repo {repoRoot = dest}
          code -> error $ "*** FAILURE syncing local repository " ++ src ++ " -> " ++ dst ++ ": " ++ show code

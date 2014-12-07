@@ -37,9 +37,10 @@ import Debian.Repo.Changes (findChangesFiles)
 import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.MonadOS (MonadOS(getOS))
 import Debian.Repo.OSImage (osRoot)
-import Debian.Repo.Prelude (rsync, getSubDirectories, replaceFile, dropPrefix)
+import Debian.Repo.Prelude (getSubDirectories, replaceFile, dropPrefix)
 import Debian.Repo.Prelude.Process (readProcessE, readProcessV, timeTask, modifyProcessEnv)
 import Debian.Repo.Prelude.Verbosity (noisier)
+import Debian.Repo.Rsync (rsyncOld)
 import qualified Debian.Version as V (version)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist)
 import System.Environment (getEnv, getEnvironment)
@@ -257,7 +258,7 @@ instance HasSourceTree SourceTree where
           True -> return $ SourceTree path
     copySourceTree tree dest =
         createDirectoryIfMissing True dest >>
-        rsync [] (topdir tree) dest >>
+        rsyncOld [] (topdir tree) dest >>
         return (SourceTree dest)
 
 instance HasSourceTree DebianSourceTree where
@@ -292,7 +293,7 @@ instance HasSourceTree DebianBuildTree where
     copySourceTree build dest =
         copySource >>= copyTarball >>= return . moveBuild
         where
-          copySource = createDirectoryIfMissing True dest >> rsync [] (topdir' build) dest
+          copySource = createDirectoryIfMissing True dest >> rsyncOld [] (topdir' build) dest
           -- copySource = DebianBuildTree <$> pure dest <*> pure (subdir' tree) <*> copySourceTree (debTree' tree) (dest </> subdir' tree)
           copyTarball (Right ExitSuccess, _, _) =
               do exists <- liftIO $ doesFileExist origPath

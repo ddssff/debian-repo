@@ -40,10 +40,11 @@ import Debian.Repo.EnvPath (EnvPath(EnvPath, envPath, envRoot), EnvRoot(rootPath
 import Debian.Repo.Internal.IO (buildArchOfRoot)
 import Debian.Repo.LocalRepository (copyLocalRepo, LocalRepository)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
-import Debian.Repo.Prelude (isSublistOf, replaceFile, rsync, sameInode, sameMd5sum)
+import Debian.Repo.Prelude (isSublistOf, replaceFile, sameInode, sameMd5sum)
 import Debian.Repo.Prelude.Process (readProcessE, readProcessV)
 import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn)
 import Debian.Repo.Repo (repoKey, repoURI)
+import Debian.Repo.Rsync (rsyncOld)
 import Debian.Repo.Slice (NamedSliceList(sliceList), NamedSliceList(sliceListName), Slice(Slice, sliceRepoKey, sliceSource), SliceList(..))
 import Debian.Sources (DebSource(..), DebSource(sourceDist, sourceUri), SourceType(..), SourceType(..))
 import Debian.URI (uriToString')
@@ -172,7 +173,7 @@ syncOS' :: OSImage -> EnvRoot -> IO OSImage
 syncOS' src dst = do
   mkdir
   umount
-  (_result, _, _) <- rsync ["--exclude=/work/build/*"] (rootPath (osRoot src)) (rootPath dst)
+  (_result, _, _) <- rsyncOld ["--exclude=/work/build/*"] (rootPath (osRoot src)) (rootPath dst)
   cloneOSImage src dst
     where
       mkdir = createDirectoryIfMissing True (rootPath dst ++ "/work")

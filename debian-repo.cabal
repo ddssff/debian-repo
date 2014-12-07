@@ -1,5 +1,5 @@
 Name:           debian-repo
-Version:        5.70
+Version:        5.71
 License:        BSD3
 License-File:	debian/copyright
 Author:         David Fox
@@ -138,6 +138,7 @@ Library
         Debian.Repo.Release,
         Debian.Repo.RemoteRepository,
         Debian.Repo.Repo,
+        Debian.Repo.Rsync,
         Debian.Repo.Slice,
         Debian.Repo.SourceTree,
         Debian.Repo.State.AptImage,
