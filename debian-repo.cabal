@@ -1,5 +1,5 @@
 Name:           debian-repo
-Version:        5.71
+Version:        5.72
 License:        BSD3
 License-File:	debian/copyright
 Author:         David Fox
