@@ -32,7 +32,7 @@ import Debian.Repo.Internal.Repos (MonadRepos, osFromRoot, putOSImage, syncOS)
 import Debian.Repo.LocalRepository (copyLocalRepo)
 import Debian.Repo.OSImage as OS (OSImage(osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
-import Debian.Repo.Prelude.Process (timeTask, readProcessE, readProcessV)
+import Debian.Repo.Prelude.Process (timeTask, readProcessVE, readProcessV)
 import Debian.Repo.Prelude.Verbosity (quieter, ePutStrLn)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
@@ -82,13 +82,13 @@ updateLists = do
       f (Right (ExitSuccess, _, _)) = return True
       f _ = return False
       update :: m (Either SomeException (ExitCode, ByteString, ByteString))
-      update = useOS (readProcessE (proc "apt-get" ["update"]) L.empty)
+      update = useOS (readProcessVE (proc "apt-get" ["update"]) L.empty)
       aptinstall :: m (Either SomeException (ExitCode, ByteString, ByteString))
-      aptinstall = useOS (readProcessE (proc "apt-get" ["-f", "--yes", "install"]) L.empty)
+      aptinstall = useOS (readProcessVE (proc "apt-get" ["-f", "--yes", "install"]) L.empty)
       configure :: m (Either SomeException (ExitCode, ByteString, ByteString))
-      configure = useOS (readProcessE (proc "dpkg" ["--configure", "-a"]) L.empty)
+      configure = useOS (readProcessVE (proc "dpkg" ["--configure", "-a"]) L.empty)
       upgrade :: m (Either SomeException (ExitCode, ByteString, ByteString))
-      upgrade = useOS (readProcessE (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
+      upgrade = useOS (readProcessVE (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
 
 -- | Do an IO task in the build environment with /proc mounted.
 withProc :: forall m c. (MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m c -> m c

@@ -2,8 +2,9 @@
 {-# OPTIONS_GHC -Wall #-}
 module Debian.Repo.Prelude.Process
     ( timeTask
-    , readProcessE
+    , readProcessVE
     , readProcessV
+    , readProcessQE
     -- , throwProcessResult'
     -- , throwProcessResult''
     -- , throwProcessFailure
@@ -45,8 +46,8 @@ timeTask x =
        finish <- getCurrentTime
        return (result, diffUTCTime finish start)
 
-readProcessE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
-readProcessE p input = do
+readProcessVE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+readProcessVE p input = do
     -- liftIO $ try $ readProcessV p input
   ePutStrLn (" -> " ++ showCreateProcessForUser p)
   result <- liftIO $ try $ readCreateProcessLazy p input >>= putIndented >>= return . collectOutput
@@ -58,6 +59,14 @@ readProcessV p input = do
   ePutStrLn (" -> " ++ showCreateProcessForUser p)
   result@(code, _, _) <- liftIO $ readCreateProcessLazy p input >>= putIndented >>= return . collectOutput
   ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++ show code)
+  return result
+
+readProcessQE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+readProcessQE p input = do
+    -- liftIO $ try $ readProcessV p input
+  ePutStrLn (" -> " ++ showCreateProcessForUser p)
+  result <- liftIO $ try $ readCreateProcessLazy p input >>= return . collectOutput
+  ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++  either show (\ (code, _, _) -> show code) result)
   return result
 
 putIndented :: forall a c. (Eq c, ListLikeProcessIO a c, IsString a) => [Chunk a] -> IO [Chunk a]

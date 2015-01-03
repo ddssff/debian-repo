@@ -31,7 +31,7 @@ import Debian.Repo.OSImage (createOSImage, OSImage(osArch, osBaseDistro, osLocal
 import Debian.Repo.MonadOS (MonadOS(getOS, modifyOS), evalMonadOS, aptGetInstall, syncLocalPool, syncOS)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
 import Debian.Repo.Prelude (replaceFile)
-import Debian.Repo.Prelude.Process (readProcessE, readProcessV)
+import Debian.Repo.Prelude.Process (readProcessVE, readProcessV)
 import Debian.Repo.Prelude.SSH (sshCopy)
 import Debian.Repo.Prelude.Verbosity (ePutStrLn, quieter, qPutStrLn)
 import Debian.Repo.Slice (NamedSliceList(sliceListName), Slice(sliceSource), SliceList(slices), SourcesChangedAction(SourcesChangedError), UpdateError(..))
@@ -309,5 +309,5 @@ prepareDevs root = do
                      let cmd = "mknod " ++ path ++ " " ++ typ ++ " " ++ show major ++ " " ++ show minor ++ " 2> /dev/null"
                      exists <- doesFileExist path
                      case exists of
-                       False -> readProcessE (shell cmd) L.empty
+                       False -> readProcessVE (shell cmd) L.empty
                        True -> return $ Right (ExitSuccess, mempty, mempty)

@@ -38,7 +38,7 @@ import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.MonadOS (MonadOS(getOS))
 import Debian.Repo.OSImage (osRoot)
 import Debian.Repo.Prelude (getSubDirectories, replaceFile, dropPrefix)
-import Debian.Repo.Prelude.Process (readProcessE, readProcessV, timeTask, modifyProcessEnv)
+import Debian.Repo.Prelude.Process (readProcessVE, readProcessV, timeTask, modifyProcessEnv)
 import Debian.Repo.Prelude.Verbosity (noisier)
 import Debian.Repo.Rsync (rsyncOld)
 import qualified Debian.Version as V (version)
@@ -129,7 +129,7 @@ buildDebs noClean _twice setEnv buildTree decision =
               liftIO $ do
                 cmd' <- modifyProcessEnv (("LOGNAME", Just "root") : setEnv) cmd
                 let cmd'' = cmd' {cwd = dropPrefix root path}
-                timeTask $ useEnv root return $ readProcessE cmd'' ("" :: String)
+                timeTask $ useEnv root return $ readProcessVE cmd'' ("" :: String)
       _ <- liftIO $ run (proc "chmod" ["ugo+x", "debian/rules"])
       let buildCmd = proc "dpkg-buildpackage" (concat [["-sa"],
                                                        case decision of Arch _ -> ["-B"]; _ -> [],
@@ -299,7 +299,7 @@ instance HasSourceTree DebianBuildTree where
               do exists <- liftIO $ doesFileExist origPath
                  case exists of
                    False -> return (Right (ExitSuccess, B.empty, B.empty))
-                   True -> liftIO $ readProcessE (proc "cp" ["-p", origPath, dest ++ "/"]) B.empty
+                   True -> liftIO $ readProcessVE (proc "cp" ["-p", origPath, dest ++ "/"]) B.empty
           copyTarball _result = error $ "Failed to copy source tree: " ++ topdir' build ++ " -> " ++ dest
           moveBuild (Right (ExitSuccess, _, _)) = build {topdir' = dest, debTree' = moveSource (debTree' build)}
           moveBuild _result = error $ "Failed to copy Tarball: " ++ origPath ++ " -> " ++ dest ++ "/"
