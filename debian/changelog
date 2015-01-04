@@ -1,3 +1,9 @@
+haskell-debian-repo (5.72) unstable; urgency=low
+
+  * Add some quieter versions of the readProcess functions.
+
+ -- David Fox <dsf@seereason.com>  Sun, 04 Jan 2015 10:46:36 -0800
+
 haskell-debian-repo (5.71) unstable; urgency=low
 
   * Many changes due to the new process-extras and process-listlike packages
