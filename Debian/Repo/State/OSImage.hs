@@ -17,7 +17,7 @@ import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (empty)
 import Data.Monoid (mempty)
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
-import qualified Debian.Debianize.Types.Atoms as EnvSet (EnvSet(cleanOS, dependOS))
+import Debian.Debianize.InputCabalPackageDescription (EnvSet(cleanOS, dependOS))
 import Debian.Pretty (ppDisplay)
 import Debian.Relation (BinPkgName(BinPkgName))
 import Debian.Release (ReleaseName(relName))
@@ -98,7 +98,7 @@ osBinaryPackages = do
 -- proceed from there.  If that fails we are out of options.
 prepareOS
     :: (Applicative m, MonadRepos m, MonadTop m, MonadMask m, MonadIO m) =>
-       EnvSet.EnvSet		-- ^ The location where image is to be built
+       EnvSet                   -- ^ The location where image is to be built
     -> NamedSliceList		-- ^ The sources.list of the base distribution
     -> LocalRepository           -- ^ The location of the local upload repository
     -> Bool			-- ^ If true, remove and rebuild the image
@@ -138,8 +138,8 @@ prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optio
        evalMonadOS syncLocalPool dependRoot
        return (cleanRoot, dependRoot)
     where
-      cleanRoot = EnvRoot (EnvSet.cleanOS eset)
-      dependRoot = EnvRoot (EnvSet.dependOS eset)
+      cleanRoot = EnvRoot (cleanOS eset)
+      dependRoot = EnvRoot (dependOS eset)
       recreate :: (Applicative m, MonadOS m, MonadTop m, MonadMask m, MonadRepos m, MonadIO m) => UpdateError -> m ()
       recreate (Changed name path computed installed)
           | ifSourcesChanged == SourcesChangedError =

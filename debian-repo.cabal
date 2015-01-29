@@ -54,7 +54,7 @@ Library
     cpp-options: -DFIXED_VERBOSITY_LEVEL
 
   if !flag (local-cabal-debian)
-    Build-Depends: cabal-debian >= 4.5
+    Build-Depends: cabal-debian >= 4.21
   else
     Hs-Source-Dirs: ../cabal-debian/src
     Build-Depends: hsemail
