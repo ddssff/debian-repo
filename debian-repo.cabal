@@ -57,7 +57,7 @@ Library
     Build-Depends: cabal-debian >= 4.21
   else
     Hs-Source-Dirs: ../cabal-debian/src
-    Build-Depends: hsemail
+    Build-Depends: hsemail, memoize
     -- cpp-options: -DMIN_VERSION_Cabal(a,b,c)=1
     -- ghc-options: -package Cabal-1.21.1.0
 
