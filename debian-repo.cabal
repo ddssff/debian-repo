@@ -54,10 +54,10 @@ Library
     cpp-options: -DFIXED_VERBOSITY_LEVEL
 
   if !flag (local-cabal-debian)
-    Build-Depends: cabal-debian >= 4.21
+    Build-Depends: cabal-debian >= 4.22
   else
     Hs-Source-Dirs: ../cabal-debian/src
-    Build-Depends: hsemail, memoize
+    Build-Depends: hsemail, memoize, Diff, pretty, data-default, set-extra
     -- cpp-options: -DMIN_VERSION_Cabal(a,b,c)=1
     -- ghc-options: -package Cabal-1.21.1.0
 
