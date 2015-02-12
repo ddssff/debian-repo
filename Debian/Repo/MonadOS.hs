@@ -32,7 +32,7 @@ import Debian.Repo.Internal.Repos (MonadRepos, osFromRoot, putOSImage, syncOS)
 import Debian.Repo.LocalRepository (copyLocalRepo)
 import Debian.Repo.OSImage as OS (OSImage(osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
-import Debian.Repo.Prelude.Process (timeTask, readProcessVE, readProcessV)
+import Debian.Repo.Prelude.Process (timeTask, readProcessVE, readProcessV, readProcessQE)
 import Debian.Repo.Prelude.Verbosity (quieter, ePutStrLn)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
@@ -82,7 +82,7 @@ updateLists = do
       f (Right (ExitSuccess, _, _)) = return True
       f _ = return False
       update :: m (Either SomeException (ExitCode, ByteString, ByteString))
-      update = useOS (readProcessVE (proc "apt-get" ["update"]) L.empty)
+      update = useOS (readProcessQE (proc "apt-get" ["update"]) L.empty)
       aptinstall :: m (Either SomeException (ExitCode, ByteString, ByteString))
       aptinstall = useOS (readProcessVE (proc "apt-get" ["-f", "--yes", "install"]) L.empty)
       configure :: m (Either SomeException (ExitCode, ByteString, ByteString))

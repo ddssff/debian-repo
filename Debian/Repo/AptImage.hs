@@ -19,7 +19,7 @@ import Debian.Pretty (ppDisplay)
 import Debian.Relation (PkgName, SrcPkgName(unSrcPkgName))
 import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.Internal.Apt (AptImage(aptImageRoot, aptImageSources), MonadApt(getApt))
-import Debian.Repo.Prelude.Process (readProcessV)
+import Debian.Repo.Prelude.Process (readProcessV, readProcessQE)
 import Debian.Repo.Slice (NamedSliceList(sliceListName))
 import Debian.Repo.Top (distDir, MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
@@ -78,7 +78,7 @@ aptGetUpdate :: (MonadIO m, MonadApt m) => m ()
 aptGetUpdate =
     do args <- aptOpts
        let p = (proc "apt-get" (args ++ ["update"]))
-       _ <- liftIO $ readProcessV p B.empty
+       _ <- liftIO $ readProcessQE p B.empty
        return ()
 
 aptOpts :: MonadApt m => m [String]
