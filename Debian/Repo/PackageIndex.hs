@@ -185,26 +185,27 @@ binaryIndexes release =
                                           , packageIndexArch = arch }
 
 -- | Return a sorted list of available source packages, newest version first.
-sortSourcePackages :: [SrcPkgName] -> [SourcePackage] -> [SourcePackage]
-sortSourcePackages names pkgs =
+sortSourcePackages :: (SrcPkgName -> Bool) -> [SourcePackage] -> [SourcePackage]
+sortSourcePackages pred pkgs =
     sortBy cmp . filterNames $ pkgs
     where
       filterNames :: [SourcePackage] -> [SourcePackage]
       filterNames packages =
-          List.filter (flip elem names . packageName . sourcePackageID) packages
+          List.filter (pred . packageName . sourcePackageID) packages
       cmp p1 p2 =
           compare v2 v1		-- Flip args to get newest first
           where
             v1 = packageVersion . sourcePackageID $ p1
             v2 = packageVersion . sourcePackageID $ p2
 
-sortBinaryPackages :: [BinPkgName] -> [BinaryPackage] -> [BinaryPackage]
-sortBinaryPackages names pkgs =
-    sortBy cmp . filterNames $ pkgs
+-- | filter a list of binary packages by name and sort newest versions first.
+sortBinaryPackages :: (BinPkgName -> Bool) -> [BinaryPackage] -> [BinaryPackage]
+sortBinaryPackages pred pkgs =
+    sortBy cmp . filterPackages $ pkgs
     where
-      filterNames :: [BinaryPackage] -> [BinaryPackage]
-      filterNames packages =
-          List.filter (flip elem names . packageName . packageID) packages
+      filterPackages :: [BinaryPackage] -> [BinaryPackage]
+      filterPackages packages =
+          List.filter (pred . packageName . packageID) packages
       cmp p1 p2 =
           compare v2 v1		-- Flip args to get newest first
           where
