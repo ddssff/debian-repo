@@ -26,6 +26,7 @@ main =
              ("text3" : _) ->  (B.readFile "/srv/deb/ubuntu/dists/precise-seereason/main/binary-i386/Packages" >>= return . T.parseControl "input" . decodeUtf8 :: IO (Either ParseError (Control' Text))) >>= either (error . show) (return . useControl)
              -- best - similar to byte2
              ("text4" : _) ->  (parseControlFromFile "/srv/deb/ubuntu/dists/precise-seereason/main/binary-i386/Packages" :: IO (Either ParseError (Control' B.ByteString))) >>= either (error . show) (return . useControl . T.decodeControl)
+             _ -> error "Usage: speedtest2 (text|text2|text3|text4)"
 
 useControl :: Control' Text -> Int
 useControl = force . T.length . ppDisplay'
