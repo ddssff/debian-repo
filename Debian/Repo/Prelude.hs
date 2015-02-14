@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, GeneralizedNewtypeDeriving, MultiParamTypeClasses, OverloadedStrings,
-             PackageImports, ScopedTypeVariables, TemplateHaskell, TypeSynonymInstances, UndecidableInstances #-}
+             PackageImports, Rank2Types, ScopedTypeVariables, TemplateHaskell, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 module Debian.Repo.Prelude
     ( countTasks
@@ -23,8 +23,9 @@ module Debian.Repo.Prelude
     , dropPrefix
     ) where
 
+import OldLens hiding ((%=), (~=))
+
 import Control.Monad.State (get, modify, MonadIO, MonadState)
-import Data.Lens.Lazy (getL, Lens, modL)
 import Data.List (group, sort)
 import Data.List as List (map)
 import Debian.Repo.Prelude.Bool (cond)
@@ -48,9 +49,6 @@ countTasks tasks =
 -- | This nub doesn't preserve order
 nub' :: (Ord a) => [a] -> [a]
 nub' = List.map head . group . sort
-
-access :: MonadState a m => Lens a b -> m b
-access l = get >>= return . getL l
 
 (~=) :: MonadState a m => Lens a b -> b -> m ()
 l ~= x = l %= const x

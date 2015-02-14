@@ -19,17 +19,18 @@ module Debian.Repo.State.Package
     , releaseKey
     ) where
 
+import OldLens
+
 import Control.Applicative ((<$>))
 import Control.Exception (SomeException)
 import Control.Exception as E (ErrorCall(ErrorCall), SomeException(..), try)
+import Control.Lens (makeLenses)
 import Control.Monad (filterM, foldM, when)
 import Control.Monad.State (StateT, runStateT, MonadState(get, put))
 import Control.Monad.Trans (liftIO, MonadIO, lift)
 import qualified Data.ByteString.Lazy.Char8 as L (ByteString, fromChunks, readFile)
 import Data.Digest.Pure.MD5 (md5)
 import Data.Either (partitionEithers, lefts, rights)
-import Data.Lens.Lazy (getL, modL)
-import Data.Lens.Template (makeLenses)
 import Data.List as List (filter, groupBy, intercalate, intersperse, isSuffixOf, map, partition, sortBy)
 import Data.Map as Map (fromList, lookup)
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
@@ -104,7 +105,7 @@ instance MonadRepos m => MonadRepos (StateT InstallState m) where
     getRepos = lift getRepos
     putRepos = lift . putRepos
 
-$(makeLenses [''InstallState])
+$(makeLenses ''InstallState)
 
 runInstall :: MonadRepos m => StateT InstallState m a -> LocalRepository -> Maybe PGPKey -> m (a, InstallState)
 runInstall task repo keyname = do
