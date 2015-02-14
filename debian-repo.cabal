@@ -80,6 +80,7 @@ Library
         Extra,
         filepath,
         HaXml,
+        lens,
         ListLike >= 4,
         MIME,
         mtl,
