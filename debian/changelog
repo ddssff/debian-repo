@@ -1,3 +1,9 @@
+haskell-debian-repo (5.73) unstable; urgency=low
+
+  * Add Debian.Releases
+
+ -- David Fox <dsf@seereason.com>  Mon, 23 Feb 2015 10:45:26 -0800
+
 haskell-debian-repo (5.72) unstable; urgency=low
 
   * Add some quieter versions of the readProcess functions.
