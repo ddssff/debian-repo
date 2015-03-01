@@ -53,20 +53,6 @@ Library
   if flag(fixed-verbosity-level)
     cpp-options: -DFIXED_VERBOSITY_LEVEL
 
-  if !flag (local-cabal-debian)
-    Build-Depends: cabal-debian >= 4.24
-  else
-    Hs-Source-Dirs: ../cabal-debian/src, ../cabal-debian/dist/build/autogen
-    Build-Depends: hsemail, memoize, Diff, pretty, data-default, set-extra, lens
-    -- cpp-options: -DMIN_VERSION_Cabal(a,b,c)=1
-    -- ghc-options: -package Cabal-1.21.1.0
-
-  if !flag (local-debian)
-    Build-Depends: debian >= 3.87
-  else
-    Hs-Source-Dirs: ../debian-haskell
-    Build-Depends: pretty
-
   Build-Depends:
         applicative-extras,
         base,
@@ -103,10 +89,6 @@ Library
         Unixutils >= 1.52.3,
         utf8-string,
         zlib
-  if flag(listlike)
-    Build-Depends: process-listlike >= 1.0
-  else
-    Build-Depends: process-extras >= 0.2.0
   Exposed-modules:
         Debian.Releases,
         Debian.Repo,
@@ -151,76 +133,106 @@ Library
         Debian.Repo.Top,
         Debian.VersionPolicy
 
+  if !flag (local-cabal-debian)
+    Build-Depends: cabal-debian >= 4.24
+  else
+    Hs-Source-Dirs: ../cabal-debian/src, ../cabal-debian/dist/build/autogen
+    Build-Depends: hsemail, memoize, Diff, pretty, data-default, set-extra, lens
+    Exposed-Modules:
+      Data.Algorithm.Diff.Context
+      Data.Algorithm.Diff.Pretty
+      Debian.GHC
+      Debian.Policy
+      Distribution.Version.Invert
+      Debian.Debianize
+      Debian.Debianize.BasicInfo
+      Debian.Debianize.BinaryDebDescription
+      Debian.Debianize.BuildDependencies
+      Debian.Debianize.Bundled
+      Debian.Debianize.CabalInfo
+      Debian.Debianize.Changelog
+      Debian.Debianize.CopyrightDescription
+      Debian.Debianize.DebianName
+      Debian.Debianize.DebInfo
+      Debian.Debianize.Details
+      Debian.Debianize.Files
+      Debian.Debianize.Finalize
+      Debian.Debianize.Goodies
+      Debian.Debianize.InputCabal
+      Debian.Debianize.InputDebian
+      Debian.Debianize.Interspersed
+      Debian.Debianize.Monad
+      Debian.Debianize.Options
+      Debian.Debianize.Output
+      Debian.Debianize.Prelude
+      Debian.Debianize.SourceDebDescription
+      Debian.Debianize.SubstVars
+      Debian.Debianize.VersionSplits
+      OldLens
+      Paths_cabal_debian
+    Other-Modules:
+      Debian.Orphans
+
+    -- cpp-options: -DMIN_VERSION_Cabal(a,b,c)=1
+    -- ghc-options: -package Cabal-1.21.1.0
+
+  if !flag (local-debian)
+    Build-Depends: debian >= 3.87
+  else
+    Hs-Source-Dirs: ../debian-haskell
+    Build-Depends: pretty, process-extras, network
+    Exposed-Modules:
+      Debian.Apt.Dependencies,
+      Debian.Apt.Index,
+      Debian.Apt.Methods,
+      Debian.Apt.Package,
+      Debian.Arch,
+      Debian.Changes,
+      Debian.Control,
+      Debian.Control.Common,
+      Debian.Control.ByteString,
+      Debian.Control.Policy,
+      Debian.Control.String,
+      Debian.Control.Text,
+      Debian.Deb,
+      Debian.Extra.Files,
+      Debian.GenBuildDeps,
+      Debian.Loc,
+      Debian.Pretty,
+      Debian.Relation,
+      Debian.Relation.ByteString,
+      Debian.Relation.Common,
+      Debian.Relation.String,
+      Debian.Relation.Text,
+      Debian.Release,
+      Debian.Sources,
+      Debian.Version,
+      Debian.Version.ByteString,
+      Debian.Version.Common,
+      Debian.Version.String,
+      Debian.Version.Text,
+      Debian.Report,
+      Debian.Time,
+      Debian.URI,
+      Debian.UTF8,
+      Debian.Util.FakeChanges
+    Other-Modules:
+      Debian.Version.Internal
+  if flag(listlike)
+    Build-Depends: process-listlike >= 1.0
+  else
+    Build-Depends: process-extras >= 0.2.0
+
 Executable debian-versions
   Hs-Source-Dirs: demos
-  Build-Depends: base, mtl
+  Build-Depends: base, mtl, debian-repo
   Buildable: True
   Main-is: Versions.hs
   ghc-options: -O2 -threaded -Wall
-  if flag(local-debian)
-    Hs-Source-Dirs: ., ../../git/debian-haskell
-    Build-Depends:
-      applicative-extras,
-      bzlib,
-      bytestring,
-      containers,
-      directory,
-      exceptions,
-      Extra,
-      filepath,
-      ListLike,
-      network-uri,
-      parsec,
-      pretty,
-      prettyclass,
-      process,
-      pureMD5,
-      regex-compat,
-      regex-tdfa,
-      template-haskell,
-      text,
-      time,
-      unix,
-      Unixutils,
-      utf8-string,
-      zlib
-  else
-    Build-Depends: debian >= 3.87, debian-repo >= 5.60
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
-  Build-Depends: base, containers, directory, filepath, MIME, mtl, regex-compat, template-haskell, text
+  Build-Depends: base, debian-repo, containers, directory, filepath, MIME, mtl, regex-compat, template-haskell, text
   Buildable: True
   Main-is: Main.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
-  if flag(local-debian)
-    Hs-Source-Dirs: ., ../../git/debian-haskell
-    Build-Depends:
-      applicative-extras,
-      bzlib,
-      bytestring,
-      containers,
-      directory,
-      exceptions,
-      Extra,
-      filepath,
-      ListLike,
-      network-uri,
-      old-locale,
-      old-time,
-      parsec,
-      pretty,
-      prettyclass,
-      process,
-      pureMD5,
-      regex-compat,
-      regex-tdfa,
-      template-haskell,
-      text,
-      time,
-      unix,
-      Unixutils,
-      utf8-string,
-      zlib
-  else
-    Build-Depends: debian >= 3.87, debian-repo >= 5.60
