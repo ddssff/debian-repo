@@ -15,7 +15,7 @@ import Control.Monad.Trans (MonadIO(..), MonadTrans(lift))
 import Data.List (sort)
 import Data.Maybe (listToMaybe)
 import Debian.Changes (ChangeLogEntry(logVersion))
-import Debian.Pretty (ppDisplay)
+import Debian.Pretty (prettyShow)
 import Debian.Relation (SrcPkgName(unSrcPkgName))
 import Debian.Release (ReleaseName)
 import Debian.Repo.AptImage (aptDir, aptGetSource, aptGetUpdate)
@@ -64,11 +64,11 @@ prepareAptImage' sourcesChangedAction sources = do
     where
       handle :: SomeException -> m AptKey
       handle e = do
-        qPutStrLn ("Exception preparing " ++ (ppDisplay . sliceListName $ sources) ++ ": " ++ show e)
+        qPutStrLn ("Exception preparing " ++ (prettyShow . sliceListName $ sources) ++ ": " ++ show e)
         removeAptImage
         prepareAptImage''
       prepareAptImage'' = do
-        qPutStrLn ($(symbol 'prepareAptImage) ++ ": " ++ (ppDisplay . sliceListName $ sources))
+        qPutStrLn ($(symbol 'prepareAptImage) ++ ": " ++ (prettyShow . sliceListName $ sources))
         key <- putAptImage =<< createAptImage sources
         evalMonadApt (updateCacheSources sourcesChangedAction sources >> aptGetUpdate) key
         return key
@@ -121,7 +121,7 @@ data UpdateError
     | Flushed
 
 instance Show UpdateError where
-    show (Changed r p l1 l2) = unwords ["Changed", show r, show p, ppDisplay l1, ppDisplay l2]
+    show (Changed r p l1 l2) = unwords ["Changed", show r, show p, prettyShow l1, prettyShow l2]
     show (Missing r p) = unwords ["Missing", show r, show p]
     show Flushed = "Flushed"
 

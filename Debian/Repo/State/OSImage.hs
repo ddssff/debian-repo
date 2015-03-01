@@ -18,7 +18,7 @@ import qualified Data.ByteString.Lazy as L (empty)
 import Data.Monoid (mempty)
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import Debian.Debianize (EnvSet(cleanOS, dependOS))
-import Debian.Pretty (ppDisplay)
+import Debian.Pretty (ppShow, prettyShow)
 import Debian.Relation (BinPkgName(BinPkgName))
 import Debian.Release (ReleaseName(relName))
 import Debian.Repo.EnvPath (EnvRoot(EnvRoot, rootPath))
@@ -145,19 +145,19 @@ prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optio
           | ifSourcesChanged == SourcesChangedError =
               error $ "FATAL: Sources for " ++ relName name ++ " in " ++ path ++
                        " don't match computed configuration.\n\ncomputed:\n" ++
-                       ppDisplay computed ++ "\ninstalled:\n" ++
-                       ppDisplay installed
+                       prettyShow computed ++ "\ninstalled:\n" ++
+                       prettyShow installed
       recreate reason =
           do base <- osBaseDistro <$> getOS
              sources <- sourcesPath (sliceListName base)
              dist <- distDir (sliceListName base)
-             liftIO $ do ePutStrLn $ "Removing and recreating build environment at " ++ ppDisplay cleanRoot ++ ": " ++ show reason
+             liftIO $ do ePutStrLn $ "Removing and recreating build environment at " ++ ppShow cleanRoot ++ ": " ++ show reason
                          -- ePutStrLn ("removeRecursiveSafely " ++ cleanRoot))
                          removeRecursiveSafely (rootPath cleanRoot)
                          -- ePutStrLn ("createDirectoryIfMissing True " ++ show dist)
                          createDirectoryIfMissing True dist
                          -- ePutStrLn ("writeFile " ++ show sources ++ " " ++ show (show . osBaseDistro $ os))
-                         replaceFile sources (ppDisplay base)
+                         replaceFile sources (prettyShow base)
              rebuildOS cleanRoot distro include exclude components
 
       doInclude :: (MonadOS m, MonadIO m, MonadMask m) => m ()

@@ -20,12 +20,12 @@ Data-Files:
 
 flag local-cabal-debian
   Description: Link directly to the source of the cabal-debian library
-  Default: False
+  Default: True
   Manual: True
 
 flag local-debian
   Description: Link directly to the source of the debian library
-  Default: False
+  Default: True
   Manual: True
 
 flag no-verbosity-control
@@ -62,7 +62,7 @@ Library
     -- ghc-options: -package Cabal-1.21.1.0
 
   if !flag (local-debian)
-    Build-Depends: debian >= 3.84
+    Build-Depends: debian >= 3.87
   else
     Hs-Source-Dirs: ../debian-haskell
     Build-Depends: pretty
@@ -185,7 +185,7 @@ Executable debian-versions
       utf8-string,
       zlib
   else
-    Build-Depends: debian >= 3.84, debian-repo >= 5.60
+    Build-Depends: debian >= 3.87, debian-repo >= 5.60
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
@@ -223,4 +223,4 @@ Executable newdist
       utf8-string,
       zlib
   else
-    Build-Depends: debian >= 3.84, debian-repo >= 5.60
+    Build-Depends: debian >= 3.87, debian-repo >= 5.60

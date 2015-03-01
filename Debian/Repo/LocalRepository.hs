@@ -27,7 +27,7 @@ import Debian.Arch (Arch, parseArch)
 import Debian.Changes (ChangedFileSpec(changedFileName, changedFileSection), ChangesFile(changeDir, changeFiles, changeInfo, changePackage, changeRelease, changeVersion))
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile), fieldValue)
 import qualified Debian.Control.Text as T (fieldValue)
-import Debian.Pretty (PP(..), ppDisplay)
+import Debian.Pretty (PP(..), ppShow)
 import Debian.Release (parseReleaseName, ReleaseName(..), releaseName', Section(..), sectionName', SubSection(section))
 import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath(envPath), outsidePath)
@@ -220,7 +220,7 @@ uploadRemote repo uri =
       -- partitionFailing = foldr f ([], []) where f (Failure ms) (msgs, xs) = (ms : msgs, xs)
       --                                           f (Success x) (msgs, xs) = (msgs, x : xs)
       tooOld (Failure x) = Failure x
-      tooOld (Success x) = Failure ["Not the newest version in incoming: " ++ ppDisplay x]
+      tooOld (Success x) = Failure ["Not the newest version in incoming: " ++ ppShow x]
       successes (Success x : xs) = x : successes xs
       successes (Failure _ : xs) = successes xs
       successes [] = []

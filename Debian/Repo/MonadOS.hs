@@ -25,7 +25,7 @@ import Data.ByteString.Lazy as L (ByteString, empty)
 import Data.Monoid (Monoid, mappend)
 import Data.Time (NominalDiffTime)
 import Data.Traversable
-import Debian.Pretty (ppDisplay)
+import Debian.Pretty (ppShow)
 import Debian.Relation (PkgName, Relations)
 import Debian.Repo.EnvPath (EnvPath(EnvPath, envPath, envRoot), EnvRoot(rootPath))
 import Debian.Repo.Internal.Repos (MonadRepos, osFromRoot, putOSImage, syncOS)
@@ -152,8 +152,8 @@ aptGetInstall packages =
     where
       p = proc "apt-get" args'
       args' = ["-y", "--force-yes", "install"] ++ map formatPackage packages
-      formatPackage (name, Nothing) = ppDisplay name
-      formatPackage (name, Just version) = ppDisplay name ++ "=" ++ show (prettyDebianVersion version)
+      formatPackage (name, Nothing) = ppShow name
+      formatPackage (name, Just version) = ppShow name ++ "=" ++ show (prettyDebianVersion version)
 
 -- | This is a deepseq thing
 forceList :: [a] -> IO [a]

@@ -15,24 +15,38 @@ module Debian.Repo.Slice
     , UpdateError(..)
     , SourcesChangedAction(..)
     , doSourcesChangedAction
+    , addAptRepository
+    , removeAptRepository
     ) where
 
 import Control.Exception (Exception)
 import Data.Data (Data)
 import Data.List (intersperse)
+import Data.Monoid (mempty)
+import Data.Text (Text)
 import Data.Typeable (Typeable)
-import Debian.Pretty (PP(..), ppDisplay, ppPrint)
 import Debian.Release (ReleaseName(relName))
 import Debian.Repo.Prelude (replaceFile)
 import Debian.Repo.Prelude.Verbosity (ePutStr, ePutStrLn)
 import Debian.Repo.Repo (RepoKey)
 import Debian.Sources (DebSource(..), SliceName, SourceType(..))
 import System.Directory (createDirectoryIfMissing, removeFile)
+import System.Exit (ExitCode)
+import System.FilePath ((</>))
 import System.IO (hGetLine, stdin)
+import System.Process (proc)
+import System.Process.ListLike (readCreateProcess, Chunk(..))
 import System.Unix.Directory (removeRecursiveSafely)
-import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), hcat, text)
+import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), hcat, text, prettyShow)
 
-data Slice = Slice {sliceRepoKey :: RepoKey, sliceSource :: DebSource} deriving (Eq, Ord, Show)
+data Slice
+    = Slice {sliceRepoKey :: RepoKey, sliceSource :: DebSource}
+    | PersonalPackageArchive {ppaUser :: String, ppaName :: String}
+    deriving (Eq, Ord, Show)
+
+instance Pretty Slice where
+    pPrint x@(PersonalPackageArchive {}) = text ("ppa:" ++ ppaUser x </> ppaName x)
+    pPrint x@(Slice {}) = text ("ppa:" ++ ppaUser x </> ppaName x)
 
 -- | Each line of the sources.list represents a slice of a repository
 data SliceList = SliceList {slices :: [Slice]} deriving (Eq, Ord, Show)
@@ -42,14 +56,11 @@ data NamedSliceList
                      , sliceListName :: SliceName
                      } deriving (Eq, Ord, Show)
 
-instance Pretty (PP SliceList) where
-    pPrint = hcat . intersperse (text "\n") . map (ppPrint . sliceSource) . slices . unPP
+instance Pretty SliceList where
+    pPrint = hcat . intersperse (text "\n") . map (pPrint . sliceSource) . slices
 
-instance Pretty (PP NamedSliceList) where
-    pPrint = ppPrint . sliceList . unPP
-
-instance Pretty (PP ReleaseName) where
-    pPrint = ppPrint . relName . unPP
+instance Pretty NamedSliceList where
+    pPrint = pPrint . sliceList
 
 deriving instance Show SourceType
 deriving instance Show DebSource
@@ -106,7 +117,7 @@ data UpdateError
 instance Exception UpdateError
 
 instance Show UpdateError where
-    show (Changed r p l1 l2) = unwords ["Changed", show r, show p, ppDisplay l1, ppDisplay l2]
+    show (Changed r p l1 l2) = unwords ["Changed", show r, show p, prettyShow l1, prettyShow l2]
     show (Missing r p) = unwords ["Missing", show r, show p]
     show Flushed = "Flushed"
 
@@ -121,9 +132,9 @@ doSourcesChangedAction dir sources baseSources fileSources SourcesChangedError =
   ePutStrLn ("The sources.list in the existing '" ++ (relName . sliceListName $ baseSources) ++ "' in " ++ dir ++
              " apt-get environment doesn't match the parameters passed to the autobuilder" ++ ":\n\n" ++
              sources ++ ":\n\n" ++
-             ppDisplay fileSources ++
+             prettyShow fileSources ++
 	     "\nRun-time parameters:\n\n" ++
-             ppDisplay baseSources ++ "\n" ++
+             prettyShow baseSources ++ "\n" ++
 	     "It is likely that the build environment in\n" ++
              dir ++ " is invalid and should be rebuilt.")
   ePutStr $ "Remove it and continue (or exit)?  [y/n]: "
@@ -132,18 +143,24 @@ doSourcesChangedAction dir sources baseSources fileSources SourcesChangedError =
     ('y' : _) ->
         do removeRecursiveSafely dir
            createDirectoryIfMissing True dir
-           replaceFile sources (ppDisplay baseSources)
+           replaceFile sources (prettyShow baseSources)
     _ -> error ("Please remove " ++ dir ++ " and restart.")
 
 doSourcesChangedAction dir sources baseSources _fileSources RemoveRelease = do
   ePutStrLn $ "Removing suspect environment: " ++ dir
   removeRecursiveSafely dir
   createDirectoryIfMissing True dir
-  replaceFile sources (ppDisplay baseSources)
+  replaceFile sources (prettyShow baseSources)
 
 doSourcesChangedAction dir sources baseSources _fileSources UpdateSources = do
   -- The sources.list has changed, but it should be
   -- safe to update it.
   ePutStrLn $ "Updating environment with new sources.list: " ++ dir
   removeFile sources
-  replaceFile sources (ppDisplay baseSources)
+  replaceFile sources (prettyShow baseSources)
+
+addAptRepository :: Slice ->  IO (ExitCode, [Chunk Text])
+addAptRepository x = readCreateProcess (proc "add-apt-repository" [prettyShow x]) mempty
+
+removeAptRepository :: Slice ->  IO (ExitCode, [Chunk Text])
+removeAptRepository x = readCreateProcess (proc "add-apt-repository" ["-r", prettyShow x]) mempty

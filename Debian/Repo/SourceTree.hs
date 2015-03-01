@@ -31,7 +31,7 @@ import Data.List (intercalate, nubBy, sortBy)
 import Data.Time (NominalDiffTime)
 import Debian.Changes (ChangeLogEntry(..), ChangesFile(..), parseEntries)
 import Debian.Control.Policy (HasDebianControl(debianControl), DebianControl, parseDebianControlFromFile)
-import Debian.Pretty (ppDisplay)
+import Debian.Pretty (ppShow)
 import Debian.Relation (BinPkgName(..))
 import Debian.Repo.Changes (findChangesFiles)
 import Debian.Repo.EnvPath (EnvRoot(rootPath))
@@ -81,13 +81,13 @@ findChanges tree =
        case result of
          [cf] -> return cf
          [] -> fail ("Couldn't find .changes file in " ++ dir)
-         lst -> fail ("Multiple .changes files in " ++ dir ++ ": " ++ intercalate ", " (map ppDisplay lst))
+         lst -> fail ("Multiple .changes files in " ++ dir ++ ": " ++ intercalate ", " (map ppShow lst))
 
 -- |Rewrite the changelog with an added entry.
 addLogEntry :: (HasChangeLog t, HasDebDir t) => ChangeLogEntry -> t -> IO ()
 addLogEntry entry'' debtree =
 -- readFile changelogPath >>= replaceFile changelogPath . ((show (pretty entry'')) ++)
-  withFile changelogPath ReadMode (\ handle -> hGetContents handle >>= replaceFile changelogPath . ((ppDisplay entry'' ++ "\n\n") ++))
+  withFile changelogPath ReadMode (\ handle -> hGetContents handle >>= replaceFile changelogPath . ((ppShow entry'' ++ "\n\n") ++))
     where
       changelogPath = (debdir debtree) ++ "/debian/changelog"
 

@@ -23,17 +23,17 @@ module Debian.Repo.OSImage
     , removeEnv
     ) where
 
-import Control.DeepSeq (force)
-import Control.Exception (evaluate, SomeException)
+-- import Control.DeepSeq (force)
+import Control.Exception (SomeException)
 import Control.Monad.Catch (try)
 import Control.Monad.State (MonadIO(..))
 import qualified Data.ByteString as B
 import Data.Data (Data)
 import Data.List (intercalate)
-import Data.Monoid (mempty)
+-- import Data.Monoid (mempty)
 import Data.Typeable (Typeable)
 import Debian.Arch (Arch)
-import Debian.Pretty (ppDisplay)
+import Debian.Pretty (prettyShow)
 import Debian.Relation (ParseRelations(parseRelations), Relations)
 import Debian.Release (parseReleaseName, parseSection', ReleaseName(relName))
 import Debian.Repo.EnvPath (EnvPath(EnvPath, envPath, envRoot), EnvRoot(rootPath), outsidePath)
@@ -41,7 +41,7 @@ import Debian.Repo.Internal.IO (buildArchOfRoot)
 import Debian.Repo.LocalRepository (copyLocalRepo, LocalRepository)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
 import Debian.Repo.Prelude (isSublistOf, replaceFile, sameInode, sameMd5sum)
-import Debian.Repo.Prelude.Process (readProcessVE, readProcessV)
+import Debian.Repo.Prelude.Process (readProcessVE)
 import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn)
 import Debian.Repo.Repo (repoKey, repoURI)
 import Debian.Repo.Rsync (rsyncOld)
@@ -165,7 +165,7 @@ data UpdateError
     | Flushed
 
 instance Show UpdateError where
-    show (Changed r p l1 l2) = unwords ["Changed", show r, show p, ppDisplay l1, ppDisplay l2]
+    show (Changed r p l1 l2) = unwords ["Changed", show r, show p, prettyShow l1, prettyShow l2]
     show (Missing r p) = unwords ["Missing", show r, show p]
     show Flushed = "Flushed"
 
@@ -191,7 +191,7 @@ localeGen os locale =
        qPutStr ("Generating locale " ++  locale ++ " (" ++ stripDist (rootPath root) ++ ")...")
        chunks <- useEnv (rootPath root) return (readProcessVE (shell cmd) B.empty)
        case chunks of
-         (Right output@(ExitSuccess, _, _)) -> qPutStrLn "done"
+         (Right (ExitSuccess, _, _)) -> qPutStrLn "done"
          e -> error $ "Failed to generate locale " ++ rootPath root ++ ": " ++ cmd ++ " -> " ++ show e
     where
       cmd = "locale-gen " ++ locale
@@ -338,8 +338,8 @@ stripDist :: FilePath -> FilePath
 stripDist path = maybe path (\ n -> drop (n + 7) path) (isSublistOf "/dists/" path)
 
 -- | This is a deepseq thing
-forceList :: [a] -> IO [a]
-forceList output = evaluate (length output) >> return output
+-- forceList :: [a] -> IO [a]
+-- forceList output = evaluate (length output) >> return output
 
 pbuilder :: FilePath
          -> EnvRoot
@@ -363,7 +363,7 @@ pbuilder top root distro repo _extraEssential _omitEssential _extra =
        os <- createOSImage root distro repo -- arch?  copy?
        let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
        -- Rewrite the sources.list with the local pool added.
-           sources = ppDisplay $ osFullDistro os
+           sources = prettyShow $ osFullDistro os
        replaceFile sourcesPath' sources
        return os
     where
@@ -401,7 +401,7 @@ debootstrap root distro repo include exclude components =
       os <- createOSImage root distro repo -- arch?  copy?
       let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
       -- Rewrite the sources.list with the local pool added.
-          sources = ppDisplay $ osFullDistro os
+          sources = prettyShow $ osFullDistro os
       liftIO $ replaceFile sourcesPath' sources
       return os
     where

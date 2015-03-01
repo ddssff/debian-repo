@@ -10,7 +10,7 @@ import Data.Set (Set, fromList)
 import Data.Text (pack)
 import Debian.Arch (Arch(Binary, Source), ArchCPU(..), ArchOS(..), prettyArch)
 import Debian.Changes (ChangesFile(..))
-import Debian.Pretty (ppDisplay)
+import Debian.Pretty (prettyShow)
 import Debian.Relation (BinPkgName)
 import Debian.Release (ReleaseName(ReleaseName), releaseName', parseReleaseName, Section, parseSection')
 import Debian.Repo.EnvPath (EnvPath(EnvPath), EnvRoot(EnvRoot), envPath, outsidePath)
@@ -86,7 +86,7 @@ runFlags flags =
           let subject = ("newdist: " ++ changePackage changesFile ++ "-" ++ show (prettyDebianVersion (changeVersion changesFile)) ++
                          " now available in " ++ releaseName' (changeRelease changesFile) ++
                          " (" ++ show (prettyArch (changeArch changesFile)) ++")")
-              body = ("Repository " ++ envPath (repoRoot repo)) : [] : (lines $ ppDisplay $ changeInfo changesFile) in
+              body = ("Repository " ++ envPath (repoRoot repo)) : [] : (lines $ prettyShow $ changeInfo changesFile) in
     	  (subject, body)
       email _repo (changesFile, e) =
           let subject = ("newdist failure: " ++ changePackage changesFile ++ "-" ++ show (prettyDebianVersion (changeVersion changesFile)) ++
