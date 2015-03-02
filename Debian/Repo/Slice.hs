@@ -24,6 +24,7 @@ import Data.Data (Data)
 import Data.List (intersperse)
 import Data.Monoid (mempty)
 import Data.Text (Text)
+import Data.Text.IO as Text (putStr, hPutStr)
 import Data.Typeable (Typeable)
 import Debian.Release (ReleaseName(relName))
 import Debian.Repo.Prelude (replaceFile)
@@ -33,9 +34,10 @@ import Debian.Sources (DebSource(..), SliceName, SourceType(..))
 import System.Directory (createDirectoryIfMissing, removeFile)
 import System.Exit (ExitCode)
 import System.FilePath ((</>))
-import System.IO (hGetLine, stdin)
+import System.IO (hGetLine, stdin, hPutStr, stderr)
 import System.Process (proc)
-import System.Process.ListLike (readCreateProcess, Chunk(..))
+import System.Process.ListLike (readCreateProcess, Chunk(..), collectOutput)
+import System.Process.Text ()
 import System.Unix.Directory (removeRecursiveSafely)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), hcat, text, prettyShow)
 
@@ -160,7 +162,12 @@ doSourcesChangedAction dir sources baseSources _fileSources UpdateSources = do
   replaceFile sources (prettyShow baseSources)
 
 addAptRepository :: Slice ->  IO (ExitCode, [Chunk Text])
-addAptRepository x = readCreateProcess (proc "add-apt-repository" [prettyShow x]) mempty
+addAptRepository x = readCreateProcess (proc "add-apt-repository" ["--yes", "--enable-source", prettyShow x]) mempty >>= mapM echoOutput >>= return . collectOutput
+    where
+      echoOutput :: Chunk Text -> IO (Chunk Text)
+      echoOutput x@(Stdout s) = Text.putStr s >> return x
+      echoOutput x@(Stderr s) = Text.hPutStr stderr s >> return x
+      echoOutput x = return x
 
 removeAptRepository :: Slice ->  IO (ExitCode, [Chunk Text])
-removeAptRepository x = readCreateProcess (proc "add-apt-repository" ["-r", prettyShow x]) mempty
+removeAptRepository x = readCreateProcess (proc "add-apt-repository" ["--yes", "-r", prettyShow x]) mempty

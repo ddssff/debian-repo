@@ -100,18 +100,19 @@ prepareOS
     :: (Applicative m, MonadRepos m, MonadTop m, MonadMask m, MonadIO m) =>
        EnvSet                   -- ^ The location where image is to be built
     -> NamedSliceList		-- ^ The sources.list of the base distribution
+    -> [Slice]                  -- ^ Extra repositories - e.g. personal package archives
     -> LocalRepository           -- ^ The location of the local upload repository
     -> Bool			-- ^ If true, remove and rebuild the image
     -> Bool			-- ^ If true, flush all the build dependencies
     -> SourcesChangedAction	-- ^ What to do if called with a sources.list that
 				-- differs from the previous call
-    -> [String]			-- ^ Extra packages to install - e.g. keyrings
+    -> [String]			-- ^ Extra packages to install - e.g. keyrings, software-properties-common
     -> [String]			-- ^ More packages to install, but these may not be available
                                 -- immediately - e.g seereason-keyring.  Ignore exceptions.
     -> [String]			-- ^ Packages to exclude
     -> [String]			-- ^ Components of the base repository
     -> m (EnvRoot, EnvRoot)
-prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optional exclude components =
+prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include optional exclude components =
     do cleanOS <- osFromRoot cleanRoot >>= maybe (do os <- liftIO (createOSImage cleanRoot distro repo)
                                                      putOSImage os
                                                      return os) return
@@ -158,7 +159,7 @@ prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optio
                          createDirectoryIfMissing True dist
                          -- ePutStrLn ("writeFile " ++ show sources ++ " " ++ show (show . osBaseDistro $ os))
                          replaceFile sources (prettyShow base)
-             rebuildOS cleanRoot distro include exclude components
+             rebuildOS cleanRoot distro extra include exclude components
 
       doInclude :: (MonadOS m, MonadIO m, MonadMask m) => m ()
       doInclude =
@@ -174,14 +175,15 @@ prepareOS eset distro repo flushRoot flushDepends ifSourcesChanged include optio
 _pbuilderBuild :: (MonadRepos m, MonadTop m, MonadMask m) =>
             EnvRoot
          -> NamedSliceList
+         -> [Slice]
          -> LocalRepository
          -> [String]
          -> [String]
          -> [String]
          -> m OSImage
-_pbuilderBuild root distro repo _extraEssential _omitEssential _extra =
+_pbuilderBuild root distro extra repo _extraEssential _omitEssential _extra =
     do top <- askTop
-       os <- liftIO $ pbuilder top root distro repo _extraEssential _omitEssential _extra
+       os <- liftIO $ pbuilder top root distro extra repo _extraEssential _omitEssential _extra
        putOSImage os
        try (evalMonadOS updateOS root) >>= either (\ (e :: SomeException) -> error (show e)) return
        return os
@@ -189,13 +191,14 @@ _pbuilderBuild root distro repo _extraEssential _omitEssential _extra =
 rebuildOS :: (Applicative m, MonadOS m, MonadRepos m, MonadTop m, MonadMask m) =>
              EnvRoot			-- ^ The location where image is to be built
            -> NamedSliceList		-- ^ The sources.list of the base distribution
+           -> [Slice]
            -> [String]			-- ^ Extra packages to install - e.g. keyrings
            -> [String]			-- ^ Packages to exclude
            -> [String]			-- ^ Components of the base repository
            -> m ()
-rebuildOS root distro include exclude components =
+rebuildOS root distro extra include exclude components =
           do master <- osLocalMaster <$> getOS
-             _key <- buildOS root distro master include exclude components
+             _key <- buildOS root distro extra master include exclude components
              syncLocalPool
 
 -- | Create a new clean build environment in root.clean FIXME: create
@@ -203,13 +206,14 @@ rebuildOS root distro include exclude components =
 buildOS :: (MonadRepos m, MonadTop m, MonadMask m) =>
             EnvRoot
          -> NamedSliceList
+         -> [Slice]
          -> LocalRepository
          -> [String]
          -> [String]
          -> [String]
          -> m OSImage
-buildOS root distro repo include exclude components =
-    do os <- liftIO $ debootstrap root distro repo include exclude components
+buildOS root distro extra repo include exclude components =
+    do os <- liftIO $ debootstrap root distro extra repo include exclude components
        putOSImage os
        evalMonadOS updateOS root
        liftIO $ neuterEnv os

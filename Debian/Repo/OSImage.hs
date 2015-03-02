@@ -45,7 +45,7 @@ import Debian.Repo.Prelude.Process (readProcessVE)
 import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn)
 import Debian.Repo.Repo (repoKey, repoURI)
 import Debian.Repo.Rsync (rsyncOld)
-import Debian.Repo.Slice (NamedSliceList(sliceList), NamedSliceList(sliceListName), Slice(Slice, sliceRepoKey, sliceSource), SliceList(..))
+import Debian.Repo.Slice (NamedSliceList(sliceList), NamedSliceList(sliceListName), Slice(Slice, sliceRepoKey, sliceSource), SliceList(..), addAptRepository)
 import Debian.Sources (DebSource(..), DebSource(sourceDist, sourceUri), SourceType(..), SourceType(..))
 import Debian.URI (uriToString')
 import System.Directory (createDirectoryIfMissing, doesFileExist, removeFile, renameFile)
@@ -105,7 +105,7 @@ createOSImage root distro repo =
        -- the underlying system.  We can support multiple
        -- distributions, but if the hardware is an amd64 the packages
        -- produced will be amd64.
-       arch <- liftIO buildArchOfRoot
+       arch <- buildArchOfRoot
        let os = OS { osRoot = root
                    , osBaseDistro = distro
                    , osArch = arch
@@ -344,12 +344,13 @@ stripDist path = maybe path (\ n -> drop (n + 7) path) (isSublistOf "/dists/" pa
 pbuilder :: FilePath
          -> EnvRoot
          -> NamedSliceList
+         -> [Slice]
          -> LocalRepository
          -> [String]
          -> [String]
          -> [String]
          -> IO OSImage
-pbuilder top root distro repo _extraEssential _omitEssential _extra =
+pbuilder top root distro extra repo _extraEssential _omitEssential _extra =
       -- We can't create the environment if the sources.list has any
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
@@ -358,13 +359,14 @@ pbuilder top root distro repo _extraEssential _omitEssential _extra =
        ePutStrLn ("# " ++ cmd top)
        let codefn (Right (ExitSuccess, _, _)) = return ()
            codefn failure = error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show failure)
-       liftIO (readProcessVE (shell (cmd top)) B.empty) >>= codefn
+       readProcessVE (shell (cmd top)) B.empty >>= codefn
        ePutStrLn "done."
        os <- createOSImage root distro repo -- arch?  copy?
        let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
        -- Rewrite the sources.list with the local pool added.
            sources = prettyShow $ osFullDistro os
        replaceFile sourcesPath' sources
+       useEnv (rootPath root) return $ mapM addAptRepository extra
        return os
     where
       cmd x =
@@ -381,12 +383,13 @@ pbuilder top root distro repo _extraEssential _omitEssential _extra =
 debootstrap
     :: EnvRoot
     -> NamedSliceList
+    -> [Slice]
     -> LocalRepository
     -> [String]
     -> [String]
     -> [String]
     -> IO OSImage
-debootstrap root distro repo include exclude components =
+debootstrap root distro extra repo include exclude components =
     do
       ePutStr (unlines [ "Creating clean build environment (" ++ relName (sliceListName distro) ++ ")"
                        , "  root: " ++ show root
@@ -402,7 +405,8 @@ debootstrap root distro repo include exclude components =
       let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
       -- Rewrite the sources.list with the local pool added.
           sources = prettyShow $ osFullDistro os
-      liftIO $ replaceFile sourcesPath' sources
+      replaceFile sourcesPath' sources
+      useEnv (rootPath root) return $ mapM addAptRepository extra
       return os
     where
       codefn (Right (ExitSuccess, _, _)) = return ()
