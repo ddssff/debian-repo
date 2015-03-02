@@ -30,7 +30,7 @@ import Control.Monad.State (MonadIO(..))
 import qualified Data.ByteString as B
 import Data.Data (Data)
 import Data.List (intercalate)
--- import Data.Monoid (mempty)
+import Data.Maybe (mapMaybe)
 import Data.Typeable (Typeable)
 import Debian.Arch (Arch)
 import Debian.Pretty (prettyShow)
@@ -74,6 +74,7 @@ data OSImage
     = OS { osRoot :: EnvRoot
          , osBaseDistro :: NamedSliceList
          , osArch :: Arch
+         , osExtraRepos :: [Slice]
          , osLocalMaster :: LocalRepository
 	 -- ^ The associated local repository, where packages we build
 	 -- inside this image are first uploaded to.
@@ -97,9 +98,10 @@ instance Eq OSImage where
 createOSImage ::
               EnvRoot			-- ^ The location where image is to be built
            -> NamedSliceList		-- ^ The sources.list of the base distribution
+           -> [Slice]
            -> LocalRepository           -- ^ The location of the local upload repository
            -> IO OSImage
-createOSImage root distro repo =
+createOSImage root distro extra repo =
     do copy <- copyLocalRepo (EnvPath {envRoot = root, envPath = "/work/localpool"}) repo
        -- At this point we can only support the build architecture of
        -- the underlying system.  We can support multiple
@@ -109,6 +111,7 @@ createOSImage root distro repo =
        let os = OS { osRoot = root
                    , osBaseDistro = distro
                    , osArch = arch
+                   , osExtraRepos = extra
                    , osLocalMaster = repo
                    , osLocalCopy = copy
                    , osSourcePackageCache = Nothing
@@ -157,7 +160,7 @@ osFullDistro os =
                                             Slice {sliceRepoKey = repoKey repo', sliceSource = bin}]}
         src = DebSource Deb (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"]))
         bin = DebSource DebSrc (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"])) in
-    SliceList { slices = slices (sliceList base) ++ slices localSources }
+    SliceList { slices = slices (sliceList base) ++ osExtraRepos os ++ slices localSources }
 
 data UpdateError
     = Changed ReleaseName FilePath SliceList SliceList
@@ -361,7 +364,7 @@ pbuilder top root distro extra repo _extraEssential _omitEssential _extra =
            codefn failure = error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show failure)
        readProcessVE (shell (cmd top)) B.empty >>= codefn
        ePutStrLn "done."
-       os <- createOSImage root distro repo -- arch?  copy?
+       os <- createOSImage root distro extra repo -- arch?  copy?
        let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
        -- Rewrite the sources.list with the local pool added.
            sources = prettyShow $ osFullDistro os
@@ -401,7 +404,7 @@ debootstrap root distro extra repo include exclude components =
       -- then add them back in.
       readProcessVE (shell cmd) B.empty >>= codefn
       ePutStrLn "done."
-      os <- createOSImage root distro repo -- arch?  copy?
+      os <- createOSImage root distro extra repo -- arch?  copy?
       let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
       -- Rewrite the sources.list with the local pool added.
           sources = prettyShow $ osFullDistro os
@@ -414,8 +417,8 @@ debootstrap root distro extra repo include exclude components =
 
       woot = rootPath root
       wootNew = woot ++ ".new"
-      baseDist = either id (relName . fst) . sourceDist . sliceSource . head . slices . sliceList $ distro
-      mirror = uriToString' . sourceUri . sliceSource . head . slices . sliceList $ distro
+      baseDist = either id (relName . fst) . sourceDist . head . map sliceSource . slices . sliceList $ distro
+      mirror = uriToString' . sourceUri . head . map sliceSource . slices . sliceList $ distro
       cmd = intercalate " && "
               ["set -x",
                "rm -rf " ++ wootNew,

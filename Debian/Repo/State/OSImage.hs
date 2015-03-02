@@ -15,6 +15,8 @@ import Control.Monad (when)
 import Control.Monad.Catch (catch, try, MonadMask)
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (empty)
+import Data.Either (partitionEithers)
+import Data.List (isSuffixOf)
 import Data.Monoid (mempty)
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import Debian.Debianize (EnvSet(cleanOS, dependOS))
@@ -40,7 +42,7 @@ import Debian.Repo.State.Slice (verifySourcesList)
 import Debian.Repo.Top (askTop, distDir, MonadTop, sourcesPath)
 import Debian.Sources (DebSource(sourceUri), parseSourcesList)
 import Debian.URI (URI(uriScheme))
-import System.Directory (createDirectoryIfMissing, doesFileExist)
+import System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.Environment (getEnv)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), splitFileName)
@@ -113,7 +115,7 @@ prepareOS
     -> [String]			-- ^ Components of the base repository
     -> m (EnvRoot, EnvRoot)
 prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include optional exclude components =
-    do cleanOS <- osFromRoot cleanRoot >>= maybe (do os <- liftIO (createOSImage cleanRoot distro repo)
+    do cleanOS <- osFromRoot cleanRoot >>= maybe (do os <- liftIO (createOSImage cleanRoot distro extra repo)
                                                      putOSImage os
                                                      return os) return
        case flushRoot of
@@ -133,7 +135,7 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
                          Left _ -> evalMonadOS (syncOS dependRoot) cleanRoot
                          Right _ ->
                              do -- ePutStrLn "createOSImage dependRoot?  I don't understand why this would be done."
-                                os <- liftIO (createOSImage dependRoot distro repo)
+                                os <- liftIO (createOSImage dependRoot distro extra repo)
                                 putOSImage os
          Just _ -> return ()
        evalMonadOS syncLocalPool dependRoot
@@ -241,12 +243,20 @@ updateOS = quieter 1 $ do
       verifySources =
           do root <- osRoot <$> getOS
              computed <- remoteOnly <$> osFullDistro <$> getOS
-             let sourcesPath' = rootPath root </> "etc/apt/sources.list"
-             text <- liftIO (try $ readFile sourcesPath')
+             let sourcesPath' = (rootPath root </> "etc/apt/sources.list")
+             let sourcesD = (rootPath root </> "etc/apt/sources.list.d")
+             sourcesDPaths <- liftIO $ (map (sourcesD </>) . filter (isSuffixOf ".list")) <$> getDirectoryContents sourcesD
+             (errors, sourcesText) <- liftIO $ partitionEithers <$> mapM (try . readFile) (sourcesPath' : sourcesDPaths)
+             -- text <- liftIO (try $ readFile sourcesPath')
              installed <-
+                 case (errors :: [SomeException]) of
+                   [] -> verifySourcesList (Just root) (parseSourcesList (unlines sourcesText)) >>= return . Just . remoteOnly
+                   exns -> error $  unlines (("Failure verifying sources in " ++ show root ++ ":") : map show exns)
+{-
                  case text of
                    Left (_ :: SomeException) -> return Nothing
                    Right s -> verifySourcesList (Just root) (parseSourcesList s) >>= return . Just . remoteOnly
+-}
              case installed of
                Nothing -> (osBaseDistro <$> getOS) >>= \ sources -> throw $ Missing (sliceListName sources) sourcesPath'
                Just installed'
