@@ -20,12 +20,12 @@ Data-Files:
 
 flag local-cabal-debian
   Description: Link directly to the source of the cabal-debian library
-  Default: True
+  Default: False
   Manual: True
 
 flag local-debian
   Description: Link directly to the source of the debian library
-  Default: True
+  Default: False
   Manual: True
 
 flag no-verbosity-control
@@ -229,6 +229,8 @@ Executable debian-versions
   Buildable: True
   Main-is: Versions.hs
   ghc-options: -O2 -threaded -Wall
+  if !flag(local-debian)
+    Build-Depends: debian >= 3.87
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
@@ -236,3 +238,5 @@ Executable newdist
   Buildable: True
   Main-is: Main.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
+  if !flag(local-debian)
+    Build-Depends: debian >= 3.87
