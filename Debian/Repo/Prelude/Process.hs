@@ -17,7 +17,6 @@ module Debian.Repo.Prelude.Process
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Arrow (second)
-import Control.DeepSeq (NFData)
 import Control.Exception (evaluate, Exception, SomeException, throw, try)
 import Control.Monad.State (evalState, StateT, get, put)
 import Control.Monad.Trans (liftIO, MonadIO)
@@ -35,8 +34,6 @@ import System.IO (stdout, stderr)
 import System.IO.Error (mkIOError)
 import System.Process (CreateProcess(cwd, env))
 import System.Process.ListLike (Chunk(..), collectOutput, ListLikeProcessIO, ProcessOutput, readCreateProcessLazy, readCreateProcessWithExitCode, showCreateProcessForUser)
-
-instance NFData ExitCode
 
 -- | Run a task and return the elapsed time along with its result.
 timeTask :: IO a -> IO (a, NominalDiffTime)
