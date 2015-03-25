@@ -63,7 +63,6 @@ Library
         deepseq,
         directory,
         exceptions >= 0.6,
-        Extra,
         filepath,
         HaXml,
         lens,

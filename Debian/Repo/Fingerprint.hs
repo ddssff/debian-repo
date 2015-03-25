@@ -19,7 +19,8 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Data (Data)
 import Data.Digest.Pure.MD5 (md5)
-import Data.List as List (intercalate, map)
+import Data.List as List (intercalate, map, transpose)
+import Data.Maybe (fromJust)
 import Data.Set as Set (Set, toList, toAscList, difference, empty, fromList, map, filter)
 import Data.Text (unpack, strip)
 import Data.Typeable (Typeable)
@@ -30,7 +31,6 @@ import Debian.Repo.Dependencies (readSimpleRelation, showSimpleRelation)
 import Debian.Repo.PackageID (PackageID(packageName, packageVersion))
 import Debian.Repo.PackageIndex (SourcePackage(sourceParagraph, sourcePackageID))
 import Debian.Version (DebianVersion, parseDebianVersion, prettyDebianVersion)
-import Extra.Misc(columns)
 
 -- | The methods we know for obtaining source code.
 data RetrieveMethod
@@ -216,3 +216,13 @@ dependencyChanges old new =
             (oldDep : _) -> [" " ++ unBinPkgName (packageName newDep) ++ ": ", show (prettyDebianVersion (packageVersion oldDep)), " -> ", show (prettyDebianVersion (packageVersion newDep))]
       hasName name = ((== name) . packageName)
       prefix = "\n    "
+
+-- |Pad strings so the columns line up. The argument and return value
+-- elements are the rows of a table.  Do not pad the rightmost column.
+columns :: [[String]] -> [[String]]
+columns rows =
+    List.map (List.map pad . zip (widths ++ [0])) rows
+    where
+      widths = List.map (fromJust . listMax) . transpose . List.map (List.map length . init) $ rows
+      listMax l = foldl (\ a b -> Just . maybe b (max b) $ a) Nothing l
+      pad (width, field) = field ++ replicate (max 0 (width - length field)) ' '
