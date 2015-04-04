@@ -28,6 +28,11 @@ flag local-debian
   Default: False
   Manual: True
 
+flag local-filemanip-extra
+  Description: Link directly to the source of the filemanip-extra library
+  Default: True
+  Manual: True
+
 flag no-verbosity-control
   Description: Disable the code that makes process execution less verbose
   Default: False
@@ -63,7 +68,6 @@ Library
         deepseq,
         directory,
         exceptions >= 0.6,
-        filemanip-extra,
         filepath,
         HaXml,
         lens,
@@ -138,8 +142,6 @@ Library
     Hs-Source-Dirs: ../cabal-debian/src, ../cabal-debian/dist/build/autogen
     Build-Depends: hsemail, memoize, Diff, pretty, data-default, set-extra, lens
     Exposed-Modules:
-      Data.Algorithm.Diff.Context
-      Data.Algorithm.Diff.Pretty
       Debian.GHC
       Debian.Policy
       Distribution.Version.Invert
@@ -165,7 +167,6 @@ Library
       Debian.Debianize.Output
       Debian.Debianize.Prelude
       Debian.Debianize.SourceDebDescription
-      Debian.Debianize.SubstVars
       Debian.Debianize.VersionSplits
       OldLens
       Paths_cabal_debian
@@ -221,6 +222,16 @@ Library
     Build-Depends: process-listlike >= 1.0
   else
     Build-Depends: process-extras >= 0.2.0
+
+  if flag(local-filemanip-extra)
+    Hs-Source-Dirs: ../filemanip-extra
+    Exposed-Modules:
+      System.FilePath.Extra
+      System.FilePath.Extra2
+      System.FilePath.Extra3
+      System.FilePath.Extra4
+  else
+    Build-Depends: filemanip-extra
 
 Executable debian-versions
   Hs-Source-Dirs: demos

@@ -32,7 +32,7 @@ import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
 import Prelude hiding (mapM, sequence)
 import System.Exit (ExitCode(ExitSuccess))
-import System.FilePath.Extra4 (withProcAndSys)
+import System.FilePath.Extra4 (withProcAndSys, WithProcAndSys)
 import System.Process (proc)
 import System.Unix.Chroot (useEnv)
 
@@ -52,6 +52,11 @@ instance MonadRepos m => MonadOS (StateT EnvRoot m) where
     putOS = lift . putOSImage
     modifyOS f = getOS >>= putOS . f
 
+instance MonadOS m => MonadOS (WithProcAndSys m) where
+    getOS = lift getOS
+    putOS = lift . putOS
+    modifyOS f = lift $ getOS >>= putOS . f
+
 -- | Perform a task in the changeroot of an OS.  We know /proc and /sys
 -- is already remounted from the parent root.
 useOS :: (MonadOS m, MonadIO m, MonadMask m, NFData a) => IO a -> m a
@@ -61,7 +66,7 @@ useOS action =
 
 -- | Run MonadOS and update the osImageMap with the modified value
 evalMonadOS :: MonadRepos m => StateT EnvRoot m a -> EnvRoot -> m a
-evalMonadOS task root = evalStateT (withProcAndSys (rootPath root) task) root
+evalMonadOS task root = evalStateT task root
 
 -- | Run @apt-get update@ and @apt-get dist-upgrade@.  If @update@
 -- fails, run @dpkg --configure -a@ before running @dist-upgrade@.
