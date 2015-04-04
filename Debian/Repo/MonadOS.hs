@@ -52,16 +52,16 @@ instance MonadRepos m => MonadOS (StateT EnvRoot m) where
     putOS = lift . putOSImage
     modifyOS f = getOS >>= putOS . f
 
+-- | Perform a task in the changeroot of an OS.  We know /proc and /sys
+-- is already remounted from the parent root.
 useOS :: (MonadOS m, MonadIO m, MonadMask m, NFData a) => IO a -> m a
 useOS action =
   do root <- rootPath . osRoot <$> getOS
-     withProcAndSys root $ liftIO $ useEnv root (return . force) action
+     liftIO $ useEnv root (return . force) action
 
 -- | Run MonadOS and update the osImageMap with the modified value
 evalMonadOS :: MonadRepos m => StateT EnvRoot m a -> EnvRoot -> m a
-evalMonadOS task root = do
-  a <- evalStateT task root
-  return a
+evalMonadOS task root = evalStateT (withProcAndSys (rootPath root) task) root
 
 -- | Run @apt-get update@ and @apt-get dist-upgrade@.  If @update@
 -- fails, run @dpkg --configure -a@ before running @dist-upgrade@.
