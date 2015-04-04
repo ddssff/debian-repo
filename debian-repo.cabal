@@ -1,5 +1,5 @@
 Name:           debian-repo
-Version:        5.74
+Version:        5.74.1
 License:        BSD3
 License-File:	debian/copyright
 Author:         David Fox
@@ -63,6 +63,7 @@ Library
         deepseq,
         directory,
         exceptions >= 0.6,
+        filemanip-extra,
         filepath,
         HaXml,
         lens,
@@ -107,7 +108,6 @@ Library
         Debian.Repo.PackageIndex,
         Debian.Repo.Prelude,
         Debian.Repo.Prelude.Bool,
-        Debian.Repo.Prelude.Files,
         Debian.Repo.Prelude.GPGSign,
         Debian.Repo.Prelude.List,
         Debian.Repo.Prelude.Lock,

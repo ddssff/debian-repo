@@ -1,3 +1,9 @@
+haskell-debian-repo (5.74.1) unstable; urgency=low
+
+  * Move some functions to the filemanip-extra package.
+
+ -- David Fox <dsf@seereason.com>  Sat, 04 Apr 2015 06:49:51 -0700
+
 haskell-debian-repo (5.74) unstable; urgency=low
 
   * Version bump to match cabal.

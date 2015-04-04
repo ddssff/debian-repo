@@ -29,12 +29,12 @@ import Control.Monad.State (get, modify, MonadIO, MonadState)
 import Data.List (group, sort)
 import Data.List as List (map)
 import Debian.Repo.Prelude.Bool (cond)
-import Debian.Repo.Prelude.Files (getSubDirectories, maybeWriteFile, replaceFile, writeFileIfMissing)
 import Debian.Repo.Prelude.GPGSign (cd)
 import Debian.Repo.Prelude.List (cartesianProduct, dropPrefix, isSublistOf, listIntersection, partitionM)
 import Debian.Repo.Prelude.Misc (sameInode, sameMd5sum)
 import Debian.Repo.Prelude.Verbosity (ePutStrLn)
 import Language.Haskell.TH (Exp(LitE), Lit(StringL), Name, nameBase, nameModule, Q)
+import System.FilePath.Extra2 (getSubDirectories, maybeWriteFile, replaceFile, writeFileIfMissing)
 import Text.Printf (printf)
 
 -- | Perform a list of tasks with log messages.

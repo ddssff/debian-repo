@@ -6,7 +6,6 @@ module Debian.Repo.Prelude.Misc
     -- * Tuple functions
     , mapSnd
     -- * FilePath functions
-    , parentPath
     , canon
     -- * Map and Set functions
     , listMap
@@ -66,10 +65,6 @@ justify s n =
 	      if length (concat (intersperse " " (w:ws))) <= n then
 		 (w : ws) : etc else
 		 [w] : ws : etc
-
--- |dirname
-parentPath :: FilePath -> FilePath
-parentPath path = fst (splitFileName path)
 
 -- |Turn a list of (k, a) pairs into a map from k -> [a].  The order of the elements in
 -- the a list is preserved.

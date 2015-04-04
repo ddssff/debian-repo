@@ -4,8 +4,6 @@ module Debian.Repo.MonadOS
     ( MonadOS(getOS, putOS, modifyOS)
     , evalMonadOS
     , updateLists
-    , withProc
-    , withTmp
     , aptGetInstall
     , syncLocalPool
     , osFlushPackageCache
@@ -13,17 +11,14 @@ module Debian.Repo.MonadOS
     , Debian.Repo.MonadOS.syncOS
     ) where
 
-import Control.Applicative (Applicative, pure, (<$>), (<*>))
+import Control.Applicative (Applicative, pure, (<$>))
 import Control.DeepSeq (NFData, force)
-import Control.Exception (evaluate, SomeException, catch)
-import Control.Monad (MonadPlus, liftM, msum, mzero)
-import Control.Monad.Catch (bracket, MonadCatch, MonadMask, throwM, try)
+import Control.Exception (evaluate, SomeException)
+import Control.Monad.Catch (MonadCatch, MonadMask)
 import Control.Monad.State (MonadState(get), StateT, evalStateT, get)
 import Control.Monad.Trans (liftIO, MonadIO, lift)
 import Control.Monad.Trans.Except () -- instances
 import Data.ByteString.Lazy as L (ByteString, empty)
-import Data.Monoid (Monoid, mappend)
-import Data.Time (NominalDiffTime)
 import Data.Traversable
 import Debian.Pretty (ppShow)
 import Debian.Relation (PkgName, Relations)
@@ -32,14 +27,12 @@ import Debian.Repo.Internal.Repos (MonadRepos, osFromRoot, putOSImage, syncOS)
 import Debian.Repo.LocalRepository (copyLocalRepo)
 import Debian.Repo.OSImage as OS (OSImage(osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
-import Debian.Repo.Prelude.Process (timeTask, readProcessVE, readProcessV, readProcessQE)
-import Debian.Repo.Prelude.Verbosity (quieter, ePutStrLn)
+import Debian.Repo.Prelude.Process (readProcessVE, readProcessV, readProcessQE)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
 import Prelude hiding (mapM, sequence)
-import System.Directory (createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
-import System.FilePath ((</>))
+import System.FilePath.Extra4 (withProcAndSys)
 import System.Process (proc)
 import System.Unix.Chroot (useEnv)
 
@@ -62,7 +55,7 @@ instance MonadRepos m => MonadOS (StateT EnvRoot m) where
 useOS :: (MonadOS m, MonadIO m, MonadMask m, NFData a) => IO a -> m a
 useOS action =
   do root <- rootPath . osRoot <$> getOS
-     withProc $ liftIO $ useEnv root (return . force) action
+     withProcAndSys root $ liftIO $ useEnv root (return . force) action
 
 -- | Run MonadOS and update the osImageMap with the modified value
 evalMonadOS :: MonadRepos m => StateT EnvRoot m a -> EnvRoot -> m a
@@ -89,56 +82,6 @@ updateLists = do
       configure = useOS (readProcessVE (proc "dpkg" ["--configure", "-a"]) L.empty)
       upgrade :: m (Either SomeException (ExitCode, ByteString, ByteString))
       upgrade = useOS (readProcessVE (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
-
--- | Do an IO task in the build environment with /proc mounted.
-withProc :: forall m c. (MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m c -> m c
-withProc task =
-    do root <- rootPath . osRoot <$> getOS
-       let proc' = root </> "proc"
-           sys = root </> "sys"
-           pre :: m ()
-           mountProc = proc "mount" ["--bind", "/proc", proc']
-           mountSys = proc "mount" ["--bind", "/sys", sys]
-           umountProc = proc "umount" [proc']
-           umountSys = proc "umount" [sys]
-           umountProcLazy = proc "umount" ["-l", proc']
-           umountSysLazy = proc "umount" ["-l", sys]
-
-           pre = liftIO (do createDirectoryIfMissing True proc'
-                            readProcessV mountProc L.empty
-                            createDirectoryIfMissing True sys
-                            readProcessV mountSys L.empty
-                            return ())
-           post :: () -> m ()
-           post _ = liftIO $ do readProcessV umountProc L.empty
-                                  `catch` (\ (e :: IOError) ->
-                                               ePutStrLn ("Exception unmounting proc, trying lazy: " ++ show e) >>
-                                               readProcessV umountProcLazy L.empty)
-                                readProcessV umountSys L.empty
-                                  `catch` (\ (e :: IOError) ->
-                                               ePutStrLn ("Exception unmounting sys, trying lazy: " ++ show e) >>
-                                               readProcessV umountSysLazy L.empty)
-                                return ()
-           task' :: () -> m c
-           task' _ = task
-       bracket pre post task'
-
--- | Do an IO task in the build environment with /proc mounted.
-withTmp :: forall m c. (MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m c -> m c
-withTmp task =
-    do root <- rootPath . osRoot <$> getOS
-       let dir = root </> "tmp"
-           mountTmp = proc "mount" ["--bind", "/tmp", dir]
-           umountTmp = proc "umount" [dir]
-           pre :: m ()
-           pre = liftIO $ do createDirectoryIfMissing True dir
-                             readProcessV mountTmp L.empty
-                             return ()
-           post :: () -> m ()
-           post _ = liftIO $ readProcessV umountTmp L.empty >> return ()
-           task' :: () -> m c
-           task' _ = try task >>= either (\ (e :: SomeException) -> throwM e) return
-       bracket pre post task'
 
 -- | Run an apt-get command in a particular directory with a
 -- particular list of packages.  Note that apt-get source works for
