@@ -31,6 +31,8 @@ Build-Depends: debhelper (>= 7.0)
                , libghc-debian-prof (>= 3.84)
                , libghc-exceptions-dev (>= 0.6)
                , libghc-exceptions-prof (>= 0.6)
+               , libghc-filemanip-extra-dev
+               , libghc-filemanip-extra-prof
                , libghc-mtl-dev
                , libghc-mtl-prof
                , libghc-network-uri-dev
@@ -76,6 +78,7 @@ Build-Depends-Indep: ghc-doc
                      , libghc-data-lens-template-doc
                      , libghc-debian-doc (>= 3.84)
                      , libghc-exceptions-doc (>= 0.6)
+		     , libghc-filemanip-extra-doc
                      , libghc-mtl-doc
                      , libghc-network-uri-doc
                      , libghc-parsec3-doc (>= 3)
