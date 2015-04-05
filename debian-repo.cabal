@@ -30,7 +30,7 @@ flag local-debian
 
 flag local-filemanip-extra
   Description: Link directly to the source of the filemanip-extra library
-  Default: True
+  Default: False
   Manual: True
 
 flag no-verbosity-control
