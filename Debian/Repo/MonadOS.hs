@@ -32,9 +32,9 @@ import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
 import Prelude hiding (mapM, sequence)
 import System.Exit (ExitCode(ExitSuccess))
-import System.FilePath.Extra4 (withProcAndSys, WithProcAndSys)
 import System.Process (proc)
 import System.Unix.Chroot (useEnv)
+import System.Unix.Mount (withProcAndSys, WithProcAndSys)
 
 instance NFData SomeException
 
@@ -57,12 +57,11 @@ instance MonadOS m => MonadOS (WithProcAndSys m) where
     putOS = lift . putOS
     modifyOS f = lift $ getOS >>= putOS . f
 
--- | Perform a task in the changeroot of an OS.  We know /proc and /sys
--- is already remounted from the parent root.
+-- | Perform a task in the changeroot of an OS.
 useOS :: (MonadOS m, MonadIO m, MonadMask m, NFData a) => IO a -> m a
 useOS action =
   do root <- rootPath . osRoot <$> getOS
-     liftIO $ useEnv root (return . force) action
+     withProcAndSys root $ liftIO $ useEnv root (return . force) action
 
 -- | Run MonadOS and update the osImageMap with the modified value
 evalMonadOS :: MonadRepos m => StateT EnvRoot m a -> EnvRoot -> m a
@@ -91,10 +90,10 @@ updateLists = do
 -- | Run an apt-get command in a particular directory with a
 -- particular list of packages.  Note that apt-get source works for
 -- binary or source package names.
-aptGetInstall :: (MonadOS m, MonadIO m, PkgName n) => [(n, Maybe DebianVersion)] -> m ()
+aptGetInstall :: (MonadOS m, MonadCatch m, MonadMask m, MonadIO m, PkgName n) => [(n, Maybe DebianVersion)] -> m ()
 aptGetInstall packages =
     do root <- rootPath . osRoot <$> getOS
-       liftIO $ useEnv root (return . force) $ do
+       withProcAndSys root $ liftIO $ useEnv root (return . force) $ do
          readProcessV p L.empty
          return ()
     where
