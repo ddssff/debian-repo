@@ -4,7 +4,6 @@
 module Debian.Repo.Prelude
     ( countTasks
     , nub'
-    , access
     , (~=)
     , (%=)
     , symbol
@@ -23,8 +22,7 @@ module Debian.Repo.Prelude
     , dropPrefix
     ) where
 
-import OldLens hiding ((%=), (~=))
-
+import Control.Lens (Lens', over)
 import Control.Monad.State (get, modify, MonadIO, MonadState)
 import Data.List (group, sort)
 import Data.List as List (map)
@@ -50,12 +48,12 @@ countTasks tasks =
 nub' :: (Ord a) => [a] -> [a]
 nub' = List.map head . group . sort
 
-(~=) :: MonadState a m => Lens a b -> b -> m ()
+(~=) :: MonadState a m => Lens' a b -> b -> m ()
 l ~= x = l %= const x
 
 -- | Modify a value.  (This is a version of Data.Lens.Lazy.%= that returns () instead of a.)
-(%=) :: MonadState a m => Lens a b -> (b -> b) -> m ()
-l %= f = modify (modL l f)
+(%=) :: MonadState a m => Lens' a b -> (b -> b) -> m ()
+l %= f = modify (over l f)
 
 -- | Build a string containing a symbol's fully qualified name (for debugging output.)
 symbol :: Name -> Q Exp

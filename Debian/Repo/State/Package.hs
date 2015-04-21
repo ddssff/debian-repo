@@ -19,12 +19,10 @@ module Debian.Repo.State.Package
     , releaseKey
     ) where
 
-import OldLens
-
 import Control.Applicative ((<$>))
 import Control.Exception (SomeException)
 import Control.Exception as E (ErrorCall(ErrorCall), SomeException(..), try)
-import Control.Lens (makeLenses)
+import Control.Lens (makeLenses, over, view)
 import Control.Monad (filterM, foldM, when)
 import Control.Monad.State (StateT, runStateT, MonadState(get, put))
 import Control.Monad.Trans (liftIO, MonadIO, lift)
@@ -111,7 +109,7 @@ runInstall :: MonadRepos m => StateT InstallState m a -> LocalRepository -> Mayb
 runInstall task repo keyname = do
   releases <- findReleases repo
   (r, st) <- runStateT task (InstallState repo Nothing releases empty)
-  mapM_ (\ key -> releaseByKey key >>= \ rel -> liftIO (writeRelease repo rel >>= signRepo keyname repo)) (Set.toList (getL modified st))
+  mapM_ (\ key -> releaseByKey key >>= \ rel -> liftIO (writeRelease repo rel >>= signRepo keyname repo)) (Set.toList (view modified st))
   return (r, st)
 
 evalInstall :: MonadRepos m => StateT InstallState m a -> LocalRepository -> Maybe PGPKey -> m a
@@ -171,7 +169,7 @@ instance Pretty (PP Problem) where
 
 releaseKey :: MonadInstall m => Release -> m ReleaseKey
 releaseKey release = do
-  repo <- getL repository <$> getInstall
+  repo <- view repository <$> getInstall
   putRelease repo release
 
 mergeResults :: [InstallResult] -> InstallResult
@@ -363,18 +361,18 @@ installChangesFile root layout changes =
 
 incoming :: MonadInstall m => m FilePath
 incoming = do
-  root <- repoRoot . getL repository <$> getInstall
+  root <- repoRoot . view repository <$> getInstall
   return $ outsidePath root </> "incoming" {- </> changedFileName file -}
 
 reject :: MonadInstall m => ChangedFileSpec -> m FilePath
 reject file = do
-  root <- repoRoot . getL repository <$> getInstall
+  root <- repoRoot . view repository <$> getInstall
   return $ outsidePath root </> "reject" </> changedFileName file
 
 -- | Get information about one of the (.deb or .dsc) files listed in a .changes file.
 fileInfo :: MonadInstall m => ChangesFile -> ChangedFileSpec -> m (Either InstallResult B.Paragraph)
 fileInfo changes file = do
-  repo <- getL repository <$> getInstall
+  repo <- view repository <$> getInstall
   getControl >>= addFields repo
                 where
                   getControl :: MonadInstall m => m (Either InstallResult B.Paragraph)
@@ -412,7 +410,7 @@ fileInfo changes file = do
 
 findRelease' :: MonadInstall m => ReleaseName -> m (Maybe Release)
 findRelease' name = do
-    rels <- getL releases <$> getInstall
+    rels <- view releases <$> getInstall
     return $ findRelease rels name
 
 findRelease :: [Release] -> ReleaseName -> Maybe Release
@@ -423,7 +421,7 @@ findRelease releases name =
       _ -> error $ "Internal error 16 - multiple releases named " ++ releaseName' name
 
 markReleaseModified :: MonadInstall m => ReleaseKey -> m ()
-markReleaseModified = modifyInstall . modL modified . Set.insert
+markReleaseModified = modifyInstall . over modified . Set.insert
 
 -- | Hard link the files of each package into the repository pool,
 -- but don't unlink the files in incoming in case of subsequent
@@ -435,15 +433,15 @@ installFiles createSections results changes = do
     where
       findOrCreateRelease :: MonadInstall m => ReleaseName -> m (Maybe Release)
       findOrCreateRelease name = do
-        rels <- getL releases <$> getInstall
+        rels <- view releases <$> getInstall
         case createSections of
             False -> return (findRelease rels name)
             True -> do let release = findRelease rels name
-                       repo <- (getL repository <$> getInstall)
+                       repo <- (view repository <$> getInstall)
                        case release of
                          Nothing ->
                              do newRelease <- prepareRelease repo name [] [parseSection' "main"] (repoArchList repo)
-                                modifyInstall (modL releases (newRelease :))
+                                modifyInstall (over releases (newRelease :))
                                 return (Just newRelease)
                          Just release -> return (Just release)
 
@@ -454,7 +452,7 @@ installFiles' createSections changes results release =
                   (_, []) -> installFiles'' changes results
                   (True, missing) ->
                       do qPutStrLn ("Creating missing sections: " ++ intercalate " " (List.map sectionName' missing))
-                         repo <- getL repository <$> getInstall
+                         repo <- view repository <$> getInstall
                          release' <- prepareRelease repo (releaseName release) [] missing (releaseArchitectures release)
                          installFiles'' changes results
                   (False, missing) ->
@@ -462,9 +460,9 @@ installFiles' createSections changes results release =
 
 installFiles'' :: MonadInstall m => ChangesFile -> [InstallResult] -> m [InstallResult]
 installFiles'' changes results = do
-  repo <- getL repository <$> getInstall
+  repo <- view repository <$> getInstall
   result <- mapM (installFile changes) (changeFiles changes) >>= return . mergeResults
-  when (result == Ok) (modifyInstall (modL live (Just . Set.union (paths repo) . fromMaybe empty)))
+  when (result == Ok) (modifyInstall (over live (Just . Set.union (paths repo) . fromMaybe empty)))
   return $ result : results
     where
       paths repo = Set.fromList $ List.map (T.pack . ((outsidePath (repoRoot repo)) </>) . poolDir' repo changes) (changeFiles changes)
@@ -472,8 +470,8 @@ installFiles'' changes results = do
 -- | Move one file into the repository
 installFile :: MonadInstall m => ChangesFile -> ChangedFileSpec -> m InstallResult
 installFile changes file = do
-  repo <- getL repository <$> getInstall
-  live' <- getL live <$> getInstall
+  repo <- view repository <$> getInstall
+  live' <- view live <$> getInstall
   let root = repoRoot repo
   let dir = outsidePath root </> poolDir' repo changes file
   let src = outsidePath root </> "incoming" </> changedFileName file
@@ -590,7 +588,7 @@ moveFile src dst =
 -- that that no duplicate package ids are inserted.
 addPackagesToIndexes :: MonadInstall m => [((Release, PackageIndex), [B.Paragraph])] -> m InstallResult
 addPackagesToIndexes pairs =
-    do repo <- getL repository <$> getInstall
+    do repo <- view repository <$> getInstall
        oldPackageLists <- mapM (uncurry getPackages_) indexKeys
        case partitionEithers oldPackageLists of
          -- No errors
@@ -622,7 +620,7 @@ addPackagesToIndexes pairs =
 -- 'live', in the sense that they appear in some index files.
 findLive :: MonadInstall m => m (Set Text)
 findLive = do
-    repo <- getL repository <$> getInstall
+    repo <- view repository <$> getInstall
     case repoLayout repo of
       Nothing -> return Set.empty	-- Repository is empty
       Just layout ->
@@ -804,8 +802,8 @@ merge packages =
 -- they belong to can be constructed from their name.
 deleteGarbage :: MonadInstall m => m ()
 deleteGarbage = do
-  layout <- (repoLayout . getL repository) <$> getInstall
-  root <- (repoRoot . getL repository) <$> getInstall
+  layout <- (repoLayout . view repository) <$> getInstall
+  root <- (repoRoot . view repository) <$> getInstall
   case layout of
       Just layout ->
           do
@@ -850,7 +848,7 @@ deleteSourcePackages :: MonadInstall m => Bool -> Maybe PGPKey -> [(Release, Pac
 deleteSourcePackages _ _ [] = return []
 deleteSourcePackages dry keyname packages =
     do qPutStrLn ("deleteSourcePackages:\n " ++ intercalate "\n " (List.map (ppShow . (\ (_, _, x) -> x)) packages))
-       releases <- (Set.fromList . repoReleaseInfoLocal . getL repository) <$> getInstall
+       releases <- (Set.fromList . repoReleaseInfoLocal . view repository) <$> getInstall
        mapM doIndex (Set.toList (allIndexes releases))
     where
       doIndex (release, index) = getEntries release index >>= put release index . List.partition (victim release index)
@@ -876,7 +874,7 @@ deleteSourcePackages dry keyname packages =
       putIndex' :: MonadInstall m => Maybe PGPKey -> Release -> PackageIndex -> [BinaryPackage] -> m Release
       putIndex' keyname release index entries = do
         -- markReleaseModified
-        repo <- getL repository <$> getInstall
+        repo <- view repository <$> getInstall
         case dry of
           True -> ePutStrLn ("dry run: not changing " ++ show index)
           False -> liftIO $ putIndex (repoRoot repo) release index entries >> writeRelease repo release >>= signRepo keyname repo
@@ -890,7 +888,7 @@ deleteSourcePackages dry keyname packages =
 deleteBinaryPackages :: MonadInstall m => Bool -> Maybe PGPKey -> Set (Release, PackageIndex, PackageID BinPkgName) -> m ()
 deleteBinaryPackages _ _ s | Set.null s = return ()
 deleteBinaryPackages dry keyname blacklist = do
-  repo <- getL repository <$> getInstall
+  repo <- view repository <$> getInstall
   mapM_ doIndex (Set.toList (allIndexes repo))
     where
       doIndex (release, index) = getEntries release index >>= put release index . List.partition (victim release index)
@@ -917,7 +915,7 @@ deleteBinaryPackages dry keyname blacklist = do
       getEntries release index = getPackages_ release index >>= return . either (error . show) id
       putIndex' :: MonadInstall m => Maybe PGPKey -> Release -> PackageIndex -> [BinaryPackage] -> m Release
       putIndex' keyname release index entries =
-          do repo <- getL repository <$> getInstall
+          do repo <- view repository <$> getInstall
              case dry of
                True -> ePutStrLn ("dry run: not changing " ++ show index)
                False -> liftIO $ putIndex (repoRoot repo) release index entries >> writeRelease repo release >>= signRepo keyname repo
@@ -1045,7 +1043,7 @@ sourcePackageBinaryIDs_ package =
 -- | Get the contents of a package index
 getPackages_ :: MonadInstall m => Release -> PackageIndex -> m (Either SomeException [BinaryPackage])
 getPackages_ release index = do
-  repo <- getL repository <$> getInstall
+  repo <- view repository <$> getInstall
   let uri = repoKeyURI . repoKey $ repo
       uri' = uri {uriPath = uriPath uri </> packageIndexPath release index}
   liftIO $ fileFromURIStrict uri' >>= readControl uri' . either (Left . SomeException) Right
