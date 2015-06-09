@@ -200,7 +200,7 @@ deletePackages dry rels flags keyname =
       parsePackage s =
           case splitRegex (mkRegex "[,=]") s of
             [dist, component, name, ver] ->
-                maybe (error ("Can't find release: " ++ dist))
+                maybe (error ("Can't find release " ++ show dist ++ " in " ++ show rels))
                       (\ release -> (release,
                                      PackageIndex (parseSection' component) Source,
                                      makeBinaryPackageID name (parseDebianVersion ver)))

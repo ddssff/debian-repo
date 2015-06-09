@@ -140,12 +140,12 @@ Library
     Build-Depends: cabal-debian >= 4.24
   else
     Hs-Source-Dirs: ../cabal-debian/src, ../cabal-debian/dist/build/autogen
-    Build-Depends: hsemail, memoize, Diff, pretty, data-default, set-extra, lens
+    Build-Depends: hsemail, memoize, Diff, pretty, data-default, set-extra, lens, newtype-generics, bifunctors, ansi-wl-pprint, optparse-applicative
     Exposed-Modules:
+      Debian.Debianize
       Debian.GHC
       Debian.Policy
       Distribution.Version.Invert
-      Debian.Debianize
       Debian.Debianize.BasicInfo
       Debian.Debianize.BinaryDebDescription
       Debian.Debianize.BuildDependencies
@@ -163,7 +163,7 @@ Library
       Debian.Debianize.InputDebian
       Debian.Debianize.Interspersed
       Debian.Debianize.Monad
-      Debian.Debianize.Options
+      Debian.Debianize.Optparse
       Debian.Debianize.Output
       Debian.Debianize.Prelude
       Debian.Debianize.SourceDebDescription
@@ -246,5 +246,7 @@ Executable newdist
   Buildable: True
   Main-is: Main.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
+  if !flag(local-cabal-debian)
+    Build-Depends: cabal-debian
   if !flag(local-debian)
     Build-Depends: debian >= 3.87
