@@ -1,3 +1,11 @@
+haskell-debian-repo (5.75) unstable; urgency=low
+
+  * Remove the call to force in useOS because we can't write an NFData
+    instance for SomeException under ghc-7.10.  Hopefully this won't
+    mess anything up.
+
+ -- David Fox <dsf@seereason.com>  Sat, 20 Jun 2015 09:35:05 -0700
+
 haskell-debian-repo (5.74.1) unstable; urgency=low
 
   * Move some functions to the filemanip-extra package.

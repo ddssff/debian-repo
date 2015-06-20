@@ -36,8 +36,6 @@ import System.Process (proc)
 import System.Unix.Chroot (useEnv)
 import System.Unix.Mount (withProcAndSys, WithProcAndSys)
 
-instance NFData SomeException
-
 -- | The problem with having an OSImage in the state of MonadOS is
 -- that then we are modifying a copy of the OSImage in MonadRepos, we
 -- want to go into MonadRepos and modify the map element there.  So
@@ -58,10 +56,10 @@ instance MonadOS m => MonadOS (WithProcAndSys m) where
     modifyOS f = lift $ getOS >>= putOS . f
 
 -- | Perform a task in the changeroot of an OS.
-useOS :: (MonadOS m, MonadIO m, MonadMask m, NFData a) => IO a -> m a
+useOS :: (MonadOS m, MonadIO m, MonadMask m) => IO a -> m a
 useOS action =
   do root <- rootPath . osRoot <$> getOS
-     withProcAndSys root $ liftIO $ useEnv root (return . force) action
+     withProcAndSys root $ liftIO $ useEnv root (return {-. force-}) action
 
 -- | Run MonadOS and update the osImageMap with the modified value
 evalMonadOS :: MonadRepos m => StateT EnvRoot m a -> EnvRoot -> m a
