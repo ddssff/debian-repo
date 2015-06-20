@@ -56,7 +56,7 @@ myTimeDiffToString diff =
         _ | isPrefixOf "00:" s -> drop 3 s
         _ -> s
     where
-      s = formatTimeDiff defaultTimeLocale "%T" diff
+      s = formatTimeDiff System.Locale.defaultTimeLocale "%T" diff
       ms = ps2ms
       ps2ms = quot (ps + 500000000) 1000000000
       ps = tdPicosec diff
