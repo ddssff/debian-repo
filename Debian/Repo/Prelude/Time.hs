@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Debian.Repo.Prelude.Time
     ( formatDebianDate
     , myTimeDiffToString
@@ -23,9 +24,15 @@ import Text.Printf
 formatDebianDate :: FormatTime t => t -> [Char]
 formatDebianDate t =
     prefix ++ seconds ++ suffix
+#if MIN_VERSION_time(1,5,0)
         where prefix = formatTime Data.Time.defaultTimeLocale prefixFormat t
               seconds = take 2 $ formatTime Data.Time.defaultTimeLocale secondsFormat t
               suffix = formatTime Data.Time.defaultTimeLocale suffixFormat t
+#else
+        where prefix = formatTime defaultTimeLocale prefixFormat t
+              seconds = take 2 $ formatTime defaultTimeLocale secondsFormat t
+              suffix = formatTime defaultTimeLocale suffixFormat t
+#endif
               prefixFormat = "%a, %d %b %Y %H:%M:"
               secondsFormat = "%S"
               suffixFormat = " %Z"
