@@ -45,9 +45,9 @@ sshVerify :: String -> Maybe Int -> IO (Either String ())
 sshVerify dest port =
     do r@(result, _out, _err) <- readProcessWithExitCode cmd args ""
        case result of
-         ExitSuccess -> return (Right ())		-- We do
+         ExitSuccess -> return (Right ())               -- We do
          ExitFailure _ ->
-             hPutStrLn stderr (showCommandForUser cmd args ++ " -> " ++ show r) >> return (Left (show r))	-- We do not
+             hPutStrLn stderr (showCommandForUser cmd args ++ " -> " ++ show r) >> return (Left (show r))       -- We do not
     where
       cmd = "ssh"
       args = (["-o", "PreferredAuthentications hostbased,publickey"] ++ maybe [] (\ n -> ["-p", show n]) port ++ [dest, "pwd"])
@@ -69,15 +69,15 @@ openAccess dest port (Just keypath) =
        (code, out, err) <- readFile keypath >>= readProcessWithExitCode "ssh" args
        case code of
          ExitFailure n -> return . Left $ "Failure: " ++ showCommandForUser "ssh" args ++ " -> " ++ show n ++
-	                                  "\n\nstdout: " ++ out ++ "\n\nstderr: " ++ err
+                                          "\n\nstdout: " ++ out ++ "\n\nstderr: " ++ err
          _ -> return . Right $ ()
     where
       sshOpenRemoteCmd =
-          ("chmod g-w . && " ++				-- Ssh will not work if the permissions aren't just so
+          ("chmod g-w . && " ++                         -- Ssh will not work if the permissions aren't just so
            "chmod o-rwx . && " ++
            "mkdir -p .ssh && " ++
            "chmod 700 .ssh && " ++
-           "cat >> .ssh/authorized_keys2 && " ++	-- Add the key to the authorized key list
+           "cat >> .ssh/authorized_keys2 && " ++        -- Add the key to the authorized key list
            "chmod 600 .ssh/authorized_keys2")
 
 -- This used to be main.

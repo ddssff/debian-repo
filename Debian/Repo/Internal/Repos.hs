@@ -59,10 +59,10 @@ newtype AptKey = AptKey EnvRoot deriving (Eq, Ord, Show)
 -- | This represents the state of the IO system.
 data ReposState
     = ReposState
-      { repoMap :: Map.Map URI' RemoteRepository		-- ^ Map to look up known (remote) Repository objects
+      { repoMap :: Map.Map URI' RemoteRepository                -- ^ Map to look up known (remote) Repository objects
       , releaseMap :: Map.Map ReleaseKey Release -- ^ Map to look up known Release objects
-      , aptImageMap :: Map.Map AptKey AptImage	-- ^ Map to look up prepared AptImage objects
-      , osImageMap :: Map.Map EnvRoot OSImage	-- ^ Map to look up prepared OSImage objects
+      , aptImageMap :: Map.Map AptKey AptImage  -- ^ Map to look up prepared AptImage objects
+      , osImageMap :: Map.Map EnvRoot OSImage   -- ^ Map to look up prepared OSImage objects
       }
 
 runReposT :: Monad m => StateT ReposState m a -> m a

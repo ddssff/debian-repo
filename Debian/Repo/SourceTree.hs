@@ -105,9 +105,9 @@ explainSourcePackageStatus None = "This version of the package is not present."
 data BuildDecision
     = Yes String
     | No String
-    | Arch String	-- Needs a -B build, architecture dependent files only
-    | Auto String	-- Needs a 'automated' rebuild, with a generated version number and log entry
-    | Error String	-- A fatal condition was encountered - e.g. a build dependency became older since last build
+    | Arch String       -- Needs a -B build, architecture dependent files only
+    | Auto String       -- Needs a 'automated' rebuild, with a generated version number and log entry
+    | Error String      -- A fatal condition was encountered - e.g. a build dependency became older since last build
 
 instance Show BuildDecision where
     show (Yes reason) = "Yes - " ++ reason

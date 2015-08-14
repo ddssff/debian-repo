@@ -76,10 +76,10 @@ data OSImage
          , osArch :: Arch
          , osExtraRepos :: [Slice]
          , osLocalMaster :: LocalRepository
-	 -- ^ The associated local repository, where packages we build
-	 -- inside this image are first uploaded to.
+         -- ^ The associated local repository, where packages we build
+         -- inside this image are first uploaded to.
          , osLocalCopy :: LocalRepository
-	 -- ^ A copy of osLocalMaster located inside the os root environment.
+         -- ^ A copy of osLocalMaster located inside the os root environment.
          , osSourcePackageCache :: Maybe [SourcePackage]
          , osBinaryPackageCache :: Maybe [BinaryPackage]
          }
@@ -96,8 +96,8 @@ instance Eq OSImage where
 
 -- |Create an OS image record
 createOSImage ::
-              EnvRoot			-- ^ The location where image is to be built
-           -> NamedSliceList		-- ^ The sources.list of the base distribution
+              EnvRoot                   -- ^ The location where image is to be built
+           -> NamedSliceList            -- ^ The sources.list of the base distribution
            -> [Slice]
            -> LocalRepository           -- ^ The location of the local upload repository
            -> IO OSImage
@@ -217,9 +217,9 @@ neuterEnv os =
 
 neuterFiles :: [(FilePath, Bool)]
 neuterFiles = [("/sbin/start-stop-daemon", True),
-	       ("/usr/sbin/invoke-rc.d", True),
-	       ("/sbin/init",False),
-	       ("/usr/sbin/policy-rc.d", False)]
+               ("/usr/sbin/invoke-rc.d", True),
+               ("/sbin/init",False),
+               ("/usr/sbin/policy-rc.d", False)]
 
 -- neuter_file from build-env.ml
 neuterFile :: OSImage -> (FilePath, Bool) -> IO ()

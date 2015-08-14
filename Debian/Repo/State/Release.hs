@@ -65,7 +65,7 @@ prepareRelease repo dist aliases sections archSet =
       prepare :: MonadRepos m => m Release
       prepare =
           do -- FIXME: errors get discarded in the mapM calls here
-	     let release = Release { releaseName = dist
+             let release = Release { releaseName = dist
                                    , releaseAliases = aliases
                                    , releaseComponents = sections
                                    , releaseArchitectures = archSet }
@@ -73,7 +73,7 @@ prepareRelease repo dist aliases sections archSet =
              _ <- mapM (initIndex (outsidePath root) release) (packageIndexes release)
              mapM_ (initAlias (outsidePath root) dist) aliases
              _ <- liftIO (writeRelease repo release)
-	     -- This ought to be identical to repo, but the layout should be
+             -- This ought to be identical to repo, but the layout should be
              -- something rather than Nothing.
              repo' <- repairLocalRepository repo
              --vPutStrLn 0 $ "prepareRelease: prepareLocalRepository -> " ++ show repo'
@@ -141,7 +141,7 @@ writeRelease repo release =
                              sizes <- mapM (liftM F.fileSize . F.getFileStatus) paths'
                              return (paths', sums, sizes)))
              let checksums = List.intercalate "\n" $ zipWith3 (formatFileInfo (fieldWidth sizes))
-                      	   sums sizes (map (drop (1 + length (releaseDir release))) paths')
+                           sums sizes (map (drop (1 + length (releaseDir release))) paths')
              timestamp <- liftIO (getCurrentTime >>= return . ET.formatDebianDate)
              let para = S.Paragraph [S.Field ("Origin", " SeeReason Partners"),
                                      S.Field ("Label", " SeeReason"),

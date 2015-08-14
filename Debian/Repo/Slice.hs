@@ -137,9 +137,9 @@ doSourcesChangedAction dir sources baseSources fileSources SourcesChangedError =
              " apt-get environment doesn't match the parameters passed to the autobuilder" ++ ":\n\n" ++
              sources ++ ":\n\n" ++
              prettyShow fileSources ++
-	     "\nRun-time parameters:\n\n" ++
+             "\nRun-time parameters:\n\n" ++
              prettyShow baseSources ++ "\n" ++
-	     "It is likely that the build environment in\n" ++
+             "It is likely that the build environment in\n" ++
              dir ++ " is invalid and should be rebuilt.")
   ePutStr $ "Remove it and continue (or exit)?  [y/n]: "
   result <- hGetLine stdin

@@ -55,10 +55,10 @@ import Data.Maybe ( catMaybes, fromMaybe, isJust, isNothing, listToMaybe )
 -- There are notes from a meeting that explains why ReleaseTagBuild is
 -- more future friendly, but it is also more ugly.
 data VersionTag
-    = VersionTag { extraNumber :: Maybe Int		-- The number following the "r" (do not
-							-- use in new applications.)
-                 , vendorTag :: (String, Int)		-- The vendor name and build number
-                 , releaseTag :: Maybe (String, Int)	-- The release name and build number
+    = VersionTag { extraNumber :: Maybe Int             -- The number following the "r" (do not
+                                                        -- use in new applications.)
+                 , vendorTag :: (String, Int)           -- The vendor name and build number
+                 , releaseTag :: Maybe (String, Int)    -- The release name and build number
                  } deriving (Show, Eq)
 
 -- | Parse a Debian revision string (the portion of the version number

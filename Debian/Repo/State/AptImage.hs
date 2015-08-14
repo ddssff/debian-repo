@@ -50,9 +50,9 @@ withAptImage sourcesChangedAction sources action = prepareAptImage sourcesChange
 
 -- |Create a skeletal enviroment sufficient to run apt-get.
 prepareAptImage :: forall m. (MonadTop m, MonadRepos m) =>
-                 SourcesChangedAction	-- What to do if environment already exists and sources.list is different
-              -> NamedSliceList		-- The sources.list
-              -> m AptKey		-- The resulting environment
+                 SourcesChangedAction   -- What to do if environment already exists and sources.list is different
+              -> NamedSliceList         -- The sources.list
+              -> m AptKey               -- The resulting environment
 prepareAptImage sourcesChangedAction sources = do
   mkey <- getAptKey =<< cacheRootDir (sliceListName sources)
   maybe (prepareAptImage' sourcesChangedAction sources) return mkey
@@ -127,9 +127,9 @@ instance Show UpdateError where
 
 -- |Retrieve a source package via apt-get.
 prepareSource :: (MonadRepos m, MonadApt m, MonadTop m, MonadIO m) =>
-                 SrcPkgName			-- The name of the package
-              -> Maybe DebianVersion		-- The desired version, if Nothing get newest
-              -> m DebianBuildTree		-- The resulting source tree
+                 SrcPkgName                     -- The name of the package
+              -> Maybe DebianVersion            -- The desired version, if Nothing get newest
+              -> m DebianBuildTree              -- The resulting source tree
 prepareSource package version =
     do root <- (rootPath . aptImageRoot) <$> getApt
        dir <- aptDir package

@@ -120,8 +120,8 @@ modifyInstall f = getInstall >>= putInstall . f
 
 data InstallResult
     = Ok
-    | Failed [Problem]		-- Package can not currently be installed
-    | Rejected [Problem]	-- Package can not ever be installed
+    | Failed [Problem]          -- Package can not currently be installed
+    | Rejected [Problem]        -- Package can not ever be installed
     deriving Eq
 
 data Problem
@@ -268,11 +268,11 @@ scanIncoming createSections keyname repo = do
 -- 5. moving the files from the incoming directory to the proper
 --    place in the package pool.
 installPackages :: MonadRepos m =>
-                   Bool			-- ^ ok to create new releases and sections
-                -> Maybe PGPKey		-- ^ key to sign repository with
-                -> LocalRepository	-- ^ destination repository
-                -> [ChangesFile]	-- ^ Packages to be installed
-                -> m [InstallResult]	-- ^ Outcome of each source package
+                   Bool                 -- ^ ok to create new releases and sections
+                -> Maybe PGPKey         -- ^ key to sign repository with
+                -> LocalRepository      -- ^ destination repository
+                -> [ChangesFile]        -- ^ Packages to be installed
+                -> m [InstallResult]    -- ^ Outcome of each source package
 installPackages createSections keyname repo changeFileList =
     evalInstall
       (do results' <- foldM (installFiles createSections) [] changeFileList
@@ -622,7 +622,7 @@ findLive :: MonadInstall m => m (Set Text)
 findLive = do
     repo <- view repository <$> getInstall
     case repoLayout repo of
-      Nothing -> return Set.empty	-- Repository is empty
+      Nothing -> return Set.empty       -- Repository is empty
       Just layout ->
           do !releases <- findReleases repo
              !sourcePackages <- mapM releaseSourcePackages_ releases >>= return . Set.unions
@@ -652,14 +652,14 @@ instance (Pretty (PP r), Repo r) => Pretty (PP (r, Release, PackageIndex)) where
     pPrint (PP (repo, r, i)) = text $
         intercalate "/" [ppShow repo,
                          "dist",
-		         (releaseName' . releaseName $ r),
-		         ppShow (packageIndexComponent i),
+                         (releaseName' . releaseName $ r),
+                         ppShow (packageIndexComponent i),
                          show (prettyArch (packageIndexArch i))]
 
 instance Pretty (PP (Release, PackageIndex)) where
     pPrint (PP (r, i)) = text $
         intercalate "/" [(releaseName' . releaseName $ r),
-		         ppShow (packageIndexComponent i),
+                         ppShow (packageIndexComponent i),
                          show (prettyArch (packageIndexArch i))]
 
 instance (Pretty (PP r), Repo r) => Pretty (PP (r, Release)) where
@@ -671,7 +671,7 @@ instance Pretty (PP Release) where
 instance Pretty (PP (Release, PackageIndex, PackageID BinPkgName)) where
     pPrint (PP (r, i, b)) = text $
         intercalate "/" [(releaseName' . releaseName $ r),
-		         ppShow (packageIndexComponent i),
+                         ppShow (packageIndexComponent i),
                          show (prettyArch (packageIndexArch i)),
                          ppShow b]
 
@@ -1158,10 +1158,10 @@ putPackages_ repo release index packages =
 {-
 readParagraphs :: FilePath -> IO [B.Paragraph]
 readParagraphs path =
-    do --IO.hPutStrLn IO.stderr ("OSImage.paragraphsFromFile " ++ path)			-- Debugging output
+    do --IO.hPutStrLn IO.stderr ("OSImage.paragraphsFromFile " ++ path)                 -- Debugging output
        h <- IO.openBinaryFile path IO.ReadMode
        B.Control paragraphs <- B.parseControlFromHandle path h >>= return . (either (error . show) id)
        IO.hClose h
-       --IO.hPutStrLn IO.stderr ("OSImage.paragraphsFromFile " ++ path ++ " done.")	-- Debugging output
+       --IO.hPutStrLn IO.stderr ("OSImage.paragraphsFromFile " ++ path ++ " done.")     -- Debugging output
        return paragraphs
 -}

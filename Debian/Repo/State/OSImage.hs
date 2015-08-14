@@ -101,18 +101,18 @@ osBinaryPackages = do
 prepareOS
     :: (Applicative m, MonadRepos m, MonadTop m, MonadMask m, MonadIO m) =>
        EnvSet                   -- ^ The location where image is to be built
-    -> NamedSliceList		-- ^ The sources.list of the base distribution
+    -> NamedSliceList           -- ^ The sources.list of the base distribution
     -> [Slice]                  -- ^ Extra repositories - e.g. personal package archives
     -> LocalRepository           -- ^ The location of the local upload repository
-    -> Bool			-- ^ If true, remove and rebuild the image
-    -> Bool			-- ^ If true, flush all the build dependencies
-    -> SourcesChangedAction	-- ^ What to do if called with a sources.list that
-				-- differs from the previous call
-    -> [String]			-- ^ Extra packages to install - e.g. keyrings, software-properties-common
-    -> [String]			-- ^ More packages to install, but these may not be available
+    -> Bool                     -- ^ If true, remove and rebuild the image
+    -> Bool                     -- ^ If true, flush all the build dependencies
+    -> SourcesChangedAction     -- ^ What to do if called with a sources.list that
+                                -- differs from the previous call
+    -> [String]                 -- ^ Extra packages to install - e.g. keyrings, software-properties-common
+    -> [String]                 -- ^ More packages to install, but these may not be available
                                 -- immediately - e.g seereason-keyring.  Ignore exceptions.
-    -> [String]			-- ^ Packages to exclude
-    -> [String]			-- ^ Components of the base repository
+    -> [String]                 -- ^ Packages to exclude
+    -> [String]                 -- ^ Components of the base repository
     -> m (EnvRoot, EnvRoot)
 prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include optional exclude components =
     do cleanOS <- osFromRoot cleanRoot >>= maybe (do os <- liftIO (createOSImage cleanRoot distro extra repo)
@@ -191,12 +191,12 @@ _pbuilderBuild root distro extra repo _extraEssential _omitEssential _extra =
        return os
 
 rebuildOS :: (Applicative m, MonadOS m, MonadRepos m, MonadTop m, MonadMask m) =>
-             EnvRoot			-- ^ The location where image is to be built
-           -> NamedSliceList		-- ^ The sources.list of the base distribution
+             EnvRoot                    -- ^ The location where image is to be built
+           -> NamedSliceList            -- ^ The sources.list of the base distribution
            -> [Slice]
-           -> [String]			-- ^ Extra packages to install - e.g. keyrings
-           -> [String]			-- ^ Packages to exclude
-           -> [String]			-- ^ Components of the base repository
+           -> [String]                  -- ^ Extra packages to install - e.g. keyrings
+           -> [String]                  -- ^ Packages to exclude
+           -> [String]                  -- ^ Components of the base repository
            -> m ()
 rebuildOS root distro extra include exclude components =
           do master <- osLocalMaster <$> getOS

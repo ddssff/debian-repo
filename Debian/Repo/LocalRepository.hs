@@ -191,8 +191,8 @@ uriDest uri =
 
 -- | Upload all the packages in a local repository to a the incoming
 -- directory of a remote repository (using dupload.)
-uploadRemote :: LocalRepository		-- ^ Local repository holding the packages.
-             -> URI			-- ^ URI of upload repository
+uploadRemote :: LocalRepository         -- ^ Local repository holding the packages.
+             -> URI                     -- ^ URI of upload repository
              -> IO [Failing (ExitCode, L.ByteString, L.ByteString)]
 uploadRemote repo uri =
     do let dir = (outsidePath root)
@@ -306,9 +306,9 @@ acceptM p tag (accept, reject) =
 
 -- |Run dupload on a changes file with an optional host (--to)
 -- argument.
-dupload :: URI		-- user
-        -> FilePath	-- The directory containing the .changes file
-        -> String	-- The name of the .changes file to upload
+dupload :: URI          -- user
+        -> FilePath     -- The directory containing the .changes file
+        -> String       -- The name of the .changes file to upload
         -> IO (Failing (ExitCode, L.ByteString, L.ByteString))
 dupload uri dir changesFile  =
     case uriAuthority uri of
@@ -318,11 +318,11 @@ dupload uri dir changesFile  =
                       "$cfg{'default'} = {\n" ++
                       "        fqdn => \"" ++ uriRegName auth ++ uriPort auth ++ "\",\n" ++
                       "        method => \"scpb\",\n" ++
-	              "        login => \"" ++ init (uriUserInfo auth) ++ "\",\n" ++
+                      "        login => \"" ++ init (uriUserInfo auth) ++ "\",\n" ++
                       "        incoming => \"" ++ uriPath uri ++ "/incoming\",\n" ++
                       "        dinstall_runs => 1,\n" ++
                       "};\n\n" ++
-		      "$preupload{'changes'} = '';\n\n" ++
+                      "$preupload{'changes'} = '';\n\n" ++
                       "1;\n")
         replaceFile (dir ++ "/dupload.conf") config
         let cmd = (proc "dupload" ["--to", "default", "-c", changesFile]) {cwd = Just dir}
@@ -349,10 +349,10 @@ uploadLocal repo changesFile =
       root = repoRoot repo
       -- Hard link a file into the incoming directory
       install root' path =
-	  do removeIfExists (dest root' path)
-	     F.createLink path (dest root' path)
+          do removeIfExists (dest root' path)
+             F.createLink path (dest root' path)
              -- F.removeLink path
       dest root' path = root' ++ "/incoming/" ++ snd (splitFileName path)
       removeIfExists path =
-	  do exists <- doesFileExist path
-	     if exists then F.removeLink path  else return ()
+          do exists <- doesFileExist path
+             if exists then F.removeLink path  else return ()

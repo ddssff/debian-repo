@@ -193,7 +193,7 @@ sortSourcePackages pred pkgs =
       filterNames packages =
           List.filter (pred . packageName . sourcePackageID) packages
       cmp p1 p2 =
-          compare v2 v1		-- Flip args to get newest first
+          compare v2 v1         -- Flip args to get newest first
           where
             v1 = packageVersion . sourcePackageID $ p1
             v2 = packageVersion . sourcePackageID $ p2
@@ -207,7 +207,7 @@ sortBinaryPackages pred pkgs =
       filterPackages packages =
           List.filter (pred . packageName . packageID) packages
       cmp p1 p2 =
-          compare v2 v1		-- Flip args to get newest first
+          compare v2 v1         -- Flip args to get newest first
           where
             v1 = packageVersion . packageID $ p1
             v2 = packageVersion . packageID $ p2

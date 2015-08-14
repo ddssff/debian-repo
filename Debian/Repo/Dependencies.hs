@@ -81,9 +81,9 @@ testCPU ArchCPUAny _ = error "testCPU - invalid argument"
 -- equality relations on only the packages in the available list.
 simplifyRelations :: [BinaryPackage]
                   -> Relations
-                  -> [BinPkgName]	-- ^ Given several alternative packages which satisfy
-				        -- the relation, sort by name in this order.
-                  -> Arch		-- ^ The build architecture
+                  -> [BinPkgName]       -- ^ Given several alternative packages which satisfy
+                                        -- the relation, sort by name in this order.
+                  -> Arch               -- ^ The build architecture
                   -> SimpleRelations
 simplifyRelations available relations preferred arch =
     -- Sort the or-relations so that
@@ -158,15 +158,15 @@ testRel ver1 (Rel _ (Just (SGR ver2)) _) = compare ver1 ver2 == GT
 --
 -- So we can use each clause to eliminate packages which cannot
 -- satisfy the dependency set.
-solutions :: [BinaryPackage]	-- ^ The packages available to satisfy dependencies
-          -> SimpleRelations	-- ^ The dependency relations to be satisfied
-          -> Int		-- ^ Give up after this many solutions are computed
+solutions :: [BinaryPackage]    -- ^ The packages available to satisfy dependencies
+          -> SimpleRelations    -- ^ The dependency relations to be satisfied
+          -> Int                -- ^ Give up after this many solutions are computed
           -> (Either String [(Int, [BinaryPackage])])
-				-- ^ On success return the set of packages to install,
-				-- and the solution's sequence number.  Also returns
-				-- the modified list of dependency relations, with all
-				-- inequalities replaced by equalities on the particular
-				-- versions of each package which are available.
+                                -- ^ On success return the set of packages to install,
+                                -- and the solution's sequence number.  Also returns
+                                -- the modified list of dependency relations, with all
+                                -- inequalities replaced by equalities on the particular
+                                -- versions of each package which are available.
 solutions available relations limit =
     -- Do any of the dependencies require packages that simply don't
     -- exist?  If so we don't have to search for solutions, there

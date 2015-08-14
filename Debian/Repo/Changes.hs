@@ -66,9 +66,9 @@ loadChangesFile dir file =
                                                      , changeInfo = changes'
                                                      , changeEntry = entry
                                                      , changeFiles = changedFileSpecs text sha1text sha256text }
-                      _ -> return Nothing	-- Missing 'Files', 'Checksums-Sha1', 'Checksums-Sha256', 'Changes', or 'Distribution' field in .changes
+                      _ -> return Nothing       -- Missing 'Files', 'Checksums-Sha1', 'Checksums-Sha256', 'Changes', or 'Distribution' field in .changes
                 Left _error -> return Nothing
-        Nothing -> return Nothing		-- Couldn't parse changes filename
+        Nothing -> return Nothing               -- Couldn't parse changes filename
 
 mergeParagraphs :: [S.Paragraph' Text] -> S.Paragraph' Text
 mergeParagraphs paragraphs =
