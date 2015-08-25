@@ -12,7 +12,7 @@ import Control.Applicative (Applicative, (<$>))
 import Control.DeepSeq (force)
 import Control.Exception (SomeException, throw)
 import Control.Monad (when)
-import Control.Monad.Catch (catch, try, MonadMask)
+import Control.Monad.Catch (catch, fromException, MonadMask, toException, try)
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (empty)
 import Data.Either (partitionEithers)
@@ -119,7 +119,7 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
                                                      putOSImage os
                                                      return os) return
        case flushRoot of
-         True -> evalMonadOS (recreate Flushed) cleanRoot
+         True -> evalMonadOS (recreate (toException Flushed)) cleanRoot
          False -> do result <- try (evalMonadOS updateOS cleanRoot)
                      case result of
                        Right _ -> return ()
@@ -143,25 +143,27 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
     where
       cleanRoot = EnvRoot (cleanOS eset)
       dependRoot = EnvRoot (dependOS eset)
-      recreate :: (Applicative m, MonadOS m, MonadTop m, MonadMask m, MonadRepos m, MonadIO m) => UpdateError -> m ()
-      recreate (Changed name path computed installed)
-          | ifSourcesChanged == SourcesChangedError =
-              error $ "FATAL: Sources for " ++ relName name ++ " in " ++ path ++
-                       " don't match computed configuration.\n\ncomputed:\n" ++
-                       prettyShow computed ++ "\ninstalled:\n" ++
-                       prettyShow installed
-      recreate reason =
-          do base <- osBaseDistro <$> getOS
-             sources <- sourcesPath (sliceListName base)
-             dist <- distDir (sliceListName base)
-             liftIO $ do ePutStrLn $ "Removing and recreating build environment at " ++ ppShow cleanRoot ++ ": " ++ show reason
-                         -- ePutStrLn ("removeRecursiveSafely " ++ cleanRoot))
-                         removeRecursiveSafely (rootPath cleanRoot)
-                         -- ePutStrLn ("createDirectoryIfMissing True " ++ show dist)
-                         createDirectoryIfMissing True dist
-                         -- ePutStrLn ("writeFile " ++ show sources ++ " " ++ show (show . osBaseDistro $ os))
-                         replaceFile sources (prettyShow base)
-             rebuildOS cleanRoot distro extra include exclude components
+      recreate :: (Applicative m, MonadOS m, MonadTop m, MonadMask m, MonadRepos m, MonadIO m) => SomeException -> m ()
+      recreate e =
+          case fromException e of
+            Just (Changed name path computed installed)
+                | ifSourcesChanged == SourcesChangedError ->
+                    error $ "FATAL: Sources for " ++ relName name ++ " in " ++ path ++
+                            " don't match computed configuration.\n\ncomputed:\n" ++
+                            prettyShow computed ++ "\ninstalled:\n" ++
+                            prettyShow installed
+            reason -> do
+              base <- osBaseDistro <$> getOS
+              sources <- sourcesPath (sliceListName base)
+              dist <- distDir (sliceListName base)
+              liftIO $ do ePutStrLn $ "Removing and recreating build environment at " ++ ppShow cleanRoot ++ ": " ++ show e
+                          -- ePutStrLn ("removeRecursiveSafely " ++ cleanRoot))
+                          removeRecursiveSafely (rootPath cleanRoot)
+                          -- ePutStrLn ("createDirectoryIfMissing True " ++ show dist)
+                          createDirectoryIfMissing True dist
+                          -- ePutStrLn ("writeFile " ++ show sources ++ " " ++ show (show . osBaseDistro $ os))
+                          replaceFile sources (prettyShow base)
+              rebuildOS cleanRoot distro extra include exclude components
 
       doInclude :: (MonadOS m, MonadIO m, MonadMask m) => m ()
       doInclude =

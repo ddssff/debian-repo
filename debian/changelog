@@ -1,3 +1,12 @@
+haskell-debian-repo (5.75.1) unstable; urgency=low
+
+  * Fix bug where exceptions that occurred while trying to use the
+    existing build environment weren't caught, so instead of recreating
+    the build environment the program would exist.
+  * Restore time-1.4 compatibility
+
+ -- David Fox <dsf@seereason.com>  Tue, 25 Aug 2015 09:17:38 -0700
+
 haskell-debian-repo (5.75) unstable; urgency=low
 
   * Remove the call to force in useOS because we can't write an NFData

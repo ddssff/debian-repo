@@ -17,7 +17,6 @@ import Data.Maybe (listToMaybe)
 import Debian.Changes (ChangeLogEntry(logVersion))
 import Debian.Pretty (prettyShow)
 import Debian.Relation (SrcPkgName(unSrcPkgName))
-import Debian.Release (ReleaseName)
 import Debian.Repo.AptImage (aptDir, aptGetSource, aptGetUpdate)
 import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.Internal.Apt (AptImage(aptImageArch, aptImageRoot, aptImageSources,
@@ -28,7 +27,7 @@ import Debian.Repo.PackageID (PackageID(packageName), PackageID(packageVersion))
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage(sourcePackageID))
 import Debian.Repo.Prelude (symbol)
 import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn)
-import Debian.Repo.Slice (NamedSliceList(sliceList, sliceListName), SliceList, SourcesChangedAction)
+import Debian.Repo.Slice (NamedSliceList(sliceList, sliceListName), SourcesChangedAction)
 import Debian.Repo.SourceTree (DebianBuildTree(debTree'), DebianSourceTree(tree'), HasChangeLog(entry), findDebianBuildTrees, SourceTree(dir'))
 import Debian.Repo.State.PackageIndex (binaryPackagesFromSources, sourcePackagesFromSources)
 import Debian.Repo.State.Slice (updateCacheSources)
@@ -107,23 +106,6 @@ aptBinaryPackages = do
         pkgs <- binaryPackagesFromSources root arch (sliceList sources)
         modifyApt (\ s -> s {aptBinaryPackageCache = Just pkgs})
         return pkgs
-{-
-    do qPutStrLn "AptImage.getBinaryPackages"
-       root <- getL aptImageRoot <$> getApt
-       arch <- getL aptImageArch <$> getApt
-       sources <- (sliceList . getL aptImageSources) <$> getApt
-       binaryPackagesFromSources root arch sources
--}
-
-data UpdateError
-    = Changed ReleaseName FilePath SliceList SliceList
-    | Missing ReleaseName FilePath
-    | Flushed
-
-instance Show UpdateError where
-    show (Changed r p l1 l2) = unwords ["Changed", show r, show p, prettyShow l1, prettyShow l2]
-    show (Missing r p) = unwords ["Missing", show r, show p]
-    show Flushed = "Flushed"
 
 -- |Retrieve a source package via apt-get.
 prepareSource :: (MonadRepos m, MonadApt m, MonadTop m, MonadIO m) =>

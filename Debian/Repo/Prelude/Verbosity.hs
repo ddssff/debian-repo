@@ -15,7 +15,7 @@ module Debian.Repo.Prelude.Verbosity
     ) where
 
 import Control.Monad (when)
-import Control.Monad.Catch (bracket, bracket_, MonadMask)
+import Control.Monad.Catch (bracket_, MonadMask)
 import Control.Monad.Trans (liftIO, MonadIO)
 import System.IO (hPutStr, hPutStrLn, stderr)
 import System.Posix.Env (getEnv, setEnv, unsetEnv)
