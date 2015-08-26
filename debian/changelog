@@ -1,3 +1,9 @@
+haskell-debian-repo (5.76) unstable; urgency=low
+
+  * Add Eq and Ord instances for RetrieveMethod, GitSpec
+
+ -- David Fox <dsf@seereason.com>  Wed, 26 Aug 2015 08:48:11 -0700
+
 haskell-debian-repo (5.75.1) unstable; urgency=low
 
   * Fix bug where exceptions that occurred while trying to use the

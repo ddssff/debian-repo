@@ -67,12 +67,12 @@ data RetrieveMethod
     | Twice RetrieveMethod                   -- ^ Perform the build twice (should be a package flag)
     | Uri String String                      -- ^ Download a tarball from the URI.  The checksum is used to implement caching.
     | Zero                                   -- ^ Nothing, do not build
-    deriving (Read, Show, Data, Typeable)
+    deriving (Read, Show, Eq, Ord, Data, Typeable)
 
 data GitSpec
     = Branch String
     | Commit String
-    deriving (Read, Show, Eq, Data, Typeable)
+    deriving (Read, Show, Eq, Ord, Data, Typeable)
 
 -- | Information gathered as a result of the retrieveal.  If these
 -- identifying characteristic of the source tree change between one
