@@ -16,6 +16,9 @@ module Debian.Repo.Prelude.Verbosity
 
 import Control.Monad (when)
 import Control.Monad.Catch (bracket_, MonadMask)
+#ifndef FIXED_VERBOSITY_LEVEL
+import Control.Monad.Catch (bracket)
+#endif
 import Control.Monad.Trans (liftIO, MonadIO)
 import System.IO (hPutStr, hPutStrLn, stderr)
 import System.Posix.Env (getEnv, setEnv, unsetEnv)

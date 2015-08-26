@@ -26,11 +26,9 @@ module Debian.Repo.OSImage
 -- import Control.DeepSeq (force)
 import Control.Exception (SomeException)
 import Control.Monad.Catch (try)
-import Control.Monad.State (MonadIO(..))
 import qualified Data.ByteString as B
 import Data.Data (Data)
 import Data.List (intercalate)
-import Data.Maybe (mapMaybe)
 import Data.Typeable (Typeable)
 import Debian.Arch (Arch)
 import Debian.Pretty (prettyShow)

@@ -77,15 +77,15 @@ optSpecs =
     [ Param ['v'] ["verbose"] ["Verbose"] (NoArg (\ p -> p {verbosity = verbosity p + 1}))
                  "Increase the amount of debugging output"
     , Param [] ["root"] ["Root"] (ReqArg (\ s p -> p {rootParam = s}) "PATH")
-		 "Specify the root directory of the repository"
+                 "Specify the root directory of the repository"
     , Param [] ["section"] ["Section"] (ReqArg (\ s p -> p {uploadSection = Just s}) "PATH")
-		 "Force uploads to the specified section"
+                 "Force uploads to the specified section"
     , Param [] ["expire"] ["Expire"] (NoArg (\ p -> p {expire = True}))
-		 "Remove all packages trumped by newer versions from the package lists."
+                 "Remove all packages trumped by newer versions from the package lists."
     , Param [] ["binary-orphans"] ["Binary-Orphans"] (NoArg (\ p -> p {binaryOrphans = True}))
-		 "Remove all binary packages that have no corresponding source package."
+                 "Remove all binary packages that have no corresponding source package."
     , Param [] ["clean-up"] ["Clean-Up"] (NoArg (\ p -> p {cleanUp = True}))
-		 "Move all unreferenced files in the repository to the removed directory."
+                 "Move all unreferenced files in the repository to the removed directory."
     , Param ['n'] ["dry-run"] ["Dry-Run"] (NoArg (\ p -> p {dryRun = True})) "Test run, don't modify the repository.  (ONLY IMPLEMENTED FOR REMOVE)"
     , Param [] ["remove"] ["Remove"] (ReqArg (\ s p -> p {removePackages = removePackages p ++ [s]}) "DIST,SECTION,PACKAGE=VERSION")
                  "remove a particular version of a package (may be repeated.)"
@@ -93,13 +93,13 @@ optSpecs =
                  ("Scan the incoming directory and install the packages found there.\n" ++
                   "This option is automatically true if no --remove arguments are given.")
     , Param [] ["create-release"] ["Create-Release"] (ReqArg (\ s p -> p {releases = releases p ++ [s]}) "NAME")
-		 ("Create any new releases and/or sections found in Distribution\n" ++
+                 ("Create any new releases and/or sections found in Distribution\n" ++
                   "and Section fields of the uploaded .changes files.")
     , Param [] ["create-alias"] ["Create-Alias"] (ReqArg (\ s p -> p {aliases = aliases p ++ [s]}) "ALIAS=RELEASE")
-		 "Create an alias for an existing release"
+                 "Create an alias for an existing release"
     , Param [] ["create-section"] ["Create-Section"] (ReqArg (\ s p -> p {sections = sections p ++ [s]}) "RELEASE,SECTION")
-		 "Create a new section in the given release."
-    , Param [] ["replace"] ["Replace"]	(NoArg (\ p -> p {replace = True}))
+                 "Create a new section in the given release."
+    , Param [] ["replace"] ["Replace"]  (NoArg (\ p -> p {replace = True}))
                  ("Permit uploading of a package whose version is already present.\n" ++
                   "This is normally an error.")
     , Param [] ["notify-email"] ["Notify-Email"] (ReqArg (\ s p -> p {notifyEmail = notifyEmail p ++ [s]}) "USER@HOST")
@@ -126,9 +126,9 @@ optSpecs =
     , Param [] ["keyname"] ["Key-Name"] (ReqArg (\ s p -> p {keyName = Just s}) "STRING")
                  "Name of the pgp key with which to sign the repository."
 {-
-     , Param [] ["rebuild"] ["Rebuild"]	(NoArg (Value "Rebuild" "yes"))
+     , Param [] ["rebuild"] ["Rebuild"] (NoArg (Value "Rebuild" "yes"))
      "(UNIMPLEMENTED) Reconstruct the package lists from scratch."
-     , Param [] ["obsolete"] ["Obsolete"]	(NoArg (Value "Obsolete" "yes"))
+     , Param [] ["obsolete"] ["Obsolete"]       (NoArg (Value "Obsolete" "yes"))
      (My.consperse "\n"
       ["(UNIMPLEMENTED) Remove any package for which newer versions exist,",
        "remove any package which is not part of any dist."])

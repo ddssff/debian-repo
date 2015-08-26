@@ -22,8 +22,10 @@ module Debian.Repo.SourceTree
     , SourceTree(dir')
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>), (<*>), pure)
-import Control.Exception (evaluate, SomeException, try, throw)
+#endif
+import Control.Exception (SomeException, try, throw)
 import Control.Monad (foldM)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.ByteString as B
@@ -38,16 +40,16 @@ import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.MonadOS (MonadOS(getOS))
 import Debian.Repo.OSImage (osRoot)
 import Debian.Repo.Prelude (getSubDirectories, replaceFile, dropPrefix)
-import Debian.Repo.Prelude.Process (readProcessVE, readProcessV, timeTask, modifyProcessEnv)
+import Debian.Repo.Prelude.Process (readProcessVE, timeTask, modifyProcessEnv)
 import Debian.Repo.Prelude.Verbosity (noisier)
 import Debian.Repo.Rsync (rsyncOld)
 import qualified Debian.Version as V (version)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist)
-import System.Environment (getEnv, getEnvironment)
-import System.Exit (ExitCode(ExitFailure), ExitCode(ExitSuccess))
+import System.Environment (getEnv)
+import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>))
 import System.IO (hGetContents, IOMode(ReadMode), withFile)
-import System.Process (CmdSpec(..), CreateProcess(cwd, env, cmdspec), proc, readProcessWithExitCode, showCommandForUser)
+import System.Process (CmdSpec(..), CreateProcess(cwd, cmdspec), proc, showCommandForUser)
 import System.Unix.Chroot (useEnv)
 
 class HasTopDir t where
@@ -122,7 +124,7 @@ buildDebs noClean _twice setEnv buildTree decision =
     do
       root <- rootPath . osRoot <$> getOS
       noSecretKey <- liftIO $ getEnv "HOME" >>= return . (++ "/.gnupg") >>= doesDirectoryExist >>= return . not
-      env0 <- liftIO getEnvironment
+      -- env0 <- liftIO getEnvironment
       -- Set LOGNAME so dpkg-buildpackage doesn't die when it fails to
       -- get the original user's login information
       let run cmd =
@@ -138,14 +140,16 @@ buildDebs noClean _twice setEnv buildTree decision =
       (result, elapsed) <- liftIO . noisier 4 $ run buildCmd
       case result of
         (Right (ExitSuccess, _, _)) -> return elapsed
-        result -> fail $ "*** FAILURE: " ++ showCmd (cmdspec buildCmd) ++ " -> " ++ show result
+        result' -> fail $ "*** FAILURE: " ++ showCmd (cmdspec buildCmd) ++ " -> " ++ show result'
     where
       path = debdir buildTree
       showCmd (RawCommand cmd args) = showCommandForUser cmd args
       showCmd (ShellCommand cmd) = cmd
 
+#if 0
 forceList :: [a] -> IO [a]
 forceList output = evaluate (length output) >> return output
+#endif
 
 findOrigTarball :: DebianBuildTree -> IO (Maybe FilePath)
 findOrigTarball tree =

@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, ScopedTypeVariables #-}
 module Debian.Repo.Rsync
     ( RsyncError(..)
     -- , rsync
@@ -8,7 +8,9 @@ module Debian.Repo.Rsync
 import Control.Exception (Exception, SomeException, throw, toException, try)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.ByteString.Lazy (ByteString)
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (mempty)
+#endif
 import Data.Typeable (Typeable)
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
@@ -62,11 +64,13 @@ buildRsyncError :: CreateProcess -> ExitCode -> Maybe RsyncError
 buildRsyncError _ ExitSuccess = Nothing
 buildRsyncError _ (ExitFailure n) = Just $ fst $ rsyncErrorInfo n
 
+#if 0
 rsyncError :: Int -> RsyncError
 rsyncError = fst . rsyncErrorInfo
 
 rsyncErrorMessage :: Int -> String
 rsyncErrorMessage = snd . rsyncErrorInfo
+#endif
 
 rsyncErrorInfo :: Int -> (RsyncError, String)
 rsyncErrorInfo 1  = (RsyncSyntaxOrUsage, "rsync: Syntax or usage error")

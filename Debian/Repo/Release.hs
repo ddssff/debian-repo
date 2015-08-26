@@ -1,5 +1,5 @@
 -- | A release is a named collection of package indexes, e.g. sid.
-{-# LANGUAGE FlexibleInstances, PackageImports, ScopedTypeVariables, StandaloneDeriving, TypeSynonymInstances #-}
+{-# LANGUAGE CPP, FlexibleInstances, PackageImports, ScopedTypeVariables, StandaloneDeriving, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.Release
     ( Release(Release, releaseName, releaseAliases, releaseArchitectures, releaseComponents)
@@ -9,13 +9,14 @@ module Debian.Repo.Release
     , getReleaseInfoRemote
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>), Applicative((<*>)))
+#endif
 import Control.Applicative.Error (Failing(Success, Failure))
 import Control.Exception (ErrorCall(ErrorCall), Exception(toException), SomeException, try)
 import Control.Monad.Trans (liftIO)
-import Data.List (intercalate, intersperse)
+import Data.List (intercalate)
 import Data.Maybe (catMaybes)
-import Data.Monoid ((<>), mconcat)
 import Data.Set (Set, fromList)
 import Data.Text (Text, unpack)
 import qualified Data.Text as T (Text, unpack)

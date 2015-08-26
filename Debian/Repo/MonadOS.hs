@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, OverloadedStrings, PackageImports, ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TypeSynonymInstances #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, OverloadedStrings, PackageImports, ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.MonadOS
     ( MonadOS(getOS, putOS, modifyOS)
@@ -11,8 +11,10 @@ module Debian.Repo.MonadOS
     , Debian.Repo.MonadOS.syncOS
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative (Applicative, pure, (<$>))
-import Control.DeepSeq (NFData, force)
+#endif
+import Control.DeepSeq (force)
 import Control.Exception (evaluate, SomeException)
 import Control.Monad.Catch (MonadCatch, MonadMask)
 import Control.Monad.State (MonadState(get), StateT, evalStateT, get)
@@ -100,9 +102,11 @@ aptGetInstall packages =
       formatPackage (name, Nothing) = ppShow name
       formatPackage (name, Just version) = ppShow name ++ "=" ++ show (prettyDebianVersion version)
 
+#if 0
 -- | This is a deepseq thing
 forceList :: [a] -> IO [a]
 forceList output = evaluate (length output) >> return output
+#endif
 
 -- | Use rsync to synchronize the pool of locally built packages from
 -- outside the build environment to the location inside the

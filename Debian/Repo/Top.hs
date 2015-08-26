@@ -2,7 +2,7 @@
 -- for temporary storage.  The autobuilder usually assigns the path
 -- "~/.autobuilder", and stores build environments and downloaded
 -- source here.
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE CPP, FlexibleInstances, TypeSynonymInstances #-}
 {-# OPTIONS -Wall #-}
 module Debian.Repo.Top
     ( TopT
@@ -14,7 +14,9 @@ module Debian.Repo.Top
     , sourcesPath
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
+#endif
 import Control.Monad.Reader (ReaderT(runReaderT), MonadReader(ask))
 import Control.Monad.State (StateT)
 import Control.Monad.Trans (lift)

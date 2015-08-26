@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, OverloadedStrings, PackageImports, ScopedTypeVariables, TemplateHaskell #-}
+{-# LANGUAGE CPP, FlexibleInstances, OverloadedStrings, PackageImports, ScopedTypeVariables, TemplateHaskell #-}
 {-# OPTIONS -Wall -fno-warn-orphans #-}
 module Debian.Repo.State.AptImage
     ( withAptImage
@@ -7,7 +7,9 @@ module Debian.Repo.State.AptImage
     , prepareSource
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
+#endif
 import Control.Exception (SomeException)
 import Control.Monad.Catch (MonadCatch, catch)
 import Control.Monad.State (StateT)

@@ -1,5 +1,5 @@
 -- | Install packages to and delete packages from a local repository.
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, OverloadedStrings, PackageImports, ScopedTypeVariables, TemplateHaskell, TupleSections, UndecidableInstances #-}
+{-# LANGUAGE BangPatterns, CPP, FlexibleContexts, FlexibleInstances, OverloadedStrings, PackageImports, ScopedTypeVariables, TemplateHaskell, TupleSections, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-name-shadowing #-}
 module Debian.Repo.State.Package
     ( MonadInstall
@@ -19,7 +19,9 @@ module Debian.Repo.State.Package
     , releaseKey
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
+#endif
 import Control.Exception (SomeException)
 import Control.Exception as E (ErrorCall(ErrorCall), SomeException(..), try)
 import Control.Lens (makeLenses, over, view)
@@ -32,7 +34,10 @@ import Data.Either (partitionEithers, lefts, rights)
 import Data.List as List (filter, groupBy, intercalate, intersperse, isSuffixOf, map, partition, sortBy)
 import Data.Map as Map (fromList, lookup)
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
-import Data.Monoid ((<>), mconcat)
+import Data.Monoid ((<>))
+#if !MIN_VERSION_base(4,8,0)
+import Data.Monoid (mconcat)
+#endif
 import Data.Set as Set (difference, empty, fold, fromList, insert, map, member, null, Set, size, toAscList, toList, union, unions, singleton)
 import Data.Text as T (pack, Text, unpack)
 import qualified Data.Text as T (concat)
@@ -364,10 +369,12 @@ incoming = do
   root <- repoRoot . view repository <$> getInstall
   return $ outsidePath root </> "incoming" {- </> changedFileName file -}
 
+#if 0
 reject :: MonadInstall m => ChangedFileSpec -> m FilePath
 reject file = do
   root <- repoRoot . view repository <$> getInstall
   return $ outsidePath root </> "reject" </> changedFileName file
+#endif
 
 -- | Get information about one of the (.deb or .dsc) files listed in a .changes file.
 fileInfo :: MonadInstall m => ChangesFile -> ChangedFileSpec -> m (Either InstallResult B.Paragraph)
@@ -420,8 +427,10 @@ findRelease releases name =
       [x] -> Just x
       _ -> error $ "Internal error 16 - multiple releases named " ++ releaseName' name
 
+#if 0
 markReleaseModified :: MonadInstall m => ReleaseKey -> m ()
 markReleaseModified = modifyInstall . over modified . Set.insert
+#endif
 
 -- | Hard link the files of each package into the repository pool,
 -- but don't unlink the files in incoming in case of subsequent
@@ -611,8 +620,10 @@ addPackagesToIndexes pairs =
           -- (\ (oldList, newList) -> filter (\ new -> any (== (packageID new)) (List.map packageID oldList)) newList)
       updateIndex repo ((release, index), oldPackages, newPackages) = liftIO $ putPackages_ repo release index (oldPackages ++ newPackages)
       indexKeys = List.map fst pairs
+#if 0
       indexMemberFn :: [BinaryPackage] -> BinaryPackage -> Bool
       indexMemberFn packages package = any (== (packageID package)) (List.map packageID packages)
+#endif
 
 -- Repository Accessors and Inquiries
 

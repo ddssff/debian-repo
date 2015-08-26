@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, OverloadedStrings, PackageImports, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, OverloadedStrings, PackageImports, ScopedTypeVariables #-}
 {-# OPTIONS -fno-warn-orphans #-}
 module Debian.Repo.State.OSImage
     ( buildArchOfOS
@@ -8,7 +8,9 @@ module Debian.Repo.State.OSImage
     , updateOS
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative (Applicative, (<$>))
+#endif
 import Control.DeepSeq (force)
 import Control.Exception (SomeException, throw)
 import Control.Monad (when)
@@ -17,7 +19,9 @@ import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (empty)
 import Data.Either (partitionEithers)
 import Data.List (isSuffixOf)
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (mempty)
+#endif
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import Debian.Debianize (EnvSet(cleanOS, dependOS))
 import Debian.Pretty (ppShow, prettyShow)
@@ -33,7 +37,7 @@ import Debian.Repo.OSImage (createOSImage, OSImage(osArch, osBaseDistro, osLocal
 import Debian.Repo.MonadOS (MonadOS(getOS, modifyOS), evalMonadOS, aptGetInstall, syncLocalPool, syncOS)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
 import Debian.Repo.Prelude (replaceFile)
-import Debian.Repo.Prelude.Process (readProcessVE, readProcessV)
+import Debian.Repo.Prelude.Process (readProcessVE)
 import Debian.Repo.Prelude.SSH (sshCopy)
 import Debian.Repo.Prelude.Verbosity (ePutStrLn, quieter, qPutStrLn)
 import Debian.Repo.Slice (NamedSliceList(sliceListName), Slice(sliceSource), SliceList(slices), SourcesChangedAction(SourcesChangedError), UpdateError(..))
@@ -115,9 +119,9 @@ prepareOS
     -> [String]                 -- ^ Components of the base repository
     -> m (EnvRoot, EnvRoot)
 prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include optional exclude components =
-    do cleanOS <- osFromRoot cleanRoot >>= maybe (do os <- liftIO (createOSImage cleanRoot distro extra repo)
-                                                     putOSImage os
-                                                     return os) return
+    do _cleanOS <- osFromRoot cleanRoot >>= maybe (do os <- liftIO (createOSImage cleanRoot distro extra repo)
+                                                      putOSImage os
+                                                      return os) return
        case flushRoot of
          True -> evalMonadOS (recreate (toException Flushed)) cleanRoot
          False -> do result <- try (evalMonadOS updateOS cleanRoot)
@@ -128,8 +132,8 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
        when flushDepends (evalMonadOS (syncOS dependRoot) cleanRoot)
        -- Try running a command in the depend environment, if it fails
        -- sync dependOS from cleanOS.
-       dependOS <- osFromRoot dependRoot
-       case dependOS of
+       dependOS' <- osFromRoot dependRoot
+       case dependOS' of
          Nothing -> do (arch :: Either SomeException Arch) <- (liftIO $ try $ useEnv (rootPath dependRoot) return buildArchOfRoot)
                        case arch of
                          Left _ -> evalMonadOS (syncOS dependRoot) cleanRoot
@@ -152,7 +156,7 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
                             " don't match computed configuration.\n\ncomputed:\n" ++
                             prettyShow computed ++ "\ninstalled:\n" ++
                             prettyShow installed
-            reason -> do
+            _reason -> do
               base <- osBaseDistro <$> getOS
               sources <- sourcesPath (sliceListName base)
               dist <- distDir (sliceListName base)

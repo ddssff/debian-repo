@@ -1,6 +1,6 @@
 -- | Manage state information about the available repositories,
 -- releases, OS images, and Apt images.
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, ScopedTypeVariables, TemplateHaskell #-}
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, ScopedTypeVariables, TemplateHaskell #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 module Debian.Repo.Internal.Repos
     ( MonadRepos(getRepos, putRepos)
@@ -30,7 +30,9 @@ module Debian.Repo.Internal.Repos
     , syncOS
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
+#endif
 import Control.Applicative.Error (maybeRead)
 import Control.Exception (SomeException)
 import Control.Monad (unless)

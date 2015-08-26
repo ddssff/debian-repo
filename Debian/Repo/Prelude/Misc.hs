@@ -33,7 +33,6 @@ import           Data.Maybe
 import qualified Data.Set as Set
 import           Debian.Repo.Prelude.List
 import           System.Exit
-import           System.FilePath
 import           System.Directory
 import           System.Posix.Files
 import           System.Posix.User (getEffectiveUserID)

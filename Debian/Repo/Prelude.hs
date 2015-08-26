@@ -23,7 +23,7 @@ module Debian.Repo.Prelude
     ) where
 
 import Control.Lens (Lens', over)
-import Control.Monad.State (get, modify, MonadIO, MonadState)
+import Control.Monad.State (modify, MonadIO, MonadState)
 import Data.List (group, sort)
 import Data.List as List (map)
 import Debian.Repo.Prelude.Bool (cond)

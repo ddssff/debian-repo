@@ -1,5 +1,5 @@
 -- | A repository located on localhost
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, OverloadedStrings, PackageImports, StandaloneDeriving, ScopedTypeVariables, TemplateHaskell, TypeSynonymInstances #-}
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, OverloadedStrings, PackageImports, StandaloneDeriving, ScopedTypeVariables, TemplateHaskell, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.LocalRepository
     ( LocalRepository(..)
@@ -13,7 +13,9 @@ module Debian.Repo.LocalRepository
     , uploadLocal
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
+#endif
 import Control.Applicative.Error (Failing(Success, Failure))
 import Control.Exception (SomeException)
 import Control.Monad.Trans (liftIO, MonadIO)
@@ -22,11 +24,11 @@ import Data.List (groupBy, isPrefixOf, partition, sort, sortBy)
 import Data.Maybe (catMaybes, listToMaybe)
 import qualified Data.Set as Set (fromList, member)
 import Data.Text as T (unpack)
-import Debian.Arch (Arch, parseArch)
+import Debian.Arch (parseArch)
 import Debian.Changes (ChangedFileSpec(changedFileName, changedFileSection), ChangesFile(changeDir, changeFiles, changeInfo, changePackage, changeRelease, changeVersion))
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile), fieldValue)
 import qualified Debian.Control.Text as T (fieldValue)
-import Debian.Pretty (PP(..), ppShow)
+import Debian.Pretty (PP(..))
 import Debian.Release (parseReleaseName, ReleaseName(..), releaseName', Section(..), sectionName', SubSection(section))
 import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath(envPath), outsidePath)
@@ -39,7 +41,7 @@ import Debian.Repo.Release (parseReleaseFile, Release)
 import Debian.Repo.Repo (compatibilityFile, libraryCompatibilityLevel, Repo(..), RepoKey(..))
 import Debian.Repo.Rsync (rsyncOld)
 import Debian.URI (URI(uriAuthority, uriPath), URIAuth(uriPort, uriRegName, uriUserInfo), uriToString')
-import Debian.Version (DebianVersion, parseDebianVersion, prettyDebianVersion)
+import Debian.Version (parseDebianVersion, prettyDebianVersion)
 import Network.URI (URI(..))
 import System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.Exit (ExitCode, ExitCode(ExitSuccess))
@@ -144,9 +146,6 @@ setRepositoryCompatibility r =
     maybeWriteFile path (show libraryCompatibilityLevel ++ "\n")
     where path = outsidePath (repoRoot r) </> compatibilityFile
 
--- |The file produced by dupload when a package upload attempt is made.
-data UploadFile = Upload FilePath String DebianVersion Arch
-
 -- |Make sure we can access the upload uri without typing a password.
 verifyUploadURI :: MonadIO m => Bool -> URI -> m ()
 verifyUploadURI doExport uri = do
@@ -204,13 +203,14 @@ uploadRemote repo uri =
                     map (\ [_, name', version, arch] -> (name', parseDebianVersion version, parseArch arch)) .
                     catMaybes .
                     map (matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.upload$"))) <$> getDirectoryContents dir
-       let (readyChangesFiles, uploadedChangesFiles) = partition (\ f -> not . Set.member (changeKey f) $ uploaded) newestChangesFiles
+       let (readyChangesFiles, _uploadedChangesFiles) = partition (\ f -> not . Set.member (changeKey f) $ uploaded) newestChangesFiles
        -- hPutStrLn stderr $ "Uploaded: " ++ show uploadedChangesFiles
        -- hPutStrLn stderr $ "Ready: " ++ show readyChangesFiles
        validChangesFiles <- mapM validRevision' readyChangesFiles
        -- hPutStrLn stderr $ "Valid: " ++ show validChangesFiles
        mapM dupload' validChangesFiles
     where
+#if 0
       keepNewest (Success newest : older) =
           Success newest : map tooOld older
       keepNewest xs = xs
@@ -223,6 +223,7 @@ uploadRemote repo uri =
       successes (Success x : xs) = x : successes xs
       successes (Failure _ : xs) = successes xs
       successes [] = []
+#endif
       root = repoRoot repo
 {-
       rejectOlder :: ([ChangesFile], [(ChangesFile, String)]) ->  ([ChangesFile], [(ChangesFile, String)])
@@ -280,6 +281,10 @@ validRevision' c = validRevision
       --                   Success (method, map readSimpleRelation buildDeps)
       --       _ -> Failure ["Invalid revision field: " ++ s]
 
+#if 0
+-- |The file produced by dupload when a package upload attempt is made.
+data UploadFile = Upload FilePath String DebianVersion Arch
+
 uploadKey :: UploadFile -> (String, DebianVersion, Arch)
 uploadKey (Upload _ name ver arch) = (name, ver, arch)
 
@@ -291,6 +296,7 @@ parseUploadFilename dir name =
     case matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.upload$") name of
       Just [_, name', version, arch] -> Success (Upload dir name' (parseDebianVersion version) (parseArch arch))
       _ -> Failure ["Invalid .upload file name: " ++ name]
+#endif
 
 {-
 accept :: (a -> Bool) -> (a -> (a, String)) -> ([a], [(a, String)]) -> ([a], [(a, String)])
@@ -337,8 +343,10 @@ dupload uri dir changesFile  =
                  qPutStrLn message
                  return $ Failure [message]
 
+#if 0
 ignore :: forall a. IO (Either String (ExitCode, L.ByteString, L.ByteString)) -> a -> IO (Either String (ExitCode, L.ByteString, L.ByteString))
 ignore result _ = result
+#endif
 
 -- | Move a build result into a local repository's 'incoming' directory.
 uploadLocal :: LocalRepository -> ChangesFile -> IO ()

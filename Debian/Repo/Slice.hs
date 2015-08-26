@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, PackageImports, StandaloneDeriving, TupleSections #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleInstances, PackageImports, StandaloneDeriving, TupleSections #-}
 -- |Types that represent a "slice" of a repository, as defined by a
 -- list of DebSource.  This is called a slice because some sections
 -- may be omitted, and because different repositories may be combined
@@ -24,8 +24,9 @@ module Debian.Repo.Slice
 import Control.Exception (Exception)
 import Data.Data (Data)
 import Data.List (intersperse)
-import Data.Maybe (mapMaybe)
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (mempty)
+#endif
 import Data.Text (Text)
 import Data.Text.IO as Text (putStr, hPutStr)
 import Data.Typeable (Typeable)
@@ -35,10 +36,10 @@ import Debian.Repo.Prelude.Verbosity (ePutStr, ePutStrLn)
 import Debian.Repo.Repo (RepoKey(Remote))
 import Debian.Sources (DebSource(..), SliceName, SourceType(..), parseSourcesList)
 import Debian.URI (toURI')
-import System.Directory (createDirectoryIfMissing, removeFile, getDirectoryContents)
+import System.Directory (createDirectoryIfMissing, removeFile)
 import System.Exit (ExitCode)
 import System.FilePath ((</>))
-import System.IO (hGetLine, stdin, hPutStr, stderr)
+import System.IO (hGetLine, stdin, stderr)
 import System.Process (proc)
 import System.Process.ListLike (readCreateProcess, Chunk(..), collectOutput)
 import System.Process.Text ()
@@ -164,7 +165,7 @@ doSourcesChangedAction dir sources baseSources _fileSources UpdateSources = do
   replaceFile sources (prettyShow baseSources)
 
 addAptRepository :: Slice ->  IO (ExitCode, [Chunk Text])
-addAptRepository x = readCreateProcess (proc "add-apt-repository" ["--yes", "--enable-source", prettyShow x]) mempty >>= mapM echoOutput >>= return . collectOutput
+addAptRepository slice = readCreateProcess (proc "add-apt-repository" ["--yes", "--enable-source", prettyShow slice]) mempty >>= mapM echoOutput >>= return . collectOutput
     where
       echoOutput :: Chunk Text -> IO (Chunk Text)
       echoOutput x@(Stdout s) = Text.putStr s >> return x

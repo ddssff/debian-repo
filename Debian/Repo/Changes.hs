@@ -2,7 +2,7 @@
 -- describing the result of a package build.  Not to be confused
 -- with a debian/changelog file.  After it is uploaded it goes into
 -- the @installed/@ subdirectory of the repository.
-{-# LANGUAGE PackageImports, OverloadedStrings #-}
+{-# LANGUAGE CPP, PackageImports, OverloadedStrings #-}
 {-# OPTIONS -fno-warn-name-shadowing -fno-warn-missing-signatures #-}
 module Debian.Repo.Changes
     ( findChangesFiles
@@ -18,7 +18,10 @@ module Debian.Repo.Changes
 
 import Data.List (isSuffixOf)
 import Data.Maybe (catMaybes)
-import Data.Monoid ((<>), mconcat)
+import Data.Monoid ((<>))
+#if !MIN_VERSION_base(4,8,0)
+import Data.Monoid (mconcat)
+#endif
 import Data.Text (pack, Text, unpack)
 import Debian.Arch (Arch, parseArch, prettyArch)
 import Debian.Changes (ChangedFileSpec(..), ChangesFile(..), changesFileName, parseChanges)

@@ -87,7 +87,7 @@ runFlags flags =
                          " now available in " ++ releaseName' (changeRelease changesFile) ++
                          " (" ++ show (prettyArch (changeArch changesFile)) ++")")
               body = ("Repository " ++ envPath (repoRoot repo)) : [] : (lines $ prettyShow $ changeInfo changesFile) in
-    	  (subject, body)
+          (subject, body)
       email _repo (changesFile, e) =
           let subject = ("newdist failure: " ++ changePackage changesFile ++ "-" ++ show (prettyDebianVersion (changeVersion changesFile)) ++
                          " failed to install in " ++ releaseName' (changeRelease changesFile))

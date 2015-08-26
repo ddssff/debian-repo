@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, FlexibleContexts, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
 module Debian.Repo.Prelude.Process
     ( timeTask
@@ -15,17 +15,21 @@ module Debian.Repo.Prelude.Process
     , modifyProcessEnv
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>), (<*>))
+#endif
 import Control.Arrow (second)
-import Control.Exception (evaluate, Exception, SomeException, throw, try)
+import Control.Exception (evaluate, SomeException, try)
 import Control.Monad.State (evalState, StateT, get, put)
 import Control.Monad.Trans (liftIO, MonadIO)
-import Data.ByteString.Lazy (ByteString)
 import Data.ListLike (break, head, hPutStr, null, singleton, tail)
-import Data.Monoid (Monoid(..), (<>))
+import Data.Monoid ((<>))
+#if !MIN_VERSION_base(4,8,0)
+import Data.Monoid (Monoid)
+#endif
 import Data.String (IsString(fromString))
 import Data.Time (diffUTCTime, getCurrentTime, NominalDiffTime)
-import Debian.Repo.Prelude.Verbosity (verbosity, ePutStr, ePutStrLn)
+import Debian.Repo.Prelude.Verbosity (ePutStrLn)
 import GHC.IO.Exception (IOErrorType(OtherError))
 import Prelude hiding (break, head, null, tail)
 import System.Environment (getEnvironment)
@@ -33,7 +37,7 @@ import System.Exit (ExitCode(..))
 import System.IO (stdout, stderr)
 import System.IO.Error (mkIOError)
 import System.Process (CreateProcess(cwd, env))
-import System.Process.ListLike (Chunk(..), collectOutput, ListLikeProcessIO, ProcessOutput, readCreateProcessLazy, readCreateProcessWithExitCode, showCreateProcessForUser)
+import System.Process.ListLike (Chunk(..), collectOutput, ListLikeProcessIO, ProcessOutput, readCreateProcessLazy, showCreateProcessForUser)
 
 -- | Run a task and return the elapsed time along with its result.
 timeTask :: IO a -> IO (a, NominalDiffTime)
