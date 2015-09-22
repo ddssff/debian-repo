@@ -1,5 +1,5 @@
 Name:           debian-repo
-Version:        5.76
+Version:        5.76.1
 License:        BSD3
 License-File:	debian/copyright
 Author:         David Fox
@@ -183,7 +183,7 @@ Library
     -- ghc-options: -package Cabal-1.21.1.0
 
   if !flag (local-debian)
-    Build-Depends: debian >= 3.87
+    Build-Depends: debian >= 3.89
   else
     Hs-Source-Dirs: ../debian-haskell
     Build-Depends: pretty, process-extras, network
@@ -245,7 +245,7 @@ Executable debian-versions
   Main-is: Versions.hs
   ghc-options: -O2 -threaded -Wall
   if !flag(local-debian)
-    Build-Depends: debian >= 3.87
+    Build-Depends: debian >= 3.89
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
@@ -256,4 +256,4 @@ Executable newdist
   if !flag(local-cabal-debian)
     Build-Depends: cabal-debian
   if !flag(local-debian)
-    Build-Depends: debian >= 3.87
+    Build-Depends: debian >= 3.89

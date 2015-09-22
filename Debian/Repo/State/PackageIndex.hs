@@ -27,7 +27,7 @@ import Debian.Repo.Slice (binarySlices, Slice(sliceRepoKey, sliceSource), SliceL
 import Debian.Repo.State.Repository (foldRepository)
 import Debian.Sources (DebSource(sourceDist, sourceType), SourceType(Deb, DebSrc))
 import Debian.URI (URI(uriScheme), uriToString')
-import Debian.Version (parseDebianVersion)
+import Debian.Version (parseDebianVersion')
 import Network.URI (escapeURIString, URI(uriAuthority, uriPath), URIAuth(uriPort, uriRegName, uriUserInfo))
 import qualified System.IO as IO (hClose, IOMode(ReadMode), openBinaryFile)
 --import System.IO.Unsafe (unsafeInterleaveIO)
@@ -96,7 +96,7 @@ toSourcePackage index package =
     case (B.fieldValue "Directory" package,
           B.fieldValue "Files" package,
           B.fieldValue "Package" package,
-          maybe Nothing (Just . parseDebianVersion . T.unpack) (B.fieldValue "Version" package)) of
+          maybe Nothing (Just . parseDebianVersion' . T.unpack) (B.fieldValue "Version" package)) of
       (Just directory, Just files, Just name, Just version) ->
           case (parseSourcesFileList files, parseSourceParagraph package) of
             (Right files', Right para) ->
@@ -166,7 +166,7 @@ toBinaryPackage release index p =
       (Just name, Just version) ->
           BinaryPackage
           { packageID =
-                makeBinaryPackageID (T.unpack name) (parseDebianVersion (T.unpack version))
+                makeBinaryPackageID (T.unpack name) (parseDebianVersion' (T.unpack version))
           , packageInfo = p
           , pDepends = tryParseRel $ B.lookupP "Depends" p
           , pPreDepends = tryParseRel $ B.lookupP "Pre-Depends" p

@@ -30,7 +30,7 @@ import Debian.Relation (ArchitectureReq(..), BinPkgName(BinPkgName), Relation(..
 import Debian.Repo.PackageID (PackageID(PackageID, packageName, packageVersion))
 import Debian.Repo.PackageIndex (BinaryPackage, packageID, pProvides)
 import Debian.Repo.Prelude (cartesianProduct)
-import Debian.Version (DebianVersion, parseDebianVersion, prettyDebianVersion)
+import Debian.Version (DebianVersion, parseDebianVersion', prettyDebianVersion)
 import Text.PrettyPrint.HughesPJClass (Doc, text)
 
 type Excuse = String
@@ -50,7 +50,7 @@ showSimpleRelation v = show (prettySimpleRelation (Just v))
 
 -- Shouldn't this return a maybe?
 readSimpleRelation :: String -> PackageID BinPkgName
-readSimpleRelation s = case second (parseDebianVersion . (drop 1)) (span (/= '=') s) of
+readSimpleRelation s = case second (parseDebianVersion' . (drop 1)) (span (/= '=') s) of
                          (n, v) -> PackageID { packageName = BinPkgName n, packageVersion = v }
 
 -- |Each element is an or-list of specific package versions.

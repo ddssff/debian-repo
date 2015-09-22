@@ -30,7 +30,7 @@ import Debian.Pretty (ppShow, prettyShow)
 import Debian.Release (parseReleaseName, parseSection)
 import Debian.Repo.Prelude (replaceFile)
 import Debian.URI ()
-import Debian.Version (DebianVersion, parseDebianVersion, prettyDebianVersion)
+import Debian.Version (DebianVersion, parseDebianVersion', prettyDebianVersion)
 import System.Directory (getDirectoryContents)
 import Text.Regex (matchRegex, matchRegexAll, mkRegex)
 
@@ -108,7 +108,7 @@ changePath changes = changeDir changes ++ "/" ++ changeName changes
 parseChangesFilename :: String -> Maybe (String, DebianVersion, Arch)
 parseChangesFilename name =
     case matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.changes$") name of
-      Just [_, name, version, arch] -> Just (name, parseDebianVersion version, parseArch arch)
+      Just [_, name, version, arch] -> Just (name, parseDebianVersion' version, parseArch arch)
       _ -> error ("Invalid .changes file name: " ++ name)
 
 -- parseChangesFile :: FilePath -> String -> IO (Either ParseError S.Control)

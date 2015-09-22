@@ -13,7 +13,7 @@ import qualified Debian.Control.Text as B (fieldValue, Paragraph)
 import Debian.Relation (BinPkgName(..))
 import Debian.Repo.PackageID (PackageID(packageName, packageVersion))
 import Debian.Repo.PackageIndex (BinaryPackage(packageID, packageInfo), SourcePackage(sourceParagraph))
-import Debian.Version (DebianVersion, parseDebianVersion)
+import Debian.Version (DebianVersion, parseDebianVersion')
 import qualified Debian.Version as V (buildDebianVersion, epoch, revision, version)
 import Text.Regex (matchRegex, mkRegex, splitRegex)
 
@@ -31,7 +31,7 @@ binarySourceVersion' binaryName binaryVersion paragraph =
       Just source' ->
           case matchRegex re (asString source') of
             Just [name, _, ""] -> Just (name, binaryVersion)
-            Just [name, _, version] -> Just (name, copyEpoch binaryVersion (parseDebianVersion version))
+            Just [name, _, version] -> Just (name, copyEpoch binaryVersion (parseDebianVersion' version))
             _ -> error "internal error"
       Nothing ->
           Just (asString (unBinPkgName binaryName), binaryVersion)

@@ -66,7 +66,7 @@ import Debian.Repo.Repo (Repo, repoArchList, repoKey, repoKeyURI)
 import Debian.Repo.Release (Release(releaseAliases, releaseComponents, releaseName, releaseArchitectures))
 import Debian.Repo.State.Release (findReleases, prepareRelease, writeRelease, signRepo)
 import Debian.URI (fileFromURIStrict)
-import Debian.Version (DebianVersion, parseDebianVersion, prettyDebianVersion)
+import Debian.Version (DebianVersion, parseDebianVersion', prettyDebianVersion)
 import Debian.Version.Text ()
 import Network.URI (URI(uriPath))
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getDirectoryContents, removeFile, renameFile)
@@ -541,7 +541,7 @@ undistribute (((index, info) : items) : tail) =
 addDebFields :: MonadInstall m => LocalRepository -> ChangesFile -> ChangedFileSpec -> Paragraph' Text -> m (Either InstallResult (Paragraph' Text))
 addDebFields repo changes file info =
     let (binaryVersion :: DebianVersion) =
-            maybe (error $ "Missing 'Version' field") parseDebianVersion (B.fieldValue "Version" info) in
+            maybe (error $ "Missing 'Version' field") parseDebianVersion' (B.fieldValue "Version" info) in
     let (newfields :: [B.Field]) =
             [B.Field (T.pack "Source", " " <> source <> T.pack (versionSuffix binaryVersion)),
              B.Field (T.pack "Filename", T.pack (" " ++ poolDir' repo changes file </> changedFileName file)),
@@ -956,7 +956,7 @@ toSourcePackage_ index package =
     case (B.fieldValue "Directory" package,
           B.fieldValue "Files" package,
           B.fieldValue "Package" package,
-          maybe Nothing (Just . parseDebianVersion . T.unpack) (B.fieldValue "Version" package)) of
+          maybe Nothing (Just . parseDebianVersion' . T.unpack) (B.fieldValue "Version" package)) of
       (Just directory, Just files, Just name, Just version) ->
           case (parseSourcesFileList files, parseSourceParagraph package) of
             (Right files', Right para) ->
@@ -1010,7 +1010,7 @@ toBinaryPackage_ release index p =
       (Just name, Just version) ->
           BinaryPackage
           { packageID =
-                makeBinaryPackageID (T.unpack name) (parseDebianVersion (T.unpack version))
+                makeBinaryPackageID (T.unpack name) (parseDebianVersion' (T.unpack version))
           , packageInfo = p
           , pDepends = tryParseRel $ B.lookupP "Depends" p
           , pPreDepends = tryParseRel $ B.lookupP "Pre-Depends" p
@@ -1032,7 +1032,7 @@ binaryPackageSourceID_ :: PackageIndex -> BinaryPackage -> PackageID BinPkgName
 binaryPackageSourceID_ (PackageIndex _component _) package =
     case maybe Nothing (matchRegex re . T.unpack) (B.fieldValue "Source" (packageInfo package)) of
       Just [name, _, ""] -> makeBinaryPackageID name (packageVersion pid)
-      Just [name, _, version] -> makeBinaryPackageID name (parseDebianVersion version)
+      Just [name, _, version] -> makeBinaryPackageID name (parseDebianVersion' version)
       _ -> error "Missing Source attribute in binary package info"
     where
       -- sourceIndex = PackageIndex component Source
@@ -1042,7 +1042,7 @@ binaryPackageSourceID_ (PackageIndex _component _) package =
 sourcePackageBinaryIDs_ :: SourcePackage -> [PackageID BinPkgName]
 sourcePackageBinaryIDs_ package =
     case (B.fieldValue "Version" info, B.fieldValue "Binary" info) of
-      (Just version, Just names) -> List.map (binaryID (parseDebianVersion (T.unpack version))) $ splitRegex (mkRegex "[ ,]+") (T.unpack names)
+      (Just version, Just names) -> List.map (binaryID (parseDebianVersion' (T.unpack version))) $ splitRegex (mkRegex "[ ,]+") (T.unpack names)
       _ -> error ("Source package info has no 'Binary' field:\n" ++ (T.unpack . formatParagraph $ info))
     where
       -- Note that this version number may be wrong - we need to

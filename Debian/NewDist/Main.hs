@@ -26,7 +26,7 @@ import Debian.Repo.Release (Release(..), parseArchitectures, parseComponents, re
 import Debian.Repo.State.Package (scanIncoming, deleteSourcePackages, deleteTrumped, deleteBinaryOrphans, deleteGarbage, InstallResult(Ok), explainError, resultToProblems, showErrors, MonadInstall, evalInstall)
 import Debian.Repo.State.Release (findReleases, prepareRelease, writeRelease, signRepo, mergeReleases)
 import Debian.Repo.State.Repository (readLocalRepository, prepareLocalRepository)
-import Debian.Version (parseDebianVersion, prettyDebianVersion)
+import Debian.Version (parseDebianVersion', prettyDebianVersion)
 import Prelude hiding (putStr, putStrLn, putChar)
 import System.Console.GetOpt (ArgOrder(Permute), getOpt, usageInfo)
 import System.Directory (createDirectoryIfMissing)
@@ -203,7 +203,7 @@ deletePackages dry rels flags keyname =
                 maybe (error ("Can't find release " ++ show dist ++ " in " ++ show rels))
                       (\ release -> (release,
                                      PackageIndex (parseSection' component) Source,
-                                     makeBinaryPackageID name (parseDebianVersion ver)))
+                                     makeBinaryPackageID name (parseDebianVersion' ver)))
                       (findReleaseByName (parseReleaseName dist))
             x -> error ("Invalid remove spec: " ++ show x)
       findReleaseByName :: ReleaseName -> Maybe Release

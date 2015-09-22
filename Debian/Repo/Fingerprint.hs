@@ -30,7 +30,7 @@ import Debian.Relation (BinPkgName(..))
 import Debian.Repo.Dependencies (readSimpleRelation, showSimpleRelation)
 import Debian.Repo.PackageID (PackageID(packageName, packageVersion))
 import Debian.Repo.PackageIndex (SourcePackage(sourceParagraph, sourcePackageID))
-import Debian.Version (DebianVersion, parseDebianVersion, prettyDebianVersion)
+import Debian.Version (DebianVersion, parseDebianVersion', prettyDebianVersion)
 
 -- | The methods we know for obtaining source code.
 data RetrieveMethod
@@ -153,7 +153,7 @@ readUpstreamFingerprint s =
             (sourceVersion : buildDeps)
                 | not (elem '=' sourceVersion) ->
                     Just $ Fingerprint { method = m
-                                       , upstreamVersion = parseDebianVersion sourceVersion
+                                       , upstreamVersion = parseDebianVersion' sourceVersion
                                        , retrievedAttributes = Set.fromList attrs
                                        , buildDependencyVersions = fromList (List.map readSimpleRelation buildDeps) }
             -- Old style fingerprint field - no upstream

@@ -27,7 +27,7 @@ import Debian.Repo.Release (Release)
 import Debian.Repo.Repo (Repo, repoURI)
 import Debian.Repo.State.Repository (readLocalRepository)
 import Debian.Repo.Top (runTopT)
-import Debian.Version (parseDebianVersion)
+import Debian.Version (parseDebianVersion')
 import GHC.IO.Exception (IOErrorType(UserError), IOException)
 import Network.URI (URI(..), URIAuth(..), uriToString)
 import System.Exit (ExitCode(..))
@@ -113,7 +113,7 @@ toSourcePackage index package =
     case (B.fieldValue "Directory" package,
           B.fieldValue "Files" package,
           B.fieldValue "Package" package,
-          maybe Nothing (Just . parseDebianVersion . T.unpack) (B.fieldValue "Version" package)) of
+          maybe Nothing (Just . parseDebianVersion' . T.unpack) (B.fieldValue "Version" package)) of
       (Just directory, Just files, Just name, Just version) ->
           case (parseSourcesFileList files, parseSourceParagraph package) of
             (Right files', Right para) ->
@@ -166,7 +166,7 @@ toBinaryPackage release index p =
     case (B.fieldValue "Package" p, B.fieldValue "Version" p) of
       (Just name, Just version) ->
           BinaryPackage 
-          { packageID = makeBinaryPackageID (T.unpack name) (parseDebianVersion (T.unpack version))
+          { packageID = makeBinaryPackageID (T.unpack name) (parseDebianVersion' (T.unpack version))
           , packageInfo = p
           , pDepends = tryParseRel $ B.lookupP "Depends" p
           , pPreDepends = tryParseRel $ B.lookupP "Pre-Depends" p

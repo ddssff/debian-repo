@@ -41,7 +41,7 @@ import Debian.Repo.Release (parseReleaseFile, Release)
 import Debian.Repo.Repo (compatibilityFile, libraryCompatibilityLevel, Repo(..), RepoKey(..))
 import Debian.Repo.Rsync (rsyncOld)
 import Debian.URI (URI(uriAuthority, uriPath), URIAuth(uriPort, uriRegName, uriUserInfo), uriToString')
-import Debian.Version (parseDebianVersion, prettyDebianVersion)
+import Debian.Version (parseDebianVersion', prettyDebianVersion)
 import Network.URI (URI(..))
 import System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.Exit (ExitCode, ExitCode(ExitSuccess))
@@ -200,7 +200,7 @@ uploadRemote repo uri =
        let newestChangesFiles = catMaybes (map listToMaybe changesFileGroups)
        -- hPutStrLn stderr $ "Newest: " ++ show newestChangesFiles
        uploaded <- (Set.fromList .
-                    map (\ [_, name', version, arch] -> (name', parseDebianVersion version, parseArch arch)) .
+                    map (\ [_, name', version, arch] -> (name', parseDebianVersion' version, parseArch arch)) .
                     catMaybes .
                     map (matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.upload$"))) <$> getDirectoryContents dir
        let (readyChangesFiles, _uploadedChangesFiles) = partition (\ f -> not . Set.member (changeKey f) $ uploaded) newestChangesFiles
@@ -294,7 +294,7 @@ parseUploadFilename :: FilePath
                     -> Failing UploadFile
 parseUploadFilename dir name =
     case matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.upload$") name of
-      Just [_, name', version, arch] -> Success (Upload dir name' (parseDebianVersion version) (parseArch arch))
+      Just [_, name', version, arch] -> Success (Upload dir name' (parseDebianVersion' version) (parseArch arch))
       _ -> Failure ["Invalid .upload file name: " ++ name]
 #endif
 
