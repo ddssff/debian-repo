@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP, DeriveDataTypeable, ScopedTypeVariables #-}
 module Debian.Repo.Rsync
     ( RsyncError(..)
-    -- , rsync
+    , rsync
     , rsyncOld
     ) where
 
@@ -12,6 +12,7 @@ import Data.ByteString.Lazy (ByteString)
 import Data.Monoid (mempty)
 #endif
 import Data.Typeable (Typeable)
+import Debian.Repo.Prelude.Process (readProcessV)
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
 import System.Process (CreateProcess, proc)
@@ -27,7 +28,7 @@ rsync extra orig copy = do
   let p = proc "rsync" (["-aHxSpDt", "--delete"] ++ extra ++
                         [dropTrailingPathSeparator orig ++ "/",
                          dropTrailingPathSeparator copy])
-  result <- try $ readCreateProcess p mempty :: IO (Either RsyncError (ExitCode, ByteString, ByteString))
+  result <- try $ readProcessV p mempty :: IO (Either RsyncError (ExitCode, ByteString, ByteString))
   case result of
     Right (code, out, err) -> maybe (return ()) (throw . toException) (buildRsyncError p code)
     Left e -> throw e
