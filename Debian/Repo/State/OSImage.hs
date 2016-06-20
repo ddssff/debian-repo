@@ -24,6 +24,7 @@ import Data.Monoid (mempty)
 #endif
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import Debian.Debianize (EnvSet(cleanOS, dependOS))
+import qualified Debian.Debianize (EnvSet(buildOS))
 import Debian.Pretty (ppShow, prettyShow)
 import Debian.Relation (BinPkgName(BinPkgName))
 import Debian.Release (ReleaseName(relName))
@@ -129,7 +130,7 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
                        Right _ -> return ()
                        Left e -> evalMonadOS (recreate e) cleanRoot
        evalMonadOS (doInclude >> doLocales) cleanRoot
-       when flushDepends (evalMonadOS (syncOS dependRoot) cleanRoot)
+       when flushDepends (evalMonadOS (syncOS dependRoot >> syncOS buildRoot) cleanRoot)
        -- Try running a command in the depend environment, if it fails
        -- sync dependOS from cleanOS.
        dependOS' <- osFromRoot dependRoot
@@ -141,12 +142,14 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
                              do -- ePutStrLn "createOSImage dependRoot?  I don't understand why this would be done."
                                 os <- liftIO (createOSImage dependRoot distro extra repo)
                                 putOSImage os
-         Just _ -> return ()
+         Just _ ->
+             evalMonadOS (doIncludeOpt >> doLocales) dependRoot
        evalMonadOS syncLocalPool dependRoot
        return (cleanRoot, dependRoot)
     where
       cleanRoot = EnvRoot (cleanOS eset)
       dependRoot = EnvRoot (dependOS eset)
+      buildRoot = EnvRoot (Debian.Debianize.buildOS eset)
       recreate :: (Applicative m, MonadOS m, MonadTop m, MonadMask m, MonadRepos m, MonadIO m) => SomeException -> m ()
       recreate e =
           case fromException e of
@@ -170,9 +173,10 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
               rebuildOS cleanRoot distro extra include exclude components
 
       doInclude :: (MonadOS m, MonadIO m, MonadMask m) => m ()
-      doInclude =
-          do aptGetInstall (map (\ s -> (BinPkgName s, Nothing)) include)
-             aptGetInstall (map (\ s -> (BinPkgName s, Nothing)) optional) `catch` (\ (e :: IOError) -> ePutStrLn ("Ignoring exception on optional package install: " ++ show e))
+      doInclude = aptGetInstall (map (\ s -> (BinPkgName s, Nothing)) include)
+      doIncludeOpt :: (MonadOS m, MonadIO m, MonadMask m) => m ()
+      doIncludeOpt = aptGetInstall (map (\ s -> (BinPkgName s, Nothing)) optional)
+                     `catch` (\ (e :: IOError) -> ePutStrLn ("Ignoring exception on optional package install: " ++ show e))
       doLocales :: (MonadOS m, MonadIO m) => m ()
       doLocales =
           do os <- getOS
