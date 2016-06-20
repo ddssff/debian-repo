@@ -142,7 +142,8 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
                              do -- ePutStrLn "createOSImage dependRoot?  I don't understand why this would be done."
                                 os <- liftIO (createOSImage dependRoot distro extra repo)
                                 putOSImage os
-         Just _ -> return ()
+         Just _ ->
+             evalMonadOS (doIncludeOpt >> doLocales) dependRoot
        evalMonadOS syncLocalPool dependRoot
        return (cleanRoot, dependRoot)
     where
@@ -172,9 +173,10 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
               rebuildOS cleanRoot distro extra include exclude components
 
       doInclude :: (MonadOS m, MonadIO m, MonadMask m) => m ()
-      doInclude =
-          do aptGetInstall (map (\ s -> (BinPkgName s, Nothing)) include)
-             aptGetInstall (map (\ s -> (BinPkgName s, Nothing)) optional) `catch` (\ (e :: IOError) -> ePutStrLn ("Ignoring exception on optional package install: " ++ show e))
+      doInclude = aptGetInstall (map (\ s -> (BinPkgName s, Nothing)) include)
+      doIncludeOpt :: (MonadOS m, MonadIO m, MonadMask m) => m ()
+      doIncludeOpt = aptGetInstall (map (\ s -> (BinPkgName s, Nothing)) optional)
+                     `catch` (\ (e :: IOError) -> ePutStrLn ("Ignoring exception on optional package install: " ++ show e))
       doLocales :: (MonadOS m, MonadIO m) => m ()
       doLocales =
           do os <- getOS
