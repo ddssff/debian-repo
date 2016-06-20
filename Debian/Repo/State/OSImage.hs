@@ -24,6 +24,7 @@ import Data.Monoid (mempty)
 #endif
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import Debian.Debianize (EnvSet(cleanOS, dependOS))
+import qualified Debian.Debianize (EnvSet(buildOS))
 import Debian.Pretty (ppShow, prettyShow)
 import Debian.Relation (BinPkgName(BinPkgName))
 import Debian.Release (ReleaseName(relName))
@@ -129,7 +130,7 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
                        Right _ -> return ()
                        Left e -> evalMonadOS (recreate e) cleanRoot
        evalMonadOS (doInclude >> doLocales) cleanRoot
-       when flushDepends (evalMonadOS (syncOS dependRoot) cleanRoot)
+       when flushDepends (evalMonadOS (syncOS dependRoot >> syncOS buildRoot) cleanRoot)
        -- Try running a command in the depend environment, if it fails
        -- sync dependOS from cleanOS.
        dependOS' <- osFromRoot dependRoot
@@ -147,6 +148,7 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
     where
       cleanRoot = EnvRoot (cleanOS eset)
       dependRoot = EnvRoot (dependOS eset)
+      buildRoot = EnvRoot (Debian.Debianize.buildOS eset)
       recreate :: (Applicative m, MonadOS m, MonadTop m, MonadMask m, MonadRepos m, MonadIO m) => SomeException -> m ()
       recreate e =
           case fromException e of
