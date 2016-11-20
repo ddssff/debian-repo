@@ -158,7 +158,7 @@ data Problem
     deriving (Eq)
 
 data Duplicate
-    = Duplicate {release :: Release, index :: PackageIndex, newPackage :: BinaryPackage, oldPackage :: BinaryPackage} deriving (Eq, Show)
+    = Duplicate {_release :: Release, _index :: PackageIndex, _newPackage :: BinaryPackage, _oldPackage :: BinaryPackage} deriving (Eq, Show)
 
 instance Pretty (PP Problem) where
     pPrint (PP (NoSuchRelease rel)) = text "NoSuchRelease  " <> text (releaseName' rel)
@@ -462,7 +462,7 @@ installFiles' createSections changes results release =
                   (True, missing) ->
                       do qPutStrLn ("Creating missing sections: " ++ intercalate " " (List.map sectionName' missing))
                          repo <- view repository <$> getInstall
-                         release' <- prepareRelease repo (releaseName release) [] missing (releaseArchitectures release)
+                         _release <- prepareRelease repo (releaseName release) [] missing (releaseArchitectures release)
                          installFiles'' changes results
                   (False, missing) ->
                       return (Failed [NoSuchSection (releaseName release) missing] : results)

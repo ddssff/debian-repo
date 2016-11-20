@@ -189,13 +189,10 @@ _pbuilderBuild :: (MonadRepos m, MonadTop m, MonadMask m) =>
          -> NamedSliceList
          -> [Slice]
          -> LocalRepository
-         -> [String]
-         -> [String]
-         -> [String]
          -> m OSImage
-_pbuilderBuild root distro extra repo _extraEssential _omitEssential _extra =
+_pbuilderBuild root distro extra repo =
     do top <- askTop
-       os <- liftIO $ pbuilder top root distro extra repo _extraEssential _omitEssential _extra
+       os <- liftIO $ pbuilder top root distro extra repo
        putOSImage os
        try (evalMonadOS updateOS root) >>= either (\ (e :: SomeException) -> error (show e)) return
        return os

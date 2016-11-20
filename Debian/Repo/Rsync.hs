@@ -16,7 +16,7 @@ import Debian.Repo.Prelude.Process (readProcessV)
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
 import System.Process (CreateProcess, proc)
-import System.Process.ListLike (readCreateProcess)
+-- import System.Process.ListLike (readCreateProcess)
 
 -- | Function that invokes rsync(1) with arguments insuring that copy
 -- will become an exact copy of orig.
@@ -30,7 +30,7 @@ rsync extra orig copy = do
                          dropTrailingPathSeparator copy])
   result <- try $ readProcessV p mempty :: IO (Either RsyncError (ExitCode, ByteString, ByteString))
   case result of
-    Right (code, out, err) -> maybe (return ()) (throw . toException) (buildRsyncError p code)
+    Right (code, _out, _err) -> maybe (return ()) (throw . toException) (buildRsyncError p code)
     Left e -> throw e
 
 -- | Map the result code of a chunk list.

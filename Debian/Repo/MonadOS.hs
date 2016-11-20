@@ -15,7 +15,7 @@ module Debian.Repo.MonadOS
 import Control.Applicative (Applicative, pure, (<$>))
 #endif
 import Control.DeepSeq (force)
-import Control.Exception (evaluate, SomeException)
+import Control.Exception ({-evaluate,-} SomeException)
 import Control.Monad.Catch (MonadCatch, MonadMask)
 import Control.Monad.State (MonadState(get), StateT, evalStateT, get)
 import Control.Monad.Trans (liftIO, MonadIO, lift)
@@ -94,7 +94,7 @@ aptGetInstall :: (MonadOS m, MonadCatch m, MonadMask m, MonadIO m, PkgName n) =>
 aptGetInstall packages =
     do root <- rootPath . osRoot <$> getOS
        withProcAndSys root $ liftIO $ useEnv root (return . force) $ do
-         readProcessV p L.empty
+         _ <- readProcessV p L.empty
          return ()
     where
       p = proc "apt-get" args'
@@ -118,7 +118,7 @@ syncLocalPool =
     do os <- getOS
        repo' <- copyLocalRepo (EnvPath {envRoot = osRoot os, envPath = "/work/localpool"}) (osLocalMaster os)
        putOS (os {osLocalCopy = repo'})
-       updateLists
+       _ <- updateLists
        -- Presumably we are doing this because the pool changed, and
        -- that invalidates the OS package lists.
        osFlushPackageCache

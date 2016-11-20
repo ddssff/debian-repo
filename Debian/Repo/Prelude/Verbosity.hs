@@ -53,10 +53,11 @@ withVerbosity :: (MonadIO m, MonadMask m) => Int -> m a -> m a
 withVerbosity v action = liftIO (setEnv "VERBOSITY" (show v) True) >> action
 
 withModifiedVerbosity :: (MonadIO m, MonadMask m) => (Int -> Int) -> m a -> m a
-withModifiedVerbosity f action =
 #ifdef FIXED_VERBOSITY_LEVEL
+withModifiedVerbosity _f action =
     action
 #else
+withModifiedVerbosity f action =
     bracket verbosity -- acquire
             (\ v0 -> liftIO (modifyEnv "VERBOSITY" (const (Just (show v0))))) -- release
             (\ v0 -> liftIO (modifyEnv "VERBOSITY" (const (Just (show (f v0))))) >> action)

@@ -133,12 +133,12 @@ seedFlags appName options args =
 --
 -- > > computeConfig "autobuilder" Nothing [Include "/home/build/.autobuilder.d"]
 -- > [[Name "common",Value "Vendor-Tag" "cnr",Value "Release-Tag" "1", ...
-computeConfig :: Int			-- ^ Preliminary verbosity level, before we have obtained the verbosity parameter
-              -> String			-- ^ The application name, used to construct candidate configuration file names.
-              -> [Flag]			-- ^ The set of flags read from the configuration
-              -> ([[Flag]] -> [[Flag]])	-- ^ Final preparation of the configuration file contents
-              -> IO [[Flag]]		-- ^ The result is a list of flag lists.  See 'Use' for an explanation of how you would get
-					-- more than one flag list here.
+computeConfig :: Int                    -- ^ Preliminary verbosity level, before we have obtained the verbosity parameter
+              -> String                 -- ^ The application name, used to construct candidate configuration file names.
+              -> [Flag]                 -- ^ The set of flags read from the configuration
+              -> ([[Flag]] -> [[Flag]]) -- ^ Final preparation of the configuration file contents
+              -> IO [[Flag]]            -- ^ The result is a list of flag lists.  See 'Use' for an explanation of how you would get
+                                        -- more than one flag list here.
 computeConfig verbosity appName commandLineFlags prepare =
     do when (verbosity > 2) (hPutStrLn stderr $ "computeConfig: commandLineFlags=" ++ show commandLineFlags)
        -- Compute the configuration file path and then load and expand it.
@@ -194,7 +194,7 @@ computeConfig verbosity appName commandLineFlags prepare =
             expand' (x : s) = x : expand' s
             expand' "" = ""
             -- Try each expansion in turn on the name at the beginning of S.
-            expand'' s [] = "${" ++ expand' s ++ "}"	-- no expansion possible
+            expand'' s [] = "${" ++ expand' s ++ "}"    -- no expansion possible
             expand'' s ((name, value) : etc) =
                 if isPrefixOf (name ++ "}") s then
                     value ++ expand' (drop (length name + 1) s) else
@@ -213,7 +213,7 @@ computeConfig verbosity appName commandLineFlags prepare =
 -- |Find the configuration file or directory we will use, if any.
 -- This the first file or directory that exists among these:
 --
--- * The 'Include' elements from the list of flags 
+-- * The 'Include' elements from the list of flags
 --
 -- * @$HOME\/.\<appName\>.d@
 --
@@ -262,14 +262,14 @@ tryPaths paths = do
       flagOfField (Field (name, value)) = Just . read $ name ++ ": " ++ value
       flagOfField _ = Nothing
       tryPath path =
-	  do
+          do
             --hPutStrLn stderr (" tryPath " ++ show path)
             isDir <- doesDirectoryExist path
             case isDir of
               False -> do
                   try (parseControlFromFile path) >>=
                       either (\ (e :: SomeException) -> error . ((path ++ ": ") ++) . show $ e) return >>=
-	              either (\ e -> error . ((path ++ ": ") ++) . show $ e) return
+                      either (\ e -> error . ((path ++ ": ") ++) . show $ e) return
               True -> do
                    getDirectoryContents path >>=
                       return . map ((path ++ "/") ++) . sort . filter isConfigPart >>=
@@ -416,8 +416,8 @@ parseLet s =
       _ -> error ("Invalid define: " ++ s)
     where
       re = mkRegex ("^" ++ mw ++ nwn ++ mw ++ "=" ++ mw ++ nwn ++ mw ++ "$")
-      nwn = "([^ \t](.*[^ \t])?)"	-- nonwhite, white, nonwhite
-      mw = "[ \t]*"			-- maybe white
+      nwn = "([^ \t](.*[^ \t])?)"       -- nonwhite, white, nonwhite
+      mw = "[ \t]*"                     -- maybe white
 
 -- |The mighty consperse function
 consperse :: [a] -> [[a]] -> [a]
@@ -434,10 +434,10 @@ distribute xs yss = concat (map (\ x -> map (x :) yss) xs)
 -- Example:
 --
 -- let (optSpecs :: [OptDescr Flag]) =
---     [Option [] ["verbose"]	(ReqArg (Value "Verbose") "NUMBER")
---	"Specify the amount of debugging output",
---	Option ['n'] ["dry-run"]	(NoArg (Value "Dry-Run" "yes"))
---	"Test run, don't modify the repository."]
+--     [Option [] ["verbose"]   (ReqArg (Value "Verbose") "NUMBER")
+--      "Specify the amount of debugging output",
+--      Option ['n'] ["dry-run"]        (NoArg (Value "Dry-Run" "yes"))
+--      "Test run, don't modify the repository."]
 -- flags <- computeConfig "myapp" optSpecs Nothing >>= return . head
 -- let dryRun = findBool flags "Dry-Run"
 --     verbose = maybe 0 read (findValue flags "Verbose")
@@ -457,10 +457,10 @@ distribute xs yss = concat (map (\ x -> map (x :) yss) xs)
 data ParamDescr a
     = Param { --option :: OptDescr Flag
               shortOpts :: [Char]
-	    , longOpts :: [String]
+            , longOpts :: [String]
             , names :: [String]
-	    , argDescr :: (ArgDescr a)
-	    , description :: String
+            , argDescr :: (ArgDescr a)
+            , description :: String
             }
 
 option :: ParamDescr a -> OptDescr a
@@ -477,9 +477,9 @@ data DescrLine
 
 -- |Modified version of System.Console.GetOpt.usageInfo, avoids printing
 -- such wide lines.
-usageInfo :: String		-- header
-          -> [ParamDescr a]	-- parameter descriptor
-          -> String		-- nicely formatted decription of options
+usageInfo :: String             -- header
+          -> [ParamDescr a]     -- parameter descriptor
+          -> String             -- nicely formatted decription of options
 usageInfo header params = unlines (header:table)
    where xs = concatMap fmtOpt params
          ssl = foldl max 0 (map ss xs)

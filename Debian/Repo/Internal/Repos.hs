@@ -167,7 +167,7 @@ evalMonadApt :: MonadRepos m => StateT AptImage m a -> AptKey -> m a
 evalMonadApt task (AptKey key) = do
   Just apt <- getApt key
   (a, apt') <- runStateT task apt
-  putAptImage apt'
+  _ <- putAptImage apt'
   return a
 
 -- | Load the value of the repo cache map from a file as a substitute for

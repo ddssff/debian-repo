@@ -186,12 +186,12 @@ binaryIndexes release =
 
 -- | Return a sorted list of available source packages, newest version first.
 sortSourcePackages :: (SrcPkgName -> Bool) -> [SourcePackage] -> [SourcePackage]
-sortSourcePackages pred pkgs =
+sortSourcePackages predicate pkgs =
     sortBy cmp . filterNames $ pkgs
     where
       filterNames :: [SourcePackage] -> [SourcePackage]
       filterNames packages =
-          List.filter (pred . packageName . sourcePackageID) packages
+          List.filter (predicate . packageName . sourcePackageID) packages
       cmp p1 p2 =
           compare v2 v1         -- Flip args to get newest first
           where
@@ -200,12 +200,12 @@ sortSourcePackages pred pkgs =
 
 -- | filter a list of binary packages by name and sort newest versions first.
 sortBinaryPackages :: (BinPkgName -> Bool) -> [BinaryPackage] -> [BinaryPackage]
-sortBinaryPackages pred pkgs =
+sortBinaryPackages predicate pkgs =
     sortBy cmp . filterPackages $ pkgs
     where
       filterPackages :: [BinaryPackage] -> [BinaryPackage]
       filterPackages packages =
-          List.filter (pred . packageName . packageID) packages
+          List.filter (predicate . packageName . packageID) packages
       cmp p1 p2 =
           compare v2 v1         -- Flip args to get newest first
           where

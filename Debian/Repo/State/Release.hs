@@ -77,7 +77,7 @@ prepareRelease repo dist aliases sections archSet =
              -- something rather than Nothing.
              repo' <- repairLocalRepository repo
              --vPutStrLn 0 $ "prepareRelease: prepareLocalRepository -> " ++ show repo'
-             putRelease repo' release
+             _ <- putRelease repo' release
              return release
       initIndex root' release index = initIndexFile (root' </> packageIndexDir release index) (packageIndexName index)
       initIndexFile dir name =
@@ -199,7 +199,7 @@ findLocalRelease repo releaseInfo =
                                         , releaseAliases = releaseAliases releaseInfo
                                         , releaseComponents = parseComponents components
                                         , releaseArchitectures = parseArchitectures architectures})
-                            putRelease repo rel
+                            _ <- putRelease repo rel
                             return rel
                      _ ->
                          error $ "Invalid release file: " ++ path

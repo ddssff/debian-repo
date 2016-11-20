@@ -347,11 +347,8 @@ pbuilder :: FilePath
          -> NamedSliceList
          -> [Slice]
          -> LocalRepository
-         -> [String]
-         -> [String]
-         -> [String]
          -> IO OSImage
-pbuilder top root distro extra repo _extraEssential _omitEssential _extra =
+pbuilder top root distro extra repo =
       -- We can't create the environment if the sources.list has any
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
@@ -367,7 +364,7 @@ pbuilder top root distro extra repo _extraEssential _omitEssential _extra =
        -- Rewrite the sources.list with the local pool added.
            sources = prettyShow $ osFullDistro os
        replaceFile sourcesPath' sources
-       useEnv (rootPath root) return $ mapM addAptRepository extra
+       _ <- useEnv (rootPath root) return $ mapM addAptRepository extra
        return os
     where
       cmd x =
@@ -407,7 +404,7 @@ debootstrap root distro extra repo include exclude components =
       -- Rewrite the sources.list with the local pool added.
           sources = prettyShow $ osFullDistro os
       replaceFile sourcesPath' sources
-      useEnv (rootPath root) return $ mapM addAptRepository extra
+      _ <- useEnv (rootPath root) return $ mapM addAptRepository extra
       return os
     where
       codefn (Right (ExitSuccess, _, _)) = return ()
