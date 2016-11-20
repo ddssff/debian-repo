@@ -16,6 +16,7 @@ module Debian.Releases
     ) where
 
 import Data.Char (toLower)
+import Data.Set (fromList, member, Set)
 -- The ReleaseName type from the debian library - just a newtyped string.
 import Debian.Release (ReleaseName(ReleaseName))
 
@@ -56,14 +57,13 @@ data BaseRelease =
     | Xenial -- 2016/04
     | Yakkety -- 2016/10
     | Zesty -- 2017/04
-    deriving (Eq, Show, Enum, Bounded)
+    deriving (Eq, Ord, Show, Enum, Bounded)
 
-allReleases :: [BaseRelease]
-allReleases = [minBound .. maxBound]
+allReleases :: Set BaseRelease
+allReleases = fromList [minBound .. maxBound]
 
-debianReleases = [Sarge, Etch, Lenny, Squeeze, Wheezy, Jessie, Sid, Experimental]
-ubuntuReleases = [Dapper, Edgy, Feisty, Hardy, Intrepid, Jaunty, Karmic, Lucid,
-                  Maverick, Natty, Oneiric, Precise, Quantal, Raring, Saucy, Trusty, Utopic]
+debianReleases = fromList [minBound .. Experimental]
+ubuntuReleases = fromList [Dapper .. maxBound]
 
 -- | A Distro is any organization that provides packages.
 data Distro = Ubuntu | Debian | Kanotix | SeeReason deriving (Eq, Show)
@@ -84,31 +84,12 @@ releaseDistro (PrivateRelease release) = releaseDistro release
 releaseDistro (Release release) = baseReleaseDistro release
 
 baseReleaseDistro :: BaseRelease -> Distro
-baseReleaseDistro Dapper = Ubuntu
-baseReleaseDistro Edgy = Ubuntu
-baseReleaseDistro Feisty = Ubuntu
-baseReleaseDistro Hardy = Ubuntu
-baseReleaseDistro Intrepid = Ubuntu
-baseReleaseDistro Jaunty = Ubuntu
-baseReleaseDistro Karmic = Ubuntu
-baseReleaseDistro Lucid = Ubuntu
-baseReleaseDistro Maverick = Ubuntu
-baseReleaseDistro Natty = Ubuntu
-baseReleaseDistro Oneiric = Ubuntu
-baseReleaseDistro Precise = Ubuntu
-baseReleaseDistro Quantal = Ubuntu
-baseReleaseDistro Raring = Ubuntu
-baseReleaseDistro Saucy = Ubuntu
-baseReleaseDistro Trusty = Ubuntu
-baseReleaseDistro Utopic = Ubuntu
-baseReleaseDistro Sarge = Debian
-baseReleaseDistro Etch = Debian
-baseReleaseDistro Lenny = Debian
-baseReleaseDistro Squeeze = Debian
-baseReleaseDistro Wheezy = Debian
-baseReleaseDistro Jessie = Debian
-baseReleaseDistro Sid = Debian
-baseReleaseDistro Experimental = Debian
+baseReleaseDistro x =
+    if x `member` debianReleases
+    then Debian
+    else if x `member` ubuntuReleases
+         then Ubuntu
+         else error $ "baseReleaseDistro " ++ show x
 
 releaseName :: Release -> ReleaseName
 releaseName = ReleaseName . releaseString
