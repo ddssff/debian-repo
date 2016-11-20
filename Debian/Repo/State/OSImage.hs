@@ -26,7 +26,7 @@ import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import Debian.Debianize (EnvSet(cleanOS, dependOS))
 import qualified Debian.Debianize (EnvSet(buildOS))
 import Debian.Pretty (ppShow, prettyShow)
-import Debian.Relation (BinPkgName(BinPkgName))
+import Debian.Relation (BinPkgName)
 import Debian.Release (ReleaseName(relName))
 import Debian.Repo.EnvPath (EnvRoot(EnvRoot, rootPath))
 import Debian.Repo.Internal.IO (buildArchOfRoot)
@@ -113,10 +113,10 @@ prepareOS
     -> Bool                     -- ^ If true, flush all the build dependencies
     -> SourcesChangedAction     -- ^ What to do if called with a sources.list that
                                 -- differs from the previous call
-    -> [String]                 -- ^ Extra packages to install - e.g. keyrings, software-properties-common
-    -> [String]                 -- ^ More packages to install, but these may not be available
+    -> [BinPkgName]             -- ^ Extra packages to install - e.g. keyrings, software-properties-common
+    -> [BinPkgName]             -- ^ More packages to install, but these may not be available
                                 -- immediately - e.g seereason-keyring.  Ignore exceptions.
-    -> [String]                 -- ^ Packages to exclude
+    -> [BinPkgName]             -- ^ Packages to exclude
     -> [String]                 -- ^ Components of the base repository
     -> m (EnvRoot, EnvRoot)
 prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include optional exclude components =
@@ -173,9 +173,9 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
               rebuildOS cleanRoot distro extra include exclude components
 
       doInclude :: (MonadOS m, MonadIO m, MonadMask m) => m ()
-      doInclude = aptGetInstall (map (\ s -> (BinPkgName s, Nothing)) include)
+      doInclude = aptGetInstall (map (\s -> (s, Nothing)) include)
       doIncludeOpt :: (MonadOS m, MonadIO m, MonadMask m) => m ()
-      doIncludeOpt = aptGetInstall (map (\ s -> (BinPkgName s, Nothing)) optional)
+      doIncludeOpt = aptGetInstall (map (\s -> (s, Nothing)) optional)
                      `catch` (\ (e :: IOError) -> ePutStrLn ("Ignoring exception on optional package install: " ++ show e))
       doLocales :: (MonadOS m, MonadIO m) => m ()
       doLocales =
@@ -201,8 +201,8 @@ rebuildOS :: (Applicative m, MonadOS m, MonadRepos m, MonadTop m, MonadMask m) =
              EnvRoot                    -- ^ The location where image is to be built
            -> NamedSliceList            -- ^ The sources.list of the base distribution
            -> [Slice]
-           -> [String]                  -- ^ Extra packages to install - e.g. keyrings
-           -> [String]                  -- ^ Packages to exclude
+           -> [BinPkgName]              -- ^ Extra packages to install - e.g. keyrings
+           -> [BinPkgName]              -- ^ Packages to exclude
            -> [String]                  -- ^ Components of the base repository
            -> m ()
 rebuildOS root distro extra include exclude components =
@@ -217,8 +217,8 @@ buildOS :: (MonadRepos m, MonadTop m, MonadMask m) =>
          -> NamedSliceList
          -> [Slice]
          -> LocalRepository
-         -> [String]
-         -> [String]
+         -> [BinPkgName]
+         -> [BinPkgName]
          -> [String]
          -> m OSImage
 buildOS root distro extra repo include exclude components =

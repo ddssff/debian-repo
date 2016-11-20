@@ -32,7 +32,7 @@ import Data.List (intercalate)
 import Data.Typeable (Typeable)
 import Debian.Arch (Arch)
 import Debian.Pretty (prettyShow)
-import Debian.Relation (ParseRelations(parseRelations), Relations)
+import Debian.Relation (BinPkgName(..), ParseRelations(parseRelations), Relations)
 import Debian.Release (parseReleaseName, parseSection', ReleaseName(relName))
 import Debian.Repo.EnvPath (EnvPath(EnvPath, envPath, envRoot), EnvRoot(rootPath), outsidePath)
 import Debian.Repo.Internal.IO (buildArchOfRoot)
@@ -383,8 +383,8 @@ debootstrap
     -> NamedSliceList
     -> [Slice]
     -> LocalRepository
-    -> [String]
-    -> [String]
+    -> [BinPkgName]
+    -> [BinPkgName]
     -> [String]
     -> IO OSImage
 debootstrap root distro extra repo include exclude components =
@@ -418,8 +418,8 @@ debootstrap root distro extra repo include exclude components =
               ["set -x",
                "rm -rf " ++ wootNew,
                ("debootstrap " ++
-                (if include /= [] then "--include=" ++ intercalate "," include ++ " " else "") ++
-                (if exclude /= [] then "--exclude=" ++ intercalate "," exclude ++ " " else "") ++
+                (if include /= [] then "--include=" ++ intercalate "," (map unBinPkgName include) ++ " " else "") ++
+                (if exclude /= [] then "--exclude=" ++ intercalate "," (map unBinPkgName exclude) ++ " " else "") ++
                 "--variant=buildd " ++
                 "--components=" ++ intercalate "," components ++ " " ++
                 baseDist ++ " " ++
