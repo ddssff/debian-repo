@@ -26,7 +26,10 @@ data BaseRelease =
     | Lenny -- 2009/2
     | Squeeze -- 2011/2
     | Wheezy -- 2013/5
-    | Jessie -- unreleased as of 2014/6
+    | Jessie -- 2015/04
+    | Stretch
+    | Buster
+    | Bullseye
     | Sid -- always current
     | Experimental -- always current (but actually not a base release,
                    -- not complete.  Is experimental an add-on to sid?)
@@ -48,6 +51,11 @@ data BaseRelease =
     | Saucy -- 2013/10
     | Trusty -- 2014/4
     | Utopic -- 2014/10
+    | Vivid -- 2015/04
+    | Wily -- 2015/10
+    | Xenial -- 2016/04
+    | Yakkety -- 2016/10
+    | Zesty -- 2017/04
     deriving (Eq, Show, Enum, Bounded)
 
 allReleases :: [BaseRelease]
