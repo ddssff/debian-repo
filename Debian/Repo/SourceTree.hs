@@ -119,8 +119,8 @@ instance Show BuildDecision where
     show (Error reason) = "Error - " ++ reason
 
 -- | Run dpkg-buildpackage in a build tree.
-buildDebs :: (MonadOS m, MonadIO m) => Bool -> Bool -> [(String, Maybe String)] -> DebianBuildTree -> BuildDecision -> m NominalDiffTime
-buildDebs noClean _twice setEnv buildTree decision =
+buildDebs :: (MonadOS m, MonadIO m) => Bool -> [(String, Maybe String)] -> DebianBuildTree -> BuildDecision -> m NominalDiffTime
+buildDebs noClean setEnv buildTree decision =
     do
       root <- rootPath . osRoot <$> getOS
       noSecretKey <- liftIO $ getEnv "HOME" >>= return . (++ "/.gnupg") >>= doesDirectoryExist >>= return . not
