@@ -124,11 +124,11 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
                                                       putOSImage os
                                                       return os) return
        case flushRoot of
-         True -> evalMonadOS (recreate (toException Flushed)) cleanRoot
+         True -> evalMonadOS (recreate (toException Flushed) >> syncOS dependRoot >> syncOS buildRoot) cleanRoot
          False -> do result <- try (evalMonadOS updateOS cleanRoot)
                      case result of
                        Right _ -> return ()
-                       Left e -> evalMonadOS (recreate e) cleanRoot
+                       Left e -> evalMonadOS (recreate e >> syncOS dependRoot >> syncOS buildRoot) cleanRoot
        evalMonadOS (doInclude >> doLocales) cleanRoot
        when flushDepends (evalMonadOS (syncOS dependRoot >> syncOS buildRoot) cleanRoot)
        -- Try running a command in the depend environment, if it fails
