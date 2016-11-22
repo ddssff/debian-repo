@@ -16,7 +16,7 @@ import Control.Exception (SomeException, throw)
 import Control.Monad (when)
 import Control.Monad.Catch (catch, fromException, MonadMask, toException, try)
 import Control.Monad.Trans (liftIO, MonadIO)
-import qualified Data.ByteString.Lazy as L (empty)
+import qualified Data.ByteString.Lazy as L (ByteString, empty)
 import Data.Either (partitionEithers)
 import Data.List (isSuffixOf)
 #if !MIN_VERSION_base(4,8,0)
@@ -142,9 +142,8 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
                              do -- ePutStrLn "createOSImage dependRoot?  I don't understand why this would be done."
                                 os <- liftIO (createOSImage dependRoot distro extra repo)
                                 putOSImage os
-         Just _ ->
-             evalMonadOS (doIncludeOpt >> doLocales) dependRoot
-       evalMonadOS syncLocalPool dependRoot
+         _ -> pure ()
+       evalMonadOS (doIncludeOpt >> doLocales >> syncLocalPool) dependRoot
        return (cleanRoot, dependRoot)
     where
       cleanRoot = EnvRoot (cleanOS eset)
@@ -325,6 +324,7 @@ prepareDevs root = do
                (root ++ "/dev/urandom", "c", 1, 9)] ++
               (map (\ n -> (root ++ "/dev/loop" ++ show n, "b", 7, n)) [0..7]) ++
               (map (\ n -> (root ++ "/dev/loop/" ++ show n, "b", 7, n)) [0..7])
+    prepareDev :: (FilePath, String, Int, Int) -> IO (Either SomeException (ExitCode, L.ByteString, L.ByteString))
     prepareDev (path, typ, major, minor) = do
                      createDirectoryIfMissing True (fst (splitFileName path))
                      let cmd = "mknod " ++ path ++ " " ++ typ ++ " " ++ show major ++ " " ++ show minor ++ " 2> /dev/null"

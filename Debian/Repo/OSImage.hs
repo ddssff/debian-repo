@@ -189,7 +189,7 @@ syncOS' src dst = do
 localeGen :: OSImage -> String -> IO ()
 localeGen os locale =
     do let root = osRoot os
-       qPutStr ("Generating locale " ++  locale ++ " (" ++ stripDist (rootPath root) ++ ")...")
+       qPutStr ("Generating locale " ++  locale ++ " (in " ++ stripDist (rootPath root) ++ ")...")
        chunks <- useEnv (rootPath root) return (readProcessVE (shell cmd) B.empty)
        case chunks of
          (Right (ExitSuccess, _, _)) -> qPutStrLn "done"
