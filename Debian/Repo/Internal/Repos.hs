@@ -51,6 +51,8 @@ import Debian.Repo.RemoteRepository (RemoteRepository)
 import Debian.Repo.Repo (Repo, repoKey, RepoKey(..))
 import Debian.Repo.Top (MonadTop, runTopT, sub, TopT)
 import Debian.URI (URI')
+import System.Directory (removeFile)
+import System.IO (hPutStrLn, stderr)
 import System.IO.Error (isDoesNotExistError)
 import qualified System.Posix.Files as F (removeLink)
 
@@ -183,10 +185,12 @@ loadRepoCache =
       loadRepoCache' :: FilePath -> IO (Map URI' RemoteRepository)
       loadRepoCache' repoCache =
           do qPutStrLn "Loading repo cache..."
-             file <- readFile repoCache
-             case maybeRead file of
-               Nothing ->
-                   error ("Ignoring invalid repoCache: " ++ show file)
+             cache <- readFile repoCache
+             case maybeRead cache of
+               Nothing -> do
+                   liftIO $ hPutStrLn stderr ("Removing invalid repoCache: " ++ show repoCache ++ " -> " ++ show cache)
+                   removeFile repoCache
+                   return mempty
                Just pairs ->
                    qPutStrLn ("Loaded " ++ show (length pairs) ++ " entries from the repo cache in " ++ show repoCache) >>
                    return (fromList pairs)
