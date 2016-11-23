@@ -85,7 +85,7 @@ updateLists = do
       configure :: m (Either SomeException (ExitCode, ByteString, ByteString))
       configure = useOS (readProcessVE (proc "dpkg" ["--configure", "-a"]) L.empty)
       upgrade :: m (Either SomeException (ExitCode, ByteString, ByteString))
-      upgrade = useOS (readProcessVE (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
+      upgrade = useOS (readProcessQE (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
 
 -- | Run an apt-get command in a particular directory with a
 -- particular list of packages.  Note that apt-get source works for
