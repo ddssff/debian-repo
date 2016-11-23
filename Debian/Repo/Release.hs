@@ -110,7 +110,7 @@ getReleaseInfoRemote :: URI -> IO [Release]
 getReleaseInfoRemote uri =
     qPutStr ("(verifying " ++ uriToString' uri ++ ".") >>
     dirFromURI distsURI >>=
-    either (error . show) verify >>=
+    either (error . show) (verify . filter (\x -> not (elem x [".", ".."]))) >>=
     return . catMaybes >>= 
     (\ result -> qPutStr ")\n" >> return result)
     where
