@@ -16,7 +16,7 @@ import Control.Applicative (Applicative, pure, (<$>))
 #endif
 import Control.DeepSeq (force)
 import Control.Exception ({-evaluate,-} SomeException)
-import Control.Monad.Catch (MonadCatch, MonadMask)
+import Control.Monad.Catch (mask_, MonadCatch, MonadMask)
 import Control.Monad.State (MonadState(get), StateT, evalStateT, get)
 import Control.Monad.Trans (liftIO, MonadIO, lift)
 import Control.Monad.Trans.Except () -- instances
@@ -73,7 +73,7 @@ updateLists :: forall m. (Applicative m, MonadOS m, MonadIO m, MonadCatch m, Mon
 updateLists = do
   r1 <- update >>= f
   r2 <- if r1 then pure True else or <$> sequence [aptinstall >>= f, configure >>= f, update >>= f]
-  if r2 then upgrade >>= f else pure False
+  if r2 then mask_ upgrade >>= f else pure False
     where
       f :: (Either SomeException (ExitCode, ByteString, ByteString)) -> m Bool
       f (Right (ExitSuccess, _, _)) = return True
