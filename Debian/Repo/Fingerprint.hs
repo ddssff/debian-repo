@@ -86,7 +86,9 @@ data RetrieveAttribute
     = AptVersion String
     -- ^ The version number of a package retrieved by apt-get source
     | GitCommit String
-    -- ^ The id of the most recent commit
+    -- ^ The id of the desired git commit
+    | GitBranch String
+    -- ^ The desired branch the git repo
     | DarcsChangesId String
     -- ^ The checksum of the output of darcs changes --xml-output
     | SourceDebName String
