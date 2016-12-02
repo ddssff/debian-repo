@@ -186,7 +186,7 @@ Library
     Build-Depends: debian >= 3.89
   else
     Hs-Source-Dirs: ../debian-haskell
-    Build-Depends: pretty, process-extras, network
+    Build-Depends: pretty, process-extras >= 0.7, network
     Exposed-Modules:
       Debian.Apt.Dependencies,
       Debian.Apt.Index,
@@ -227,7 +227,7 @@ Library
   if flag(listlike)
     Build-Depends: process-listlike >= 1.0
   else
-    Build-Depends: process-extras >= 0.2.0
+    Build-Depends: process-extras >= 0.7
 
   if flag(local-filemanip-extra)
     Hs-Source-Dirs: ../filemanip-extra

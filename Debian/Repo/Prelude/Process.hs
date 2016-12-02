@@ -37,7 +37,7 @@ import System.Exit (ExitCode(..))
 import System.IO (stdout, stderr)
 import System.IO.Error (mkIOError)
 import System.Process (CreateProcess(cwd, env))
-import System.Process.ListLike (Chunk(..), collectOutput, ListLikeProcessIO, ProcessOutput, readCreateProcessLazy, showCreateProcessForUser)
+import System.Process.ListLike (Chunk(..), collectOutput, ListLikeProcessIO, ProcessResult, readCreateProcessLazy, showCreateProcessForUser)
 
 -- | Run a task and return the elapsed time along with its result.
 timeTask :: IO a -> IO (a, NominalDiffTime)
@@ -55,7 +55,7 @@ readProcessVE p input = do
   ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++  either show (\ (code, _, _) -> show code) result)
   return result
 
-readProcessV :: forall a c m. (Eq c, IsString a, ProcessOutput a (ExitCode, a, a), ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
+readProcessV :: forall a c m. (Eq c, IsString a, ProcessResult a (ExitCode, a, a), ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
 readProcessV p input = do
   ePutStrLn (" -> " ++ showCreateProcessForUser p)
   result@(code, _, _) <- liftIO $ readCreateProcessLazy p input >>= putIndented >>= return . collectOutput
