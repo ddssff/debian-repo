@@ -29,7 +29,7 @@ sign keyname path =
                 hPutStr stderr gpgerr
                 exitWith status
        where
-         cmd = "/usr/bin/gpg"
+         cmd = "gpg2"
          args = [ "--batch"
                 , "--yes"
                 , "--default-key", keyname
@@ -57,7 +57,7 @@ pgpSignFile keyname path =
                 hPutStr stderr gpgerr
                 return False
        where
-         cmd = "/usr/bin/gpg"
+         cmd = "gpg2"
          args = defaultKey ++
              [ "--batch"
              , "--yes"
