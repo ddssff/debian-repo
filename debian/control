@@ -2,82 +2,82 @@ Source: haskell-debian-repo
 Maintainer: David Fox <dsf@seereason.com>
 Priority: extra
 Section: haskell
-Build-Depends: debhelper (>= 7.0)
-               , haskell-devscripts (>= 0.8)
-               , cdbs
-               , ghc
-               , ghc-prof
-               , libghc-ansi-wl-pprint-dev
-               , libghc-ansi-wl-pprint-prof
-               , libghc-applicative-extras-dev
-               , libghc-applicative-extras-prof
-               , libghc-bifunctors-dev
-               , libghc-bifunctors-prof
-               , libghc-bzlib-dev
-               , libghc-bzlib-prof
-               , libghc-cabal-debian-dev (>= 4.5)
-               , libghc-cabal-debian-prof (>= 4.5)
-               , libghc-debian-dev (>= 3.84)
-               , libghc-debian-prof (>= 3.84)
-               , libghc-exceptions-dev (>= 0.6)
-               , libghc-exceptions-prof (>= 0.6)
-               , libghc-extra-dev
-               , libghc-extra-prof
-               , libghc-filemanip-extra-dev
-               , libghc-filemanip-extra-prof
-               , libghc-haxml-dev
-               , libghc-haxml-prof
-               , libghc-listlike-dev
-               , libghc-listlike-prof
-               , libghc-mime-dev
-               , libghc-mime-prof
-               , libghc-mtl-dev
-               , libghc-mtl-prof
-               , libghc-network-uri-dev
-               , libghc-network-uri-prof
-               , libghc-parsec3-dev (>= 3) | libghc-parsec2-dev (<< 3)
-               , libghc-parsec3-prof (>= 3) | libghc-parsec2-prof (<< 3)
-               , libghc-process-extras-dev (>= 0.2.0) | libghc-process-listlike-dev (>= 1.0)
-               , libghc-process-extras-prof (>= 0.2.0) | libghc-process-listlike-prof (>= 1.0)
-               , libghc-puremd5-dev
-               , libghc-puremd5-prof
-               , libghc-regex-compat-dev
-               , libghc-regex-compat-prof
-               , libghc-regex-tdfa-dev
-               , libghc-regex-tdfa-prof
-               , libghc-syb-dev
-               , libghc-syb-prof
-               , libghc-text-dev
-               , libghc-text-prof
-               , libghc-unixutils-dev (>= 1.52.3)
-               , libghc-unixutils-prof (>= 1.52.3)
-               , libghc-utf8-string-dev
-               , libghc-utf8-string-prof
-               , libghc-zlib-dev
-               , libghc-zlib-prof
+Build-Depends: debhelper (>= 7.0),
+ haskell-devscripts (>= 0.8),
+ cdbs,
+ ghc,
+ ghc-prof,
+ libghc-ansi-wl-pprint-dev,
+ libghc-ansi-wl-pprint-prof,
+ libghc-applicative-extras-dev,
+ libghc-applicative-extras-prof,
+ libghc-bifunctors-dev,
+ libghc-bifunctors-prof,
+ libghc-bzlib-dev,
+ libghc-bzlib-prof,
+ libghc-cabal-debian-dev (>= 4.5),
+ libghc-cabal-debian-prof (>= 4.5),
+ libghc-debian-dev (>= 3.84),
+ libghc-debian-prof (>= 3.84),
+ libghc-exceptions-dev (>= 0.6),
+ libghc-exceptions-prof (>= 0.6),
+ libghc-extra-dev,
+ libghc-extra-prof,
+ libghc-filemanip-extra-dev,
+ libghc-filemanip-extra-prof,
+ libghc-haxml-dev,
+ libghc-haxml-prof,
+ libghc-listlike-dev,
+ libghc-listlike-prof,
+ libghc-mime-dev,
+ libghc-mime-prof,
+ libghc-mtl-dev,
+ libghc-mtl-prof,
+ libghc-network-uri-dev,
+ libghc-network-uri-prof,
+ libghc-parsec3-dev (>= 3) | libghc-parsec2-dev (<< 3),
+ libghc-parsec3-prof (>= 3) | libghc-parsec2-prof (<< 3),
+ libghc-process-extras-dev (>= 0.2.0) | libghc-process-listlike-dev (>= 1.0),
+ libghc-process-extras-prof (>= 0.2.0) | libghc-process-listlike-prof (>= 1.0),
+ libghc-puremd5-dev,
+ libghc-puremd5-prof,
+ libghc-regex-compat-dev,
+ libghc-regex-compat-prof,
+ libghc-regex-tdfa-dev,
+ libghc-regex-tdfa-prof,
+ libghc-syb-dev,
+ libghc-syb-prof,
+ libghc-text-dev,
+ libghc-text-prof,
+ libghc-unixutils-dev (>= 1.52.3),
+ libghc-unixutils-prof (>= 1.52.3),
+ libghc-utf8-string-dev,
+ libghc-utf8-string-prof,
+ libghc-zlib-dev,
+ libghc-zlib-prof
 Build-Depends-Indep: ghc-doc
-                     , libghc-applicative-extras-doc
-                     , libghc-bzlib-doc
-                     , libghc-cabal-debian-doc (>= 4.5)
-                     , libghc-debian-doc (>= 3.84)
-                     , libghc-exceptions-doc (>= 0.6)
-                     , libghc-extra-doc
-		     , libghc-filemanip-extra-doc
-                     , libghc-haxml-doc
-                     , libghc-listlike-doc
-                     , libghc-mime-doc
-                     , libghc-mtl-doc
-                     , libghc-network-uri-doc
-                     , libghc-parsec3-doc (>= 3)
-                     , libghc-process-extras-doc (>= 0.2.0) | libghc-process-listlike-doc (>= 1.0)
-                     , libghc-puremd5-doc
-                     , libghc-regex-compat-doc
-                     , libghc-regex-tdfa-doc
-                     , libghc-syb-doc
-                     , libghc-text-doc
-                     , libghc-unixutils-doc (>= 1.52.3)
-                     , libghc-utf8-string-doc
-                     , libghc-zlib-doc
+ libghc-applicative-extras-doc,
+ libghc-bzlib-doc,
+ libghc-cabal-debian-doc (>= 4.5),
+ libghc-debian-doc (>= 3.84),
+ libghc-exceptions-doc (>= 0.6),
+ libghc-extra-doc,
+ libghc-filemanip-extra-doc,
+ libghc-haxml-doc,
+ libghc-listlike-doc,
+ libghc-mime-doc,
+ libghc-mtl-doc,
+ libghc-network-uri-doc,
+ libghc-parsec3-doc (>= 3),
+ libghc-process-extras-doc (>= 0.2.0) | libghc-process-listlike-doc (>= 1.0),
+ libghc-puremd5-doc,
+ libghc-regex-compat-doc,
+ libghc-regex-tdfa-doc,
+ libghc-syb-doc,
+ libghc-text-doc,
+ libghc-unixutils-doc (>= 1.52.3),
+ libghc-utf8-string-doc,
+ libghc-zlib-doc
 X-Description: Modules for working with Debian repositories
  This library includes modules covering the management of Debian
  package repositories, local caches of remote debian repositories,
