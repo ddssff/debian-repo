@@ -21,6 +21,7 @@ Data-Files:
 flag pretty112
  Description: pretty-1.1.2 includes the Text.PrettyPrint.HughesPJClass module from prettyclass
  Default: True
+ Manual: True
 
 flag local-cabal-debian
   Description: Link directly to the source of the cabal-debian library
@@ -54,7 +55,7 @@ flag listlike
 Library
   Buildable: True
   Hs-Source-Dirs: .
-  ghc-options: -O2 -threaded -Wall
+  ghc-options: -O2 -Wall
 
   if flag(no-verbosity-control)
     cpp-options: -DNO_VERBOSITY_CONTROL
@@ -142,101 +143,15 @@ Library
         Debian.Repo.State.Slice,
         Debian.Repo.Top,
         Debian.VersionPolicy
+  Build-Depends: cabal-debian >= 4.24
+  Build-Depends: debian >= 3.89
 
-  if !flag (local-cabal-debian)
-    Build-Depends: cabal-debian >= 4.24
-  else
-    Hs-Source-Dirs: ../cabal-debian/src, ../cabal-debian/dist/build/autogen
-    Build-Depends: hsemail, memoize, Diff, pretty, data-default, set-extra, lens, newtype-generics, bifunctors, ansi-wl-pprint, optparse-applicative
-    Exposed-Modules:
-      Debian.Debianize
-      Debian.GHC
-      Debian.Policy
-      Distribution.Version.Invert
-      Debian.Debianize.BasicInfo
-      Debian.Debianize.BinaryDebDescription
-      Debian.Debianize.BuildDependencies
-      Debian.Debianize.Bundled
-      Debian.Debianize.CabalInfo
-      Debian.Debianize.Changelog
-      Debian.Debianize.CopyrightDescription
-      Debian.Debianize.DebianName
-      Debian.Debianize.DebInfo
-      Debian.Debianize.Details
-      Debian.Debianize.Files
-      Debian.Debianize.Finalize
-      Debian.Debianize.Goodies
-      Debian.Debianize.InputCabal
-      Debian.Debianize.InputDebian
-      Debian.Debianize.Interspersed
-      Debian.Debianize.Monad
-      Debian.Debianize.Optparse
-      Debian.Debianize.Output
-      Debian.Debianize.Prelude
-      Debian.Debianize.SourceDebDescription
-      Debian.Debianize.VersionSplits
-      Paths_cabal_debian
-    Other-Modules:
-      Debian.Orphans
-
-    -- cpp-options: -DMIN_VERSION_Cabal(a,b,c)=1
-    -- ghc-options: -package Cabal-1.21.1.0
-
-  if !flag (local-debian)
-    Build-Depends: debian >= 3.89
-  else
-    Hs-Source-Dirs: ../debian-haskell
-    Build-Depends: pretty, process-extras >= 0.7, network
-    Exposed-Modules:
-      Debian.Apt.Dependencies,
-      Debian.Apt.Index,
-      Debian.Apt.Methods,
-      Debian.Apt.Package,
-      Debian.Arch,
-      Debian.Changes,
-      Debian.Control,
-      Debian.Control.Common,
-      Debian.Control.ByteString,
-      Debian.Control.Policy,
-      Debian.Control.String,
-      Debian.Control.Text,
-      Debian.Deb,
-      Debian.Extra.Files,
-      Debian.GenBuildDeps,
-      Debian.Loc,
-      Debian.Pretty,
-      Debian.Relation,
-      Debian.Relation.ByteString,
-      Debian.Relation.Common,
-      Debian.Relation.String,
-      Debian.Relation.Text,
-      Debian.Release,
-      Debian.Sources,
-      Debian.Version,
-      Debian.Version.ByteString,
-      Debian.Version.Common,
-      Debian.Version.String,
-      Debian.Version.Text,
-      Debian.Report,
-      Debian.Time,
-      Debian.URI,
-      Debian.UTF8,
-      Debian.Util.FakeChanges
-    Other-Modules:
-      Debian.Version.Internal
   if flag(listlike)
     Build-Depends: process-listlike >= 1.0
   else
     Build-Depends: process-extras >= 0.7
 
-  if flag(local-filemanip-extra)
-    Hs-Source-Dirs: ../filemanip-extra
-    Exposed-Modules:
-      System.FilePath.Extra
-      System.FilePath.Extra2
-      System.FilePath.Extra3
-  else
-    Build-Depends: filemanip-extra
+  Build-Depends: filemanip-extra
 
 Executable debian-versions
   Hs-Source-Dirs: demos
@@ -244,8 +159,7 @@ Executable debian-versions
   Buildable: True
   Main-is: Versions.hs
   ghc-options: -O2 -threaded -Wall
-  if !flag(local-debian)
-    Build-Depends: debian >= 3.89
+  Build-Depends: debian >= 3.89
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
@@ -253,7 +167,5 @@ Executable newdist
   Buildable: True
   Main-is: Main.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
-  if !flag(local-cabal-debian)
-    Build-Depends: cabal-debian
-  if !flag(local-debian)
-    Build-Depends: debian >= 3.89
+  Build-Depends: cabal-debian
+  Build-Depends: debian >= 3.89
