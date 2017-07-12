@@ -57,6 +57,7 @@ data BaseRelease =
     | Xenial -- 2016/04
     | Yakkety -- 2016/10
     | Zesty -- 2017/04
+    | Artful -- 2017/10
     deriving (Eq, Ord, Show, Enum, Bounded)
 
 allReleases :: Set BaseRelease
@@ -140,6 +141,12 @@ parseReleaseName (ReleaseName s) =
       parse "saucy" = Release Saucy
       parse "trusty" = Release Trusty
       parse "utopic" = Release Utopic
+      parse "vivid" = Release Vivid
+      parse "wily" = Release Wily
+      parse "xenial" = Release Xenial
+      parse "yakkety" = Release Yakkety
+      parse "zesty" = Release Zesty
+      parse "artful" = Release Artful
 
       parse s =
           case viewSuffix "-private" s of
