@@ -51,8 +51,8 @@ repoSources chroot uri =
        mapM (verifyDebSource Nothing) result >>= (\ list -> return $ SliceList { slices = list })
     where
       sources (Just codename, Just components@(_ : _)) =
-          [DebSource {sourceType = Deb, sourceUri = uri, sourceDist = Right (parseReleaseName (unpack codename), components)},
-           DebSource {sourceType = DebSrc, sourceUri = uri, sourceDist = Right (parseReleaseName (unpack codename), components)}]
+          [DebSource {sourceType = Deb, sourceOptions = [], sourceUri = uri, sourceDist = Right (parseReleaseName (unpack codename), components)},
+           DebSource {sourceType = DebSrc, sourceOptions = [], sourceUri = uri, sourceDist = Right (parseReleaseName (unpack codename), components)}]
       sources _ = []
       -- Compute the list of sections for each dist on a remote server.
       zap p x = if p x then Just x else Nothing

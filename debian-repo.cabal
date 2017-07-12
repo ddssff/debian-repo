@@ -1,5 +1,5 @@
 Name:           debian-repo
-Version:        5.77
+Version:        5.77.1
 License:        BSD3
 License-File:	debian/copyright
 Author:         David Fox
@@ -144,7 +144,7 @@ Library
         Debian.Repo.Top,
         Debian.VersionPolicy
   Build-Depends: cabal-debian >= 4.24
-  Build-Depends: debian >= 3.89
+  Build-Depends: debian >= 3.92
 
   if flag(listlike)
     Build-Depends: process-listlike >= 1.0
@@ -159,7 +159,7 @@ Executable debian-versions
   Buildable: True
   Main-is: Versions.hs
   ghc-options: -O2 -threaded -Wall
-  Build-Depends: debian >= 3.89
+  Build-Depends: debian >= 3.92
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
@@ -168,4 +168,4 @@ Executable newdist
   Main-is: Main.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
   Build-Depends: cabal-debian
-  Build-Depends: debian >= 3.89
+  Build-Depends: debian >= 3.92
