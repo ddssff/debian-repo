@@ -100,6 +100,9 @@ simplifyRelations available relations preferred arch =
                                       let names = packageName (packageID package) : map provides (pProvides package) in
                                       map (\ name -> (name, package)) names) available))
             provides [Rel name Nothing Nothing] = name
+            -- This happened in artful, so I added this case:
+            --   Exception during build: Invalid relation in Provides: [apt-transport-https (= 1.5~beta1)]
+            provides [Rel name _ _] = name
             provides bzzt = error ("Invalid relation in Provides: " ++ show (map ppPrint bzzt))
             relationsOfArch = filter (/= []) (map (nub . filter (testArch arch)) relations)
       prefOrder a b = compare (isPreferred a) (isPreferred b)

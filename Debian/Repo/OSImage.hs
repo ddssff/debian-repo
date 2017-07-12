@@ -44,7 +44,7 @@ import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn)
 import Debian.Repo.Repo (repoKey, repoURI)
 import Debian.Repo.Rsync (rsyncOld)
 import Debian.Repo.Slice (NamedSliceList(sliceList), NamedSliceList(sliceListName), Slice(Slice, sliceRepoKey, sliceSource), SliceList(..), addAptRepository)
-import Debian.Sources (DebSource(..), DebSource(sourceDist, sourceUri), SourceOption, SourceType(..), SourceType(..))
+import Debian.Sources (DebSource(..), DebSource(sourceDist, sourceUri), SourceOption, SourceType(..))
 import Debian.URI (uriToString')
 import System.Directory (createDirectoryIfMissing, doesFileExist, removeFile, renameFile)
 import System.Exit (ExitCode(ExitSuccess))
@@ -148,16 +148,16 @@ instance Show OSImage where
 
 -- |The sources.list is the list associated with the distro name, plus
 -- the local sources where we deposit newly built packages.
-osFullDistro :: [SourceOption] -> OSImage -> SliceList
-osFullDistro options os =
+osFullDistro :: OSImage -> SliceList
+osFullDistro os =
     let base = osBaseDistro os
         repo' = osLocalCopy os
         name = relName (sliceListName base)
         localSources :: SliceList
         localSources = SliceList {slices = [Slice {sliceRepoKey = repoKey repo', sliceSource = src},
                                             Slice {sliceRepoKey = repoKey repo', sliceSource = bin}]}
-        src = DebSource Deb options (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"]))
-        bin = DebSource DebSrc options (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"])) in
+        src = DebSource Deb [] (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"]))
+        bin = DebSource DebSrc [] (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"])) in
     SliceList { slices = slices (sliceList base) ++ osExtraRepos os ++ slices localSources }
 
 data UpdateError
@@ -347,9 +347,8 @@ pbuilder :: FilePath
          -> NamedSliceList
          -> [Slice]
          -> LocalRepository
-         -> [SourceOption]
          -> IO OSImage
-pbuilder top root distro extra repo localSourceOptions =
+pbuilder top root distro extra repo =
       -- We can't create the environment if the sources.list has any
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
@@ -363,7 +362,7 @@ pbuilder top root distro extra repo localSourceOptions =
        os <- createOSImage root distro extra repo -- arch?  copy?
        let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
        -- Rewrite the sources.list with the local pool added.
-           sources = prettyShow $ osFullDistro localSourceOptions os
+           sources = prettyShow $ osFullDistro os
        replaceFile sourcesPath' sources
        _ <- useEnv (rootPath root) return $ mapM addAptRepository extra
        return os
@@ -387,9 +386,8 @@ debootstrap
     -> [BinPkgName]
     -> [BinPkgName]
     -> [String]
-    -> [SourceOption]
     -> IO OSImage
-debootstrap root distro extra repo include exclude components localSourceOptions =
+debootstrap root distro extra repo include exclude components =
     do
       ePutStr (unlines [ "Creating clean build environment (" ++ relName (sliceListName distro) ++ ")"
                        , "  root: " ++ show root
@@ -404,7 +402,7 @@ debootstrap root distro extra repo include exclude components localSourceOptions
       os <- createOSImage root distro extra repo -- arch?  copy?
       let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
       -- Rewrite the sources.list with the local pool added.
-          sources = prettyShow $ osFullDistro localSourceOptions os
+          sources = prettyShow $ osFullDistro os
       replaceFile sourcesPath' sources
       _ <- useEnv (rootPath root) return $ mapM addAptRepository extra
       return os

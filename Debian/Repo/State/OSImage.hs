@@ -76,7 +76,7 @@ osSourcePackages = do
       osSourcePackages' = do
         root <- osRoot <$> getOS
         arch <- osArch <$> getOS
-        dist <- osFullDistro [SourceOption "trusted" OpSet ["yes"]] <$> getOS
+        dist <- osFullDistro <$> getOS
         pkgs <- sourcePackagesFromSources root arch dist
         qPutStrLn ("Read " ++ show (length pkgs) ++ " release source packages")
         modifyOS (\ s -> s {osSourcePackageCache = Just pkgs})
@@ -90,7 +90,7 @@ osBinaryPackages = do
       osBinaryPackages' = do
         root <- osRoot <$> getOS
         arch <- osArch <$> getOS
-        dist <- osFullDistro [SourceOption "trusted" OpSet ["yes"]] <$> getOS
+        dist <- osFullDistro <$> getOS
         pkgs <- binaryPackagesFromSources root arch dist
         qPutStrLn ("Read " ++ show (length pkgs) ++ " release binary packages")
         modifyOS (\ s -> s {osBinaryPackageCache = Just pkgs})
@@ -191,7 +191,7 @@ _pbuilderBuild :: (MonadRepos m, MonadTop m, MonadMask m) =>
          -> m OSImage
 _pbuilderBuild root distro extra repo =
     do top <- askTop
-       os <- liftIO $ pbuilder top root distro extra repo [SourceOption "trusted" OpSet ["yes"]]
+       os <- liftIO $ pbuilder top root distro extra repo
        putOSImage os
        try (evalMonadOS updateOS root) >>= either (\ (e :: SomeException) -> error (show e)) return
        return os
@@ -221,7 +221,7 @@ buildOS :: (MonadRepos m, MonadTop m, MonadMask m) =>
          -> [String]
          -> m OSImage
 buildOS root distro extra repo include exclude components =
-    do os <- liftIO $ debootstrap root distro extra repo include exclude components [SourceOption "trusted" OpSet ["yes"]]
+    do os <- liftIO $ debootstrap root distro extra repo include exclude components
        putOSImage os
        evalMonadOS updateOS root
        liftIO $ neuterEnv os
@@ -248,7 +248,7 @@ updateOS = quieter 1 $ do
       verifySources :: (MonadOS m, MonadRepos m) => m ()
       verifySources =
           do root <- osRoot <$> getOS
-             computed <- remoteOnly <$> osFullDistro [SourceOption "trusted" OpSet ["yes"]] <$> getOS
+             computed <- remoteOnly <$> osFullDistro <$> getOS
              let sourcesPath' = (rootPath root </> "etc/apt/sources.list")
              let sourcesD = (rootPath root </> "etc/apt/sources.list.d")
              sourcesDPaths <- liftIO $ (map (sourcesD </>) . filter (isSuffixOf ".list")) <$> getDirectoryContents sourcesD
