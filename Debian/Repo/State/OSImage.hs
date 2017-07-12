@@ -45,7 +45,7 @@ import Debian.Repo.Slice (NamedSliceList(sliceListName), Slice(sliceSource), Sli
 import Debian.Repo.State.PackageIndex (binaryPackagesFromSources, sourcePackagesFromSources)
 import Debian.Repo.State.Slice (verifySourcesList)
 import Debian.Repo.Top (askTop, distDir, MonadTop, sourcesPath)
-import Debian.Sources (DebSource(sourceUri), parseSourcesList)
+import Debian.Sources (DebSource(sourceUri), parseSourcesList, SourceOption(..), SourceOp(..))
 import Debian.URI (URI(uriScheme))
 import System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.Environment (getEnv)
@@ -76,7 +76,7 @@ osSourcePackages = do
       osSourcePackages' = do
         root <- osRoot <$> getOS
         arch <- osArch <$> getOS
-        dist <- osFullDistro <$> getOS
+        dist <- osFullDistro [SourceOption "trusted" OpSet ["yes"]] <$> getOS
         pkgs <- sourcePackagesFromSources root arch dist
         qPutStrLn ("Read " ++ show (length pkgs) ++ " release source packages")
         modifyOS (\ s -> s {osSourcePackageCache = Just pkgs})
@@ -90,7 +90,7 @@ osBinaryPackages = do
       osBinaryPackages' = do
         root <- osRoot <$> getOS
         arch <- osArch <$> getOS
-        dist <- osFullDistro <$> getOS
+        dist <- osFullDistro [SourceOption "trusted" OpSet ["yes"]] <$> getOS
         pkgs <- binaryPackagesFromSources root arch dist
         qPutStrLn ("Read " ++ show (length pkgs) ++ " release binary packages")
         modifyOS (\ s -> s {osBinaryPackageCache = Just pkgs})
@@ -191,7 +191,7 @@ _pbuilderBuild :: (MonadRepos m, MonadTop m, MonadMask m) =>
          -> m OSImage
 _pbuilderBuild root distro extra repo =
     do top <- askTop
-       os <- liftIO $ pbuilder top root distro extra repo
+       os <- liftIO $ pbuilder top root distro extra repo [SourceOption "trusted" OpSet ["yes"]]
        putOSImage os
        try (evalMonadOS updateOS root) >>= either (\ (e :: SomeException) -> error (show e)) return
        return os
@@ -221,7 +221,7 @@ buildOS :: (MonadRepos m, MonadTop m, MonadMask m) =>
          -> [String]
          -> m OSImage
 buildOS root distro extra repo include exclude components =
-    do os <- liftIO $ debootstrap root distro extra repo include exclude components
+    do os <- liftIO $ debootstrap root distro extra repo include exclude components [SourceOption "trusted" OpSet ["yes"]]
        putOSImage os
        evalMonadOS updateOS root
        liftIO $ neuterEnv os
@@ -248,7 +248,7 @@ updateOS = quieter 1 $ do
       verifySources :: (MonadOS m, MonadRepos m) => m ()
       verifySources =
           do root <- osRoot <$> getOS
-             computed <- remoteOnly <$> osFullDistro <$> getOS
+             computed <- remoteOnly <$> osFullDistro [SourceOption "trusted" OpSet ["yes"]] <$> getOS
              let sourcesPath' = (rootPath root </> "etc/apt/sources.list")
              let sourcesD = (rootPath root </> "etc/apt/sources.list.d")
              sourcesDPaths <- liftIO $ (map (sourcesD </>) . filter (isSuffixOf ".list")) <$> getDirectoryContents sourcesD
@@ -292,7 +292,7 @@ updateOS = quieter 1 $ do
       verifySources :: MonadRepos m => OSImage -> m (Either UpdateError OSImage)
       verifySources os =
           do let root = getL osRoot os
-             computed <- remoteOnly <$> evalMonadOS osFullDistro os
+             computed <- remoteOnly <$> evalMonadOS osFullDistro [SourceOption "trusted" OpSet ["yes"]] os
              let sourcesPath' = rootPath root ++ "/etc/apt/sources.list"
              text <- liftIO (try $ readFile sourcesPath')
              installed <-
