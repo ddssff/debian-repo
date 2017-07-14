@@ -30,6 +30,7 @@ import Control.Monad.State (StateT, runStateT, MonadState(get, put))
 import Control.Monad.Trans (liftIO, MonadIO, lift)
 import qualified Data.ByteString.Lazy.Char8 as L (ByteString, fromChunks, readFile)
 import Data.Digest.Pure.MD5 (md5)
+import Data.Digest.Pure.SHA (sha1, sha256)
 import Data.Either (partitionEithers, lefts, rights)
 import Data.List as List (filter, groupBy, intercalate, intersperse, isSuffixOf, map, partition, sortBy)
 import Data.Map as Map (fromList, lookup)
@@ -507,12 +508,14 @@ installFile changes file = do
     (True, True, True) -> do           -- Further inspection is required
       installedSize <- liftIO $ F.getFileStatus dst >>= return . F.fileSize
       installedMD5sum <- liftIO $ L.readFile dst >>= return . show . md5
+      installedSHA1sum <- liftIO $ L.readFile dst >>= return . show . sha1
+      installedSHA256sum <- liftIO $ L.readFile dst >>= return . show . sha256
       let status =
-              case (compare (changedFileSize file) installedSize, compare (changedFileMD5sum file) installedMD5sum) of
+              case (compare (changedFileSize file) installedSize, compare (changedFileSHA256sum file) installedSHA256sum) of
                 -- Somehow the correct file is already installed - so be it.
                 (EQ, EQ) -> Ok
                 -- The wrong file of the right length is installed
-                (EQ, _) -> Rejected [BadChecksum dst (changedFileMD5sum file) installedMD5sum]
+                (EQ, _) -> Rejected [BadChecksum dst (changedFileSHA256sum file) installedSHA256sum]
                 -- File may be in the process of being uploaded
                 (LT, _) -> Failed [ShortFile dst (changedFileSize file) installedSize]
                 -- This must be the wrong file
@@ -546,6 +549,8 @@ addDebFields repo changes file info =
             [B.Field (T.pack "Source", " " <> source <> T.pack (versionSuffix binaryVersion)),
              B.Field (T.pack "Filename", T.pack (" " ++ poolDir' repo changes file </> changedFileName file)),
              B.Field (T.pack "Size", T.pack (" " ++ show (changedFileSize file))),
+             B.Field (T.pack "SHA256", T.pack (" " ++ changedFileSHA256sum file)),
+             B.Field (T.pack "SHA1", T.pack (" " ++ changedFileSHA1sum file)),
              B.Field (T.pack "MD5sum", T.pack (" " ++ changedFileMD5sum file))] in
     return $ Right $ B.appendFields newfields info
     where

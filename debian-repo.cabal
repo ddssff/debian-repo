@@ -87,6 +87,7 @@ Library
         pureMD5,
         regex-compat,
         regex-tdfa,
+        SHA,
         syb,
         template-haskell,
         text,
