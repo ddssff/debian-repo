@@ -1,3 +1,9 @@
+haskell-debian-repo (5.72.2) unstable; urgency=low
+
+  * Put [trusted=yes] on local repo lines as well
+
+ -- David Fox <dsf@seereason.com>  Sat, 15 Jul 2017 07:45:31 -0700
+
 haskell-debian-repo (5.76.1) unstable; urgency=low
 
   * Changes for debian-3.89

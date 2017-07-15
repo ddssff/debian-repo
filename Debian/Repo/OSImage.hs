@@ -156,8 +156,8 @@ osFullDistro os =
         localSources :: SliceList
         localSources = SliceList {slices = [Slice {sliceRepoKey = repoKey repo', sliceSource = src},
                                             Slice {sliceRepoKey = repoKey repo', sliceSource = bin}]}
-        src = DebSource Deb [] (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"]))
-        bin = DebSource DebSrc [] (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"])) in
+        src = DebSource Deb [SourceOption "trusted" OpSet ["yes"]] (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"]))
+        bin = DebSource DebSrc [SourceOption "trusted" OpSet ["yes"]] (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"])) in
     SliceList { slices = slices (sliceList base) ++ osExtraRepos os ++ slices localSources }
 
 data UpdateError
