@@ -1,4 +1,4 @@
-haskell-debian-repo (5.72.2) unstable; urgency=low
+haskell-debian-repo (5.77.2) unstable; urgency=low
 
   * Put [trusted=yes] on local repo lines as well
 
