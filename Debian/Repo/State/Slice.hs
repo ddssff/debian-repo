@@ -30,7 +30,7 @@ import Debian.Repo.Repo (repoKey)
 import Debian.Repo.Slice (NamedSliceList(sliceList, sliceListName), Slice(..), SliceList(..), SourcesChangedAction, doSourcesChangedAction)
 import Debian.Repo.State.Repository (readLocalRepository, prepareRemoteRepository)
 import Debian.Repo.Top (MonadTop, distDir, sourcesPath)
-import Debian.Sources (DebSource(..), SourceType(Deb, DebSrc), parseSourcesList)
+import Debian.Sources (DebSource(..), SourceOption(..), SourceOp(..), SourceType(Deb, DebSrc), parseSourcesList)
 import Debian.URI (dirFromURI, fileFromURI)
 import Network.URI (URI(uriScheme, uriPath))
 import System.Directory (createDirectoryIfMissing, doesFileExist)
@@ -41,8 +41,8 @@ import Text.Regex (mkRegex, splitRegex)
 -- set of sources that includes all of its releases.  This is used to
 -- ensure that a package we want to upload doesn't already exist in
 -- the repository.
-repoSources :: MonadRepos m => Maybe EnvRoot -> URI -> m SliceList
-repoSources chroot uri =
+repoSources :: MonadRepos m => Maybe EnvRoot -> [SourceOption] -> URI -> m SliceList
+repoSources chroot opts uri =
     do dirs <- liftIO (uriSubdirs chroot (uri {uriPath = uriPath uri ++ "/dists/"}))
        releaseFiles <- mapM (liftIO . readRelease uri) dirs >>= return . catMaybes
        let codenames = map (maybe Nothing (zap (flip elem dirs))) . map (fieldValue "Codename") $ releaseFiles
@@ -51,8 +51,8 @@ repoSources chroot uri =
        mapM (verifyDebSource Nothing) result >>= (\ list -> return $ SliceList { slices = list })
     where
       sources (Just codename, Just components@(_ : _)) =
-          [DebSource {sourceType = Deb, sourceOptions = [], sourceUri = uri, sourceDist = Right (parseReleaseName (unpack codename), components)},
-           DebSource {sourceType = DebSrc, sourceOptions = [], sourceUri = uri, sourceDist = Right (parseReleaseName (unpack codename), components)}]
+          [DebSource {sourceType = Deb, sourceOptions = opts, sourceUri = uri, sourceDist = Right (parseReleaseName (unpack codename), components)},
+           DebSource {sourceType = DebSrc, sourceOptions = opts, sourceUri = uri, sourceDist = Right (parseReleaseName (unpack codename), components)}]
       sources _ = []
       -- Compute the list of sections for each dist on a remote server.
       zap p x = if p x then Just x else Nothing
