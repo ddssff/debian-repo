@@ -217,7 +217,7 @@ indexPrefix repo release index =
       -- If user is given and password is not, the user name is
       -- added to the file name.  Otherwise it is not.  Really.
       prefix "http:" (Just user'') Nothing (Just host) port' path' =
-          user'' ++ host ++ port' ++ escape path'
+          {-user'' ++-} host ++ port' ++ escape path'
       prefix "http:" _ _ (Just host) port' path' =
           host ++ port' ++ escape path'
       prefix "ftp:" _ _ (Just host) _ path' =
@@ -225,7 +225,7 @@ indexPrefix repo release index =
       prefix "file:" Nothing Nothing Nothing "" path' =
           escape path'
       prefix "ssh:" (Just user'') Nothing (Just host) port' path' =
-          user'' ++ host ++ port' ++ escape path'
+          {-user'' ++-} host ++ port' ++ escape path'
       prefix "ssh" _ _ (Just host) port' path' =
           host ++ port' ++ escape path'
       prefix _ _ _ _ _ _ = error ("invalid repo URI: " ++ (uriToString' . repoKeyURI $ repo))
