@@ -5,6 +5,7 @@ module Debian.Repo.State.PackageIndex
     , sourcePackagesFromSources
     ) where
 
+import Control.Exception (try)
 import Control.Monad.Trans (MonadIO(liftIO))
 import Data.List (intercalate)
 import Data.List as List (map, partition)
@@ -73,23 +74,21 @@ instance Show UpdateError where
 
 sourcePackagesFromSources :: MonadRepos m => EnvRoot -> Arch -> SliceList -> m [SourcePackage]
 sourcePackagesFromSources root arch sources = do
-  indexes <- mapM (sliceIndexes arch) (slices . sourceSlices $ sources) >>= return . concat
-  mapM (\ (repo, rel, index) -> sourcePackagesOfIndex root arch repo rel index) indexes >>= return . concat
+  indexes <- concat <$> (mapM (sliceIndexes arch) (slices . sourceSlices $ sources))
+  concat <$> (mapM (\ (repo, rel, index) -> either (const []) id <$> (sourcePackagesOfIndex root arch repo rel index)) indexes)
 
 -- FIXME: assuming the index is part of the cache
-sourcePackagesOfIndex :: MonadRepos m => EnvRoot -> Arch -> RepoKey -> Release -> PackageIndex -> m [SourcePackage]
+sourcePackagesOfIndex :: MonadRepos m => EnvRoot -> Arch -> RepoKey -> Release -> PackageIndex -> m (Either IOError [SourcePackage])
 sourcePackagesOfIndex root arch repo release index =
     -- quieter 2 $ qBracket ($(symbol 'sourcePackagesOfIndex) ++ " " ++ path) $
-    do -- unsafeInterleaveIO makes the package index file reads
-       -- asynchronous, not sure what the performance implications
-       -- are.  Anyway, this is now only called on demand, so the
-       -- unsafeInterleaveIO is probably moot.
-       paragraphs <- liftIO $ {-unsafeInterleaveIO-} (readParagraphs path)
-       let packages = List.map (toSourcePackage index) paragraphs
-       return packages
-     where
-       path = rootPath root ++ suff
-       suff = indexCacheFile arch repo release index
+    -- unsafeInterleaveIO makes the package index file reads
+    -- asynchronous, not sure what the performance implications
+    -- are.  Anyway, this is now only called on demand, so the
+    -- unsafeInterleaveIO is probably moot.
+    either Left ((\paras -> Right (List.map (toSourcePackage index) paras))) <$> (liftIO (readParagraphs path))
+    where
+      path = rootPath root ++ suff
+      suff = indexCacheFile arch repo release index
 
 toSourcePackage :: PackageIndex -> B.Paragraph -> SourcePackage
 toSourcePackage index package =
@@ -147,15 +146,18 @@ parseSourceParagraph p =
 binaryPackagesFromSources :: MonadRepos m => EnvRoot -> Arch -> SliceList -> m [BinaryPackage]
 binaryPackagesFromSources root arch sources = do
   indexes <- mapM (sliceIndexes arch) (slices . binarySlices $ sources) >>= return . concat
-  mapM (\ (repo, rel, index) -> binaryPackagesOfIndex root arch repo rel index) indexes >>= return . concat
+  concat <$> (mapM (\ (repo, rel, index) -> either (const []) id <$> (binaryPackagesOfIndex root arch repo rel index)) indexes)
 
 -- FIXME: assuming the index is part of the cache
-binaryPackagesOfIndex :: MonadRepos m => EnvRoot -> Arch -> RepoKey -> Release -> PackageIndex -> m [BinaryPackage]
+binaryPackagesOfIndex :: MonadRepos m => EnvRoot -> Arch -> RepoKey -> Release -> PackageIndex -> m (Either IOError [BinaryPackage])
 binaryPackagesOfIndex root arch repo release index =
     -- quieter 2 $ qBracket ($(symbol 'binaryPackagesOfIndex) ++ ": " ++ path) $
+    either Left ((\paras -> Right (List.map (toBinaryPackage release index) paras))) <$> (liftIO (readParagraphs path))
+{-
     do paragraphs <- liftIO $ {-unsafeInterleaveIO-} (readParagraphs path)
        let packages = List.map (toBinaryPackage release index) paragraphs
        return packages
+-}
     where
        suff = indexCacheFile arch repo release index
        path = rootPath root ++ suff
@@ -180,14 +182,16 @@ tryParseRel :: Maybe B.Field -> B.Relations
 tryParseRel (Just (B.Field (_, relStr))) = either (error . show) id (B.parseRelations relStr)
 tryParseRel _ = []
 
-readParagraphs :: FilePath -> IO [B.Paragraph]
+readParagraphs :: FilePath -> IO (Either IOError [B.Paragraph])
 readParagraphs path =
-    do --IO.hPutStrLn IO.stderr ("OSImage.paragraphsFromFile " ++ path)			-- Debugging output
-       h <- IO.openBinaryFile path IO.ReadMode
-       B.Control paragraphs <- B.parseControlFromHandle path h >>= return . (either (error . show) id)
-       IO.hClose h
-       --IO.hPutStrLn IO.stderr ("OSImage.paragraphsFromFile " ++ path ++ " done.")	-- Debugging output
-       return paragraphs
+    try (IO.openBinaryFile path IO.ReadMode) >>= either (return . Left) go
+    where
+      go h = do
+        -- IO.hPutStrLn IO.stderr ("OSImage.paragraphsFromFile " ++ path)			-- Debugging output
+        B.Control paragraphs <- B.parseControlFromHandle path h >>= return . (either (error . show) id)
+        IO.hClose h
+        --IO.hPutStrLn IO.stderr ("OSImage.paragraphsFromFile " ++ path ++ " done.")	-- Debugging output
+        return $ Right paragraphs
 
 indexCacheFile :: Arch -> RepoKey -> Release -> PackageIndex -> FilePath
 indexCacheFile arch repo release index =
