@@ -108,7 +108,7 @@ distroString SeeReason = "seereason"
 distroString Ubuntu = "ubuntu"
 distroString Debian = "debian"
 distroString Kanotix = "kanotix"
-distroString SeeReasonGHC8 = "ghc8"
+distroString SeeReasonGHC8 = "seereason"
 
 baseRelease :: Release -> BaseRelease
 baseRelease (PrivateRelease release) = baseRelease release
