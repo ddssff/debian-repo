@@ -67,7 +67,7 @@ debianReleases = fromList [minBound .. Experimental]
 ubuntuReleases = fromList [Dapper .. maxBound]
 
 -- | A Distro is any organization that provides packages.
-data Distro = Ubuntu | Debian | Kanotix | SeeReason deriving (Eq, Show)
+data Distro = Ubuntu | Debian | Kanotix | SeeReason | SeeReasonGHC8 deriving (Eq, Show)
 
 data Release
     = Release BaseRelease
@@ -104,7 +104,11 @@ baseReleaseString :: BaseRelease -> String
 baseReleaseString name = map toLower (show name)
 
 distroString :: Distro -> String
-distroString = map toLower . show
+distroString SeeReason = "seereason"
+distroString Ubuntu = "ubuntu"
+distroString Debian = "debian"
+distroString Kanotix = "kanotix"
+distroString SeeReasonGHC8 = "seereason"
 
 baseRelease :: Release -> BaseRelease
 baseRelease (PrivateRelease release) = baseRelease release
@@ -154,7 +158,10 @@ parseReleaseName (ReleaseName s) =
             Nothing ->
                 case viewSuffix "-seereason" s of
                   Just prefix -> ExtendedRelease (parse prefix) SeeReason
-                  Nothing -> error $ "Unexpected release name: " ++ show s
+                  Nothing ->
+                      case viewSuffix "-ghc8" s of
+                        Just prefix -> ExtendedRelease (parse prefix) SeeReasonGHC8
+                        Nothing -> error $ "Unexpected release name: " ++ show s
 
 isPrivateRelease (PrivateRelease _) = True
 isPrivateRelease _ = False

@@ -18,11 +18,6 @@ Data-Files:
         debian/compat debian/control debian/copyright
         debian/rules
 
-flag pretty112
- Description: pretty-1.1.2 includes the Text.PrettyPrint.HughesPJClass module from prettyclass
- Default: True
- Manual: True
-
 flag local-cabal-debian
   Description: Link directly to the source of the cabal-debian library
   Default: False
@@ -83,6 +78,7 @@ Library
         old-locale,
         old-time,
         parsec >= 3,
+        pretty >= 1.1.2,
         process,
         pureMD5,
         regex-compat,
@@ -98,10 +94,6 @@ Library
         Unixutils >= 1.52.3,
         utf8-string,
         zlib
-  if flag(pretty112)
-    Build-Depends: pretty >= 1.1.2
-  else
-    Build-Depends: pretty, prettyclass
   Exposed-modules:
         Debian.Releases,
         Debian.Repo,
