@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 -- | Specific information about known Debian-based distributions
 -- and releases thereof.
 module Debian.Releases
@@ -15,7 +17,9 @@ module Debian.Releases
     , isPrivateRelease
     ) where
 
+import Control.Monad (msum)
 import Data.Char (toLower)
+import Data.Maybe (fromMaybe)
 import Data.Set (fromList, member, Set)
 -- The ReleaseName type from the debian library - just a newtyped string.
 import Debian.Release (ReleaseName(ReleaseName))
@@ -67,7 +71,7 @@ debianReleases = fromList [minBound .. Experimental]
 ubuntuReleases = fromList [Dapper .. maxBound]
 
 -- | A Distro is any organization that provides packages.
-data Distro = Ubuntu | Debian | Kanotix | SeeReason | SeeReasonGHC8 deriving (Eq, Show)
+data Distro = Ubuntu | Debian | Kanotix | SeeReason | SeeReasonGHC8 | SeeReason7 deriving (Eq, Show)
 
 data Release
     = Release BaseRelease
@@ -109,6 +113,7 @@ distroString Ubuntu = "ubuntu"
 distroString Debian = "debian"
 distroString Kanotix = "kanotix"
 distroString SeeReasonGHC8 = "seereason"
+distroString SeeReason7 = "seereason7"
 
 baseRelease :: Release -> BaseRelease
 baseRelease (PrivateRelease release) = baseRelease release
@@ -153,6 +158,15 @@ parseReleaseName (ReleaseName s) =
       parse "artful" = Release Artful
 
       parse s =
+#if 1
+       fromMaybe (error $ "Unexpected release name: " ++ show s)
+          (msum (fmap (\(f, suf) -> fmap f (viewSuffix suf s))
+                     [(PrivateRelease . parse, "-private"),
+                      (\prefix -> ExtendedRelease (parse prefix) SeeReason, "-seereason"),
+                      (\prefix -> ExtendedRelease (parse prefix) SeeReasonGHC8, "-ghc8"),
+                      (\prefix -> ExtendedRelease (parse prefix) SeeReason7, "-seereason7")]))
+
+#else
           case viewSuffix "-private" s of
             Just prefix -> PrivateRelease (parse prefix)
             Nothing ->
@@ -162,6 +176,7 @@ parseReleaseName (ReleaseName s) =
                       case viewSuffix "-ghc8" s of
                         Just prefix -> ExtendedRelease (parse prefix) SeeReasonGHC8
                         Nothing -> error $ "Unexpected release name: " ++ show s
+#endif
 
 isPrivateRelease (PrivateRelease _) = True
 isPrivateRelease _ = False
