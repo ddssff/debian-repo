@@ -27,7 +27,10 @@ module Debian.Repo.OSImage
 import Control.Exception (SomeException)
 import Control.Monad.Catch (try)
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as L
 import Data.Data (Data)
+import Data.Digest.Pure.MD5 (md5)
+import Data.Function (on)
 import Data.List (intercalate)
 import Data.Typeable (Typeable)
 import Debian.Arch (Arch)
@@ -38,7 +41,7 @@ import Debian.Repo.EnvPath (EnvPath(EnvPath, envPath, envRoot), EnvRoot(rootPath
 import Debian.Repo.Internal.IO (buildArchOfRoot)
 import Debian.Repo.LocalRepository (copyLocalRepo, LocalRepository)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
-import Debian.Repo.Prelude (isSublistOf, replaceFile, sameInode, sameMd5sum)
+import Debian.Repo.Prelude (isSublistOf, replaceFile, sameInode)
 import Debian.Repo.Prelude.Process (readProcessVE)
 import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn)
 import Debian.Repo.Repo (repoKey, repoURI)
@@ -247,10 +250,10 @@ neuterFile os (file, mustExist) =
             createLink (outsidePath binTrue) (outsidePath fullPath)
       neuterFileWithRealVersion =
           do
-            sameCksum <- sameMd5sum (outsidePath fullPath) (outsidePath fullPath ++ ".real")
-            if sameCksum then
-                removeFile (outsidePath fullPath) else
-                error (file ++ " and " ++ file ++ ".real differ (in " ++ rootPath root ++ ")")
+            same <- ((==) `on` md5) <$> L.readFile (outsidePath fullPath) <*> L.readFile (outsidePath fullPath ++ ".real")
+            case same of
+              True -> removeFile (outsidePath fullPath)
+              False -> error (file ++ " and " ++ file ++ ".real differ (in " ++ rootPath root ++ ")")
 
       neuterFileWithoutRealVersion = renameFile (outsidePath fullPath) (outsidePath fullPath ++ ".real")
 

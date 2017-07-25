@@ -12,9 +12,9 @@ module Debian.Repo.Prelude.Misc
     , listDiff
     -- * System.Posix
     , checkSuperUser
-    , md5sum
+    -- , md5sum
     , sameInode
-    , sameMd5sum
+    -- , sameMd5sum
     , tarDir
     -- * Processes
     -- , splitOutput
@@ -90,11 +90,6 @@ canon path =
       merge (x : xs) = x : merge xs
       merge [] = []
 
-{-# DEPRECATED md5sum "Use Data.ByteString.Lazy.Char8.readFile path >>= return . show . Data.Digest.Pure.MD5.md5" #-}
--- | Run md5sum on a file and return the resulting checksum as text.
-md5sum :: FilePath -> IO String
-md5sum path = B.readFile path >>= return . show . Data.Digest.Pure.MD5.md5
-
 -- | Predicate to decide if two files have the same inode.
 sameInode :: FilePath -> FilePath -> IO Bool
 sameInode a b =
@@ -102,19 +97,6 @@ sameInode a b =
       aStatus <- getFileStatus a
       bStatus <- getFileStatus b
       return (deviceID aStatus == deviceID bStatus && fileID aStatus == fileID bStatus)
-
--- | Predicate to decide if two files have the same md5 checksum.
-sameMd5sum :: FilePath -> FilePath -> IO Bool
-sameMd5sum a b =
-    do
-      asum <- md5sum a
-      bsum <- md5sum b
-      return (asum == bsum)
-
-{-
-splitOutput :: [Output B.ByteString] -> (B.ByteString, B.ByteString, [ExitCode])
-splitOutput output = (B.concat (keepStdout output), B.concat (keepStderr output), keepResult output)
--}
 
 -- |A version of read with a more helpful error message.
 read' :: Read a => String -> a
