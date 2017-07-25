@@ -3,186 +3,166 @@
 -- | Specific information about known Debian-based distributions
 -- and releases thereof.
 module Debian.Releases
-    ( BaseRelease(..)
-    , baseReleaseDistro
-    , baseReleaseString
+    ( Vendor(..), debian, ubuntu
+    , BaseRelease(..)
+    -- , baseReleaseDistro
+    -- , baseReleaseString
     , allReleases
+    , debianReleases
+    , ubuntuReleases
     , Release(..)
     , Distro(..)
     , releaseName
     , releaseString
     , baseRelease
-    , distroString
     , parseReleaseName
     , isPrivateRelease
     ) where
 
-import Control.Monad (msum)
-import Data.Char (toLower)
-import Data.Maybe (fromMaybe)
-import Data.Set (fromList, member, Set)
+--import Control.Monad (msum)
+--import Data.Char (toLower)
+--import Data.Maybe (fromMaybe)
+import Data.Set as Set (filter, fromList, Set)
 -- The ReleaseName type from the debian library - just a newtyped string.
-import Debian.Release (ReleaseName(ReleaseName))
+import Debian.Release (ReleaseName(ReleaseName, relName))
+
+newtype Vendor = Vendor {_unVendor :: String} deriving (Eq, Ord, Show)
 
 data BaseRelease =
-    -- Debian releases
-      Sarge -- 2005/6
-    | Etch -- 2007/4
-    | Lenny -- 2009/2
-    | Squeeze -- 2011/2
-    | Wheezy -- 2013/5
-    | Jessie -- 2015/04
-    | Stretch
-    | Buster
-    | Bullseye
-    | Sid -- always current
-    | Experimental -- always current (but actually not a base release,
-                   -- not complete.  Is experimental an add-on to sid?)
+    BaseRelease {_vendorName :: Vendor, _releaseName :: ReleaseName}
+    deriving (Eq, Ord, Show)
+
+baseReleaseList :: [BaseRelease]
+baseReleaseList =
+    -- Oldest first
+    [ BaseRelease (Vendor "debian") (ReleaseName "sarge") -- 2005/6
+    , BaseRelease (Vendor "debian") (ReleaseName "etch") -- 2007/4
+    , BaseRelease (Vendor "debian") (ReleaseName "lenny") -- 2009/2
+    , BaseRelease (Vendor "debian") (ReleaseName "squeeze") -- 2011/2
+    , BaseRelease (Vendor "debian") (ReleaseName "wheezy") -- 2013/5
+    , BaseRelease (Vendor "debian") (ReleaseName "jessie") -- 2015/04
+    , BaseRelease (Vendor "debian") (ReleaseName "stretch")
+    , BaseRelease (Vendor "debian") (ReleaseName "buster")
+    , BaseRelease (Vendor "debian") (ReleaseName "bullseye")
+    , BaseRelease (Vendor "debian") (ReleaseName "sid") -- always current
+    -- , BaseRelease (Vendor "debian") (ReleaseName "experimental") -- always current (but actually not a base release,
+                                          -- not complete.  Is experimental an add-on to sid?)
     -- Ubuntu releases
-    | Dapper -- 2006/10
-    | Edgy -- 2007/4
-    | Feisty -- 2007/10
-    | Hardy -- 2008/4
-    | Intrepid -- 2008/10
-    | Jaunty -- 2009/4
-    | Karmic -- 2009/10
-    | Lucid -- 2010/4
-    | Maverick -- 2010/10
-    | Natty -- 2011/4
-    | Oneiric -- 2011/10
-    | Precise -- 2012/4
-    | Quantal -- 2012/10
-    | Raring -- 2013/4
-    | Saucy -- 2013/10
-    | Trusty -- 2014/4
-    | Utopic -- 2014/10
-    | Vivid -- 2015/04
-    | Wily -- 2015/10
-    | Xenial -- 2016/04
-    | Yakkety -- 2016/10
-    | Zesty -- 2017/04
-    | Artful -- 2017/10
-    deriving (Eq, Ord, Show, Enum, Bounded)
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "dapper") -- 2006/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "edgy") -- 2007/4
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "feisty") -- 2007/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "hardy") -- 2008/4
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "intrepid") -- 2008/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "jaunty") -- 2009/4
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "karmic") -- 2009/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "lucid") -- 2010/4
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "maverick") -- 2010/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "natty") -- 2011/4
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "oneiric") -- 2011/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "precise") -- 2012/4
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "quantal") -- 2012/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "raring") -- 2013/4
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "saucy") -- 2013/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "trusty") -- 2014/4
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "utopic") -- 2014/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "vivid") -- 2015/04
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "wily") -- 2015/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "xenial") -- 2016/04
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "yakkety") -- 2016/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "zesty") -- 2017/04
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "artful") -- 2017/10
+    ]
 
 allReleases :: Set BaseRelease
-allReleases = fromList [minBound .. maxBound]
+allReleases = fromList baseReleaseList
 
-debianReleases = fromList [minBound .. Experimental]
-ubuntuReleases = fromList [Dapper .. maxBound]
+debian :: Vendor
+debian = Vendor "debian"
+ubuntu :: Vendor
+ubuntu = Vendor "ubuntu"
 
--- | A Distro is any organization that provides packages.
-data Distro = Ubuntu | Debian | Kanotix | SeeReason | SeeReasonGHC8 | SeeReason7 deriving (Eq, Show)
+debianReleases :: Set BaseRelease
+debianReleases = Set.filter ((==) debian . _vendorName) allReleases
+ubuntuReleases :: Set BaseRelease
+ubuntuReleases = Set.filter ((==) ubuntu . _vendorName) allReleases
 
-data Release
+class Distro distro where
+    distroString :: distro -> String
+    distroParse :: String -> Maybe distro
+
+data Release distro
     = Release BaseRelease
-    | ExtendedRelease Release Distro
+    | ExtendedRelease (Release distro) distro
     -- ^ A release which is based on another release, known as the
     -- base release.  Thus, this release contains packages which can
     -- be installed on a machine running the base release.
-    | PrivateRelease Release
+    | PrivateRelease (Release distro)
     -- ^ A private release based on another release.
     deriving (Eq, Show)
 
-releaseDistro :: Release -> Distro
-releaseDistro (ExtendedRelease _ distro) = distro
-releaseDistro (PrivateRelease release) = releaseDistro release
-releaseDistro (Release release) = baseReleaseDistro release
-
-baseReleaseDistro :: BaseRelease -> Distro
-baseReleaseDistro x =
-    if x `member` debianReleases
-    then Debian
-    else if x `member` ubuntuReleases
-         then Ubuntu
-         else error $ "baseReleaseDistro " ++ show x
-
-releaseName :: Release -> ReleaseName
+releaseName :: Distro distro => Release distro -> ReleaseName
 releaseName = ReleaseName . releaseString
 
-releaseString :: Release -> String
+releaseString :: Distro distro => Release distro -> String
 releaseString (PrivateRelease r) = releaseString r ++ "-private"
 releaseString (ExtendedRelease r vendor) = releaseString r ++ "-" ++ distroString vendor
-releaseString (Release name) = baseReleaseString name
+releaseString (Release name) = relName (_releaseName name)
 
-baseReleaseString :: BaseRelease -> String
-baseReleaseString name = map toLower (show name)
+-- baseReleaseString :: BaseRelease -> String
+-- baseReleaseString = _releaseName
 
-distroString :: Distro -> String
-distroString SeeReason = "seereason"
-distroString Ubuntu = "ubuntu"
-distroString Debian = "debian"
-distroString Kanotix = "kanotix"
-distroString SeeReasonGHC8 = "seereason"
-distroString SeeReason7 = "seereason7"
-
-baseRelease :: Release -> BaseRelease
+baseRelease :: Release distro -> BaseRelease
 baseRelease (PrivateRelease release) = baseRelease release
 baseRelease (ExtendedRelease release _) = baseRelease release
 baseRelease (Release release) = release
 
-parseReleaseName :: ReleaseName -> Release
+parseReleaseName :: Distro distro => ReleaseName -> Release distro
 parseReleaseName (ReleaseName s) =
     parse s
     where
-      parse "sarge" = Release Sarge
-      parse "etch" = Release Etch
-      parse "lenny" = Release Lenny
-      parse "squeeze" = Release Squeeze
-      parse "wheezy" = Release Wheezy
-      parse "jessie" = Release Jessie
-      parse "sid" = Release Sid
-      parse "experimental" = Release Experimental
+      parse "sarge" = Release (BaseRelease debian (ReleaseName "sarge"))
+      parse "etch" = Release (BaseRelease debian (ReleaseName "etch"))
+      parse "lenny" = Release (BaseRelease debian (ReleaseName "lenny"))
+      parse "squeeze" = Release (BaseRelease debian (ReleaseName "squeeze"))
+      parse "wheezy" = Release (BaseRelease debian (ReleaseName "wheezy"))
+      parse "jessie" = Release (BaseRelease debian (ReleaseName "jessie"))
+      parse "sid" = Release (BaseRelease debian (ReleaseName "sid"))
+      parse "experimental" = Release (BaseRelease debian (ReleaseName "experimental"))
 
-      parse "dapper" = Release Dapper
-      parse "edgy" = Release Edgy
-      parse "feisty" = Release Feisty
-      parse "hardy" = Release Hardy
-      parse "intrepid" = Release Intrepid
-      parse "jaunty" = Release Jaunty
-      parse "karmic" = Release Karmic
-      parse "lucid" = Release Lucid
-      parse "maverick" = Release Maverick
-      parse "natty" = Release Natty
-      parse "oneiric" = Release Oneiric
-      parse "precise" = Release Precise
-      parse "quantal" = Release Quantal
-      parse "raring" = Release Raring
-      parse "saucy" = Release Saucy
-      parse "trusty" = Release Trusty
-      parse "utopic" = Release Utopic
-      parse "vivid" = Release Vivid
-      parse "wily" = Release Wily
-      parse "xenial" = Release Xenial
-      parse "yakkety" = Release Yakkety
-      parse "zesty" = Release Zesty
-      parse "artful" = Release Artful
+      parse "dapper" = Release (BaseRelease ubuntu (ReleaseName "dapper"))
+      parse "edgy" = Release (BaseRelease ubuntu (ReleaseName "edgy"))
+      parse "feisty" = Release (BaseRelease ubuntu (ReleaseName "feisty"))
+      parse "hardy" = Release (BaseRelease ubuntu (ReleaseName "hardy"))
+      parse "intrepid" = Release (BaseRelease ubuntu (ReleaseName "intrepid"))
+      parse "jaunty" = Release (BaseRelease ubuntu (ReleaseName "jaunty"))
+      parse "karmic" = Release (BaseRelease ubuntu (ReleaseName "karmic"))
+      parse "lucid" = Release (BaseRelease ubuntu (ReleaseName "lucid"))
+      parse "maverick" = Release (BaseRelease ubuntu (ReleaseName "maverick"))
+      parse "natty" = Release (BaseRelease ubuntu (ReleaseName "natty"))
+      parse "oneiric" = Release (BaseRelease ubuntu (ReleaseName "oneiric"))
+      parse "precise" = Release (BaseRelease ubuntu (ReleaseName "precise"))
+      parse "quantal" = Release (BaseRelease ubuntu (ReleaseName "quantal"))
+      parse "raring" = Release (BaseRelease ubuntu (ReleaseName "raring"))
+      parse "saucy" = Release (BaseRelease ubuntu (ReleaseName "saucy"))
+      parse "trusty" = Release (BaseRelease ubuntu (ReleaseName "trusty"))
+      parse "utopic" = Release (BaseRelease ubuntu (ReleaseName "utopic"))
+      parse "vivid" = Release (BaseRelease ubuntu (ReleaseName "vivid"))
+      parse "wily" = Release (BaseRelease ubuntu (ReleaseName "wily"))
+      parse "xenial" = Release (BaseRelease ubuntu (ReleaseName "xenial"))
+      parse "yakkety" = Release (BaseRelease ubuntu (ReleaseName "yakkety"))
+      parse "zesty" = Release (BaseRelease ubuntu (ReleaseName "zesty"))
+      parse "artful" = Release (BaseRelease ubuntu (ReleaseName "artful"))
 
-      parse s =
-#if 1
-       fromMaybe (error $ "Unexpected release name: " ++ show s)
-          (msum (fmap (\(f, suf) -> fmap f (viewSuffix suf s))
-                     [(PrivateRelease . parse, "-private"),
-                      (\prefix -> ExtendedRelease (parse prefix) SeeReason, "-seereason"),
-                      (\prefix -> ExtendedRelease (parse prefix) SeeReasonGHC8, "-ghc8"),
-                      (\prefix -> ExtendedRelease (parse prefix) SeeReason7, "-seereason7")]))
+      parse _ = case spanEnd (/= '-') s of
+                  (_, []) -> error $ "Unknown base release: " ++ show s
+                  (base, distro) ->
+                      maybe (error $ "Unknown extended release: " ++ show s)
+                            (\x -> ExtendedRelease (parse (init base)) x)
+                            (distroParse distro)
 
-#else
-          case viewSuffix "-private" s of
-            Just prefix -> PrivateRelease (parse prefix)
-            Nothing ->
-                case viewSuffix "-seereason" s of
-                  Just prefix -> ExtendedRelease (parse prefix) SeeReason
-                  Nothing ->
-                      case viewSuffix "-ghc8" s of
-                        Just prefix -> ExtendedRelease (parse prefix) SeeReasonGHC8
-                        Nothing -> error $ "Unexpected release name: " ++ show s
-#endif
+spanEnd :: (a -> Bool) -> [a] -> ([a], [a])
+spanEnd p l = (\(a, b) -> (reverse b, reverse a)) $ span p (reverse l)
 
+isPrivateRelease :: Release distro -> Bool
 isPrivateRelease (PrivateRelease _) = True
 isPrivateRelease _ = False
-
-viewSuffix :: String -> String -> Maybe String
-viewSuffix suffix string =
-    case splitAt (length string - length suffix) string of
-      (pre, suf) | suf == suffix -> Just pre
-      _ -> Nothing
