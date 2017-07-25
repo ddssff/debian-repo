@@ -13,6 +13,7 @@ module Debian.Repo.State.Release
 import Control.Monad.State (filterM, liftM, MonadIO(..))
 import qualified Data.ByteString.Lazy.Char8 as L (empty, readFile)
 import Data.Digest.Pure.MD5 (md5)
+import Data.Digest.Pure.SHA (sha1, sha256)
 import Data.List as List (group, intercalate, sort)
 import Data.Maybe (catMaybes)
 import Data.Monoid ((<>))
@@ -134,14 +135,14 @@ writeRelease repo release =
       writeMasterRelease :: FilePath -> Release -> IO FilePath
       writeMasterRelease root release =
           do let paths = concat . map (indexPaths release) $ (packageIndexes release)
-             (paths', sums,sizes) <-
-                 liftIO (EG.cd root
-                         (do paths' <- filterM doesFileExist paths
-                             sums <-  mapM (\ path -> L.readFile path >>= return . show . md5) paths'
-                             sizes <- mapM (liftM F.fileSize . F.getFileStatus) paths'
-                             return (paths', sums, sizes)))
-             let checksums = List.intercalate "\n" $ zipWith3 (formatFileInfo (fieldWidth sizes))
-                           sums sizes (map (drop (1 + length (releaseDir release))) paths')
+             (md5sums, sha1sums, sha256sums) <- liftIO $ EG.cd root $ do
+               paths' <- filterM doesFileExist paths
+               sizes <- mapM (liftM F.fileSize . F.getFileStatus) paths'
+               let checksums sums =
+                       List.intercalate "\n" $ zipWith3 (formatFileInfo (fieldWidth sizes)) sums sizes (map (drop (1 + length (releaseDir release))) paths')
+               (,,) <$> (checksums <$> mapM (\ path -> L.readFile path >>= return . show . md5) paths')
+                    <*> (checksums <$> mapM (\ path -> L.readFile path >>= return . show . sha1) paths')
+                    <*> (checksums <$> mapM (\ path -> L.readFile path >>= return . show . sha256) paths')
              timestamp <- liftIO (getCurrentTime >>= return . ET.formatDebianDate)
              let para = S.Paragraph [S.Field ("Origin", " SeeReason Partners"),
                                      S.Field ("Label", " SeeReason"),
@@ -151,7 +152,9 @@ writeRelease repo release =
                                      S.Field ("Architectures", " " <> (T.intercalate " " . map (pack . ppShow) . toList . releaseArchitectures $ release)),
                                      S.Field ("Components", " " <> (T.intercalate " " . map (pack . sectionName') . releaseComponents $ release)),
                                      S.Field ("Description", " SeeReason Internal Use - Not Released"),
-                                     S.Field ("Md5Sum", "\n" <> pack checksums)] :: S.Paragraph' Text
+                                     S.Field ("MD5Sum", "\n" <> pack md5sums),
+                                     S.Field ("SHA1", "\n" <> pack sha1sums),
+                                     S.Field ("SHA256", "\n" <> pack sha256sums)] :: S.Paragraph' Text
              let path = "dists" </> (releaseName' . releaseName $ release) </> "Release"
              liftIO $ EF.maybeWriteFile (root </> path) (prettyShow para)
              return path
