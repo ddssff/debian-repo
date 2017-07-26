@@ -117,8 +117,8 @@ baseRelease (ExtendedRelease release _) = baseRelease release
 baseRelease (Release release) = release
 
 parseReleaseName :: Distro distro => ReleaseName -> Release distro
-parseReleaseName (ReleaseName s) =
-    parse s
+parseReleaseName (ReleaseName s0) =
+    parse s0
     where
       parse "sarge" = Release (BaseRelease debian (ReleaseName "sarge"))
       parse "etch" = Release (BaseRelease debian (ReleaseName "etch"))
@@ -153,8 +153,9 @@ parseReleaseName (ReleaseName s) =
       parse "zesty" = Release (BaseRelease ubuntu (ReleaseName "zesty"))
       parse "artful" = Release (BaseRelease ubuntu (ReleaseName "artful"))
 
-      parse _ = case spanEnd (/= '-') s of
+      parse s = case spanEnd (/= '-') s of
                   (_, []) -> error $ "Unknown base release: " ++ show s
+                  (base, "private") -> PrivateRelease (parse (init base))
                   (base, distro) ->
                       maybe (error $ "Unknown extended release: " ++ show s)
                             (\x -> ExtendedRelease (parse (init base)) x)
