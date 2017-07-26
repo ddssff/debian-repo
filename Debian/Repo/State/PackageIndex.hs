@@ -7,6 +7,7 @@ module Debian.Repo.State.PackageIndex
 
 import Control.Exception (try)
 import Control.Monad.Trans (MonadIO(liftIO))
+import Data.Either (partitionEithers)
 import Data.List (intercalate)
 import Data.List as List (map, partition)
 import Data.Maybe (catMaybes)
@@ -72,21 +73,45 @@ instance Show UpdateError where
     show (Missing r p) = unwords ["Missing", show r, show p]
     show Flushed = "Flushed"
 
-sourcePackagesFromSources :: MonadRepos m => EnvRoot -> Arch -> SliceList -> m [SourcePackage]
+sourcePackagesFromSources ::
+    MonadRepos m
+    => EnvRoot
+    -> Arch
+    -> SliceList
+    -> m [SourcePackage]
 sourcePackagesFromSources root arch sources = do
   indexes <- concat <$> (mapM (sliceIndexes arch) (slices . sourceSlices $ sources))
-  concat <$> (mapM (\ (repo, rel, index) -> either (const []) id <$> (sourcePackagesOfIndex root arch repo rel index)) indexes)
+  packages <- mapM (uncurry3 (sourcePackagesOfIndex root arch)) indexes
+  case partitionEithers packages of
+    ([], xss) -> return $ concat xss
+    -- This can be used for debugging, but in production package
+    -- indexes may sometimes not exist.
+    -- (es, _) -> error $ unlines $ "Debian.Repo.State.PackageIndex.sourcePackagesFromSources: Some package indexes could not be read:" : map show es
+    (_, xss) -> return $ concat xss
+
+uncurry3 :: (a -> b -> c -> r) -> (a, b, c) -> r
+uncurry3 f (a, b, c) = f a b c
 
 -- FIXME: assuming the index is part of the cache
-sourcePackagesOfIndex :: MonadRepos m => EnvRoot -> Arch -> RepoKey -> Release -> PackageIndex -> m (Either IOError [SourcePackage])
+sourcePackagesOfIndex ::
+    MonadRepos m
+    => EnvRoot
+    -> Arch
+    -> RepoKey
+    -> Release
+    -> PackageIndex
+    -> m (Either (EnvRoot, Arch, RepoKey, Release, PackageIndex, IOError) [SourcePackage])
 sourcePackagesOfIndex root arch repo release index =
     -- quieter 2 $ qBracket ($(symbol 'sourcePackagesOfIndex) ++ " " ++ path) $
     -- unsafeInterleaveIO makes the package index file reads
     -- asynchronous, not sure what the performance implications
     -- are.  Anyway, this is now only called on demand, so the
     -- unsafeInterleaveIO is probably moot.
-    either Left ((\paras -> Right (List.map (toSourcePackage index) paras))) <$> (liftIO (readParagraphs path))
+    either (Left . makeLeft)
+           ((\paras -> Right (List.map (toSourcePackage index) paras))) <$> (liftIO (readParagraphs path))
     where
+      makeLeft :: IOError -> (EnvRoot, Arch, RepoKey, Release, PackageIndex, IOError)
+      makeLeft e = (root, arch, repo, release, index, e)
       path = rootPath root ++ suff
       suff = indexCacheFile arch repo release index
 
@@ -224,7 +249,7 @@ indexPrefix repo release index =
           case relName (releaseName release) of
             "artful-seereason-private" -> host ++ port' ++ escape path'
             "xenial-seereason-private" -> host ++ port' ++ escape path'
-            _ -> user'' ++ host ++ port' ++ escape path'
+            _ -> {-user'' ++-} host ++ port' ++ escape path'
       prefix "http:" _ _ (Just host) port' path' =
           host ++ port' ++ escape path'
       prefix "ftp:" _ _ (Just host) _ path' =
@@ -235,7 +260,7 @@ indexPrefix repo release index =
           case relName (releaseName release) of
             "artful-seereason-private" -> host ++ port' ++ escape path'
             "xenial-seereason-private" -> host ++ port' ++ escape path'
-            _ -> user'' ++ host ++ port' ++ escape path'
+            _ -> {-user'' ++-} host ++ port' ++ escape path'
       prefix "ssh" _ _ (Just host) port' path' =
           host ++ port' ++ escape path'
       prefix _ _ _ _ _ _ = error ("invalid repo URI: " ++ (uriToString' . repoKeyURI $ repo))
