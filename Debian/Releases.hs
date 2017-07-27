@@ -15,7 +15,7 @@ module Debian.Releases
     , releaseName
     , releaseString
     , baseRelease
-    , parseReleaseName
+    , parseReleaseTree
     , isPrivateRelease
     ) where
 
@@ -118,8 +118,8 @@ baseRelease (PrivateRelease release) = baseRelease release
 baseRelease (ExtendedRelease release _) = baseRelease release
 baseRelease (Foundation release) = release
 
-parseReleaseName :: Distro distro => ReleaseName -> ReleaseTree distro
-parseReleaseName (ReleaseName s0) =
+parseReleaseTree :: Distro distro => ReleaseName -> ReleaseTree distro
+parseReleaseTree (ReleaseName s0) =
     parse s0
     where
       parse "sarge" = Foundation (BaseRelease debian (ReleaseName "sarge"))
