@@ -86,39 +86,37 @@ debianReleases = Set.filter ((==) debian . _vendorName) allReleases
 ubuntuReleases :: Set BaseRelease
 ubuntuReleases = Set.filter ((==) ubuntu . _vendorName) allReleases
 
-class Distro distro where
-    distroString :: distro -> String
-    distroParse :: String -> Maybe distro
+newtype Distro = Distro {_distroString :: String} deriving (Eq, Ord, Show)
 
 -- | Interpret the meaning of the release name, e.g. xenial-seereason-private.
-data ReleaseTree distro
+data ReleaseTree
     = Foundation BaseRelease
     -- ^ The standalone release which forms the foundation.
-    | ExtendedRelease (ReleaseTree distro) distro
+    | ExtendedRelease ReleaseTree Distro
     -- ^ A release which is based on another release, known as the
     -- base release.  Thus, this release contains packages which can
     -- be installed on a machine running the base release.
-    | PrivateRelease (ReleaseTree distro)
+    | PrivateRelease ReleaseTree
     -- ^ A private release based on another release.
     deriving (Eq, Show)
 
-releaseName :: Distro distro => ReleaseTree distro -> ReleaseName
+releaseName :: ReleaseTree -> ReleaseName
 releaseName = ReleaseName . releaseString
 
-releaseString :: Distro distro => ReleaseTree distro -> String
+releaseString :: ReleaseTree -> String
 releaseString (PrivateRelease r) = releaseString r ++ "-private"
-releaseString (ExtendedRelease r vendor) = releaseString r ++ "-" ++ distroString vendor
+releaseString (ExtendedRelease r vendor) = releaseString r ++ "-" ++ _distroString vendor
 releaseString (Foundation name) = relName (_releaseName name)
 
 -- baseReleaseString :: BaseRelease -> String
 -- baseReleaseString = _releaseName
 
-baseRelease :: ReleaseTree distro -> BaseRelease
+baseRelease :: ReleaseTree -> BaseRelease
 baseRelease (PrivateRelease release) = baseRelease release
 baseRelease (ExtendedRelease release _) = baseRelease release
 baseRelease (Foundation release) = release
 
-parseReleaseTree :: Distro distro => ReleaseName -> ReleaseTree distro
+parseReleaseTree :: ReleaseName -> ReleaseTree
 parseReleaseTree (ReleaseName s0) =
     parse s0
     where
@@ -158,14 +156,11 @@ parseReleaseTree (ReleaseName s0) =
       parse s = case spanEnd (/= '-') s of
                   (_, []) -> error $ "Unknown base release: " ++ show s
                   (base, "private") -> PrivateRelease (parse (init base))
-                  (base, distro) ->
-                      maybe (error $ "Unknown extended release: " ++ show s)
-                            (\x -> ExtendedRelease (parse (init base)) x)
-                            (distroParse distro)
+                  (base, distro) -> ExtendedRelease (parse (init base)) (Distro distro)
 
 spanEnd :: (a -> Bool) -> [a] -> ([a], [a])
 spanEnd p l = (\(a, b) -> (reverse b, reverse a)) $ span p (reverse l)
 
-isPrivateRelease :: ReleaseTree distro -> Bool
+isPrivateRelease :: ReleaseTree -> Bool
 isPrivateRelease (PrivateRelease _) = True
 isPrivateRelease _ = False

@@ -18,12 +18,13 @@ import qualified Debian.Control.Text as B (Control'(Control), ControlFunctions(l
 import Debian.Pretty (prettyShow)
 import qualified Debian.Relation.Text as B (ParseRelations(..), Relations)
 import Debian.Release (ReleaseName(..), releaseName', sectionName')
+import Debian.Releases (BaseRelease(..), baseRelease, parseReleaseTree)
 import Debian.Repo.EnvPath (EnvRoot(rootPath))
 import Debian.Repo.Internal.Repos (MonadRepos)
 import Debian.Repo.PackageID (makeBinaryPackageID, makeSourcePackageID)
 import Debian.Repo.PackageIndex (BinaryPackage, BinaryPackage(..), PackageIndex(..), PackageIndex(packageIndexArch, packageIndexComponent), packageIndexPath, SourceControl(..), SourceFileSpec(SourceFileSpec), SourcePackage(..), SourcePackage(sourcePackageID))
 --import Debian.Repo.Prelude (symbol)
-import Debian.Repo.Release (Release(Release, releaseName))
+import Debian.Repo.Release (Release(releaseName))
 import Debian.Repo.Repo (Repo(repoKey, repoReleaseInfo), RepoKey, repoKeyURI)
 import Debian.Repo.Slice (binarySlices, Slice(sliceRepoKey, sliceSource), SliceList(slices), sourceSlices)
 import Debian.Repo.State.Repository (foldRepository)
@@ -249,7 +250,7 @@ indexPrefix repo release index =
           case relName (releaseName release) of
             "artful-seereason-private" -> host ++ port' ++ escape path'
             "xenial-seereason-private" -> host ++ port' ++ escape path'
-            _ -> {-user'' ++-} host ++ port' ++ escape path'
+            _ -> aptUserPrefix release user'' ++ host ++ port' ++ escape path'
       prefix "http:" _ _ (Just host) port' path' =
           host ++ port' ++ escape path'
       prefix "ftp:" _ _ (Just host) _ path' =
@@ -260,7 +261,7 @@ indexPrefix repo release index =
           case relName (releaseName release) of
             "artful-seereason-private" -> host ++ port' ++ escape path'
             "xenial-seereason-private" -> host ++ port' ++ escape path'
-            _ -> {-user'' ++-} host ++ port' ++ escape path'
+            _ -> aptUserPrefix release user'' ++ host ++ port' ++ escape path'
       prefix "ssh" _ _ (Just host) port' path' =
           host ++ port' ++ escape path'
       prefix _ _ _ _ _ _ = error ("invalid repo URI: " ++ (uriToString' . repoKeyURI $ repo))
@@ -272,6 +273,19 @@ indexPrefix repo release index =
           case (break p s) of
             (s', []) -> [s']
             (h, t) -> h : wordsBy p (drop 1 t)
+
+-- If an older version of apt downloads a source like
+--    ssh://upload@deb.seereason.com ...
+-- The resulting file in /var/apt/lists will be named
+--    upload%40deb.seereason.com_srv_ ...
+-- whereas with a newer apt (xenial or later?) the name is
+--    deb.seereason.com_ ...
+
+aptUserPrefix :: Release -> String -> String
+aptUserPrefix r s =
+    case _releaseName (baseRelease (parseReleaseTree (releaseName r))) of
+      ReleaseName "trusty" -> s
+      _ -> ""
 
 (+?+) :: String -> String -> String
 (+?+) a ('_' : b) = a +?+ b
