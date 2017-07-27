@@ -57,6 +57,11 @@ data Release = Release { releaseName :: ReleaseName
                        , releaseComponents :: [Section] -- ^ Typically main, contrib, non-free
                        } deriving (Eq, Ord, Read, Show)
 
+-- | This is used to construct the top directory.  Initially I had
+-- "deb" and "deb-private", but now we are adding "deb8".
+class HasPoolDir a where
+    poolDir :: a -> FilePath
+
 instance Pretty Release where
     pPrint x = pPrint (releaseName x)
 

@@ -10,7 +10,7 @@ module Debian.Releases
     , allReleases
     , debianReleases
     , ubuntuReleases
-    , Release(..)
+    , ReleaseTree(..)
     , Distro(..)
     , releaseName
     , releaseString
@@ -90,68 +90,70 @@ class Distro distro where
     distroString :: distro -> String
     distroParse :: String -> Maybe distro
 
-data Release distro
-    = Release BaseRelease
-    | ExtendedRelease (Release distro) distro
+-- | Interpret the meaning of the release name, e.g. xenial-seereason-private.
+data ReleaseTree distro
+    = Foundation BaseRelease
+    -- ^ The standalone release which forms the foundation.
+    | ExtendedRelease (ReleaseTree distro) distro
     -- ^ A release which is based on another release, known as the
     -- base release.  Thus, this release contains packages which can
     -- be installed on a machine running the base release.
-    | PrivateRelease (Release distro)
+    | PrivateRelease (ReleaseTree distro)
     -- ^ A private release based on another release.
     deriving (Eq, Show)
 
-releaseName :: Distro distro => Release distro -> ReleaseName
+releaseName :: Distro distro => ReleaseTree distro -> ReleaseName
 releaseName = ReleaseName . releaseString
 
-releaseString :: Distro distro => Release distro -> String
+releaseString :: Distro distro => ReleaseTree distro -> String
 releaseString (PrivateRelease r) = releaseString r ++ "-private"
 releaseString (ExtendedRelease r vendor) = releaseString r ++ "-" ++ distroString vendor
-releaseString (Release name) = relName (_releaseName name)
+releaseString (Foundation name) = relName (_releaseName name)
 
 -- baseReleaseString :: BaseRelease -> String
 -- baseReleaseString = _releaseName
 
-baseRelease :: Release distro -> BaseRelease
+baseRelease :: ReleaseTree distro -> BaseRelease
 baseRelease (PrivateRelease release) = baseRelease release
 baseRelease (ExtendedRelease release _) = baseRelease release
-baseRelease (Release release) = release
+baseRelease (Foundation release) = release
 
-parseReleaseName :: Distro distro => ReleaseName -> Release distro
+parseReleaseName :: Distro distro => ReleaseName -> ReleaseTree distro
 parseReleaseName (ReleaseName s0) =
     parse s0
     where
-      parse "sarge" = Release (BaseRelease debian (ReleaseName "sarge"))
-      parse "etch" = Release (BaseRelease debian (ReleaseName "etch"))
-      parse "lenny" = Release (BaseRelease debian (ReleaseName "lenny"))
-      parse "squeeze" = Release (BaseRelease debian (ReleaseName "squeeze"))
-      parse "wheezy" = Release (BaseRelease debian (ReleaseName "wheezy"))
-      parse "jessie" = Release (BaseRelease debian (ReleaseName "jessie"))
-      parse "sid" = Release (BaseRelease debian (ReleaseName "sid"))
-      parse "experimental" = Release (BaseRelease debian (ReleaseName "experimental"))
+      parse "sarge" = Foundation (BaseRelease debian (ReleaseName "sarge"))
+      parse "etch" = Foundation (BaseRelease debian (ReleaseName "etch"))
+      parse "lenny" = Foundation (BaseRelease debian (ReleaseName "lenny"))
+      parse "squeeze" = Foundation (BaseRelease debian (ReleaseName "squeeze"))
+      parse "wheezy" = Foundation (BaseRelease debian (ReleaseName "wheezy"))
+      parse "jessie" = Foundation (BaseRelease debian (ReleaseName "jessie"))
+      parse "sid" = Foundation (BaseRelease debian (ReleaseName "sid"))
+      parse "experimental" = Foundation (BaseRelease debian (ReleaseName "experimental"))
 
-      parse "dapper" = Release (BaseRelease ubuntu (ReleaseName "dapper"))
-      parse "edgy" = Release (BaseRelease ubuntu (ReleaseName "edgy"))
-      parse "feisty" = Release (BaseRelease ubuntu (ReleaseName "feisty"))
-      parse "hardy" = Release (BaseRelease ubuntu (ReleaseName "hardy"))
-      parse "intrepid" = Release (BaseRelease ubuntu (ReleaseName "intrepid"))
-      parse "jaunty" = Release (BaseRelease ubuntu (ReleaseName "jaunty"))
-      parse "karmic" = Release (BaseRelease ubuntu (ReleaseName "karmic"))
-      parse "lucid" = Release (BaseRelease ubuntu (ReleaseName "lucid"))
-      parse "maverick" = Release (BaseRelease ubuntu (ReleaseName "maverick"))
-      parse "natty" = Release (BaseRelease ubuntu (ReleaseName "natty"))
-      parse "oneiric" = Release (BaseRelease ubuntu (ReleaseName "oneiric"))
-      parse "precise" = Release (BaseRelease ubuntu (ReleaseName "precise"))
-      parse "quantal" = Release (BaseRelease ubuntu (ReleaseName "quantal"))
-      parse "raring" = Release (BaseRelease ubuntu (ReleaseName "raring"))
-      parse "saucy" = Release (BaseRelease ubuntu (ReleaseName "saucy"))
-      parse "trusty" = Release (BaseRelease ubuntu (ReleaseName "trusty"))
-      parse "utopic" = Release (BaseRelease ubuntu (ReleaseName "utopic"))
-      parse "vivid" = Release (BaseRelease ubuntu (ReleaseName "vivid"))
-      parse "wily" = Release (BaseRelease ubuntu (ReleaseName "wily"))
-      parse "xenial" = Release (BaseRelease ubuntu (ReleaseName "xenial"))
-      parse "yakkety" = Release (BaseRelease ubuntu (ReleaseName "yakkety"))
-      parse "zesty" = Release (BaseRelease ubuntu (ReleaseName "zesty"))
-      parse "artful" = Release (BaseRelease ubuntu (ReleaseName "artful"))
+      parse "dapper" = Foundation (BaseRelease ubuntu (ReleaseName "dapper"))
+      parse "edgy" = Foundation (BaseRelease ubuntu (ReleaseName "edgy"))
+      parse "feisty" = Foundation (BaseRelease ubuntu (ReleaseName "feisty"))
+      parse "hardy" = Foundation (BaseRelease ubuntu (ReleaseName "hardy"))
+      parse "intrepid" = Foundation (BaseRelease ubuntu (ReleaseName "intrepid"))
+      parse "jaunty" = Foundation (BaseRelease ubuntu (ReleaseName "jaunty"))
+      parse "karmic" = Foundation (BaseRelease ubuntu (ReleaseName "karmic"))
+      parse "lucid" = Foundation (BaseRelease ubuntu (ReleaseName "lucid"))
+      parse "maverick" = Foundation (BaseRelease ubuntu (ReleaseName "maverick"))
+      parse "natty" = Foundation (BaseRelease ubuntu (ReleaseName "natty"))
+      parse "oneiric" = Foundation (BaseRelease ubuntu (ReleaseName "oneiric"))
+      parse "precise" = Foundation (BaseRelease ubuntu (ReleaseName "precise"))
+      parse "quantal" = Foundation (BaseRelease ubuntu (ReleaseName "quantal"))
+      parse "raring" = Foundation (BaseRelease ubuntu (ReleaseName "raring"))
+      parse "saucy" = Foundation (BaseRelease ubuntu (ReleaseName "saucy"))
+      parse "trusty" = Foundation (BaseRelease ubuntu (ReleaseName "trusty"))
+      parse "utopic" = Foundation (BaseRelease ubuntu (ReleaseName "utopic"))
+      parse "vivid" = Foundation (BaseRelease ubuntu (ReleaseName "vivid"))
+      parse "wily" = Foundation (BaseRelease ubuntu (ReleaseName "wily"))
+      parse "xenial" = Foundation (BaseRelease ubuntu (ReleaseName "xenial"))
+      parse "yakkety" = Foundation (BaseRelease ubuntu (ReleaseName "yakkety"))
+      parse "zesty" = Foundation (BaseRelease ubuntu (ReleaseName "zesty"))
+      parse "artful" = Foundation (BaseRelease ubuntu (ReleaseName "artful"))
 
       parse s = case spanEnd (/= '-') s of
                   (_, []) -> error $ "Unknown base release: " ++ show s
@@ -164,6 +166,6 @@ parseReleaseName (ReleaseName s0) =
 spanEnd :: (a -> Bool) -> [a] -> ([a], [a])
 spanEnd p l = (\(a, b) -> (reverse b, reverse a)) $ span p (reverse l)
 
-isPrivateRelease :: Release distro -> Bool
+isPrivateRelease :: ReleaseTree distro -> Bool
 isPrivateRelease (PrivateRelease _) = True
 isPrivateRelease _ = False
