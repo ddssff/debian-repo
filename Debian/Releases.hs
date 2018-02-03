@@ -45,7 +45,7 @@ baseReleaseList =
     , BaseRelease (Vendor "debian") (ReleaseName "buster")
     , BaseRelease (Vendor "debian") (ReleaseName "bullseye")
     , BaseRelease (Vendor "debian") (ReleaseName "sid") -- always current
-    -- , BaseRelease (Vendor "debian") (ReleaseName "experimental") -- always current (but actually not a base release,
+    , BaseRelease (Vendor "debian") (ReleaseName "experimental") -- always current (but actually not a base release,
                                           -- not complete.  Is experimental an add-on to sid?)
     -- Ubuntu releases
     , BaseRelease (Vendor "ubuntu") (ReleaseName "dapper") -- 2006/10
