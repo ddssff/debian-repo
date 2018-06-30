@@ -71,6 +71,7 @@ baseReleaseList =
     , BaseRelease (Vendor "ubuntu") (ReleaseName "yakkety") -- 2016/10
     , BaseRelease (Vendor "ubuntu") (ReleaseName "zesty") -- 2017/04
     , BaseRelease (Vendor "ubuntu") (ReleaseName "artful") -- 2017/10
+    , BaseRelease (Vendor "ubuntu") (ReleaseName "bionic") -- 2018/04
     ]
 
 allReleases :: Set BaseRelease
@@ -152,9 +153,11 @@ parseReleaseTree (ReleaseName s0) =
       parse "yakkety" = Foundation (BaseRelease ubuntu (ReleaseName "yakkety"))
       parse "zesty" = Foundation (BaseRelease ubuntu (ReleaseName "zesty"))
       parse "artful" = Foundation (BaseRelease ubuntu (ReleaseName "artful"))
+      parse "bionic" = Foundation (BaseRelease ubuntu (ReleaseName "bionic"))
 
       parse s = case spanEnd (/= '-') s of
                   (_, []) -> error $ "Unknown base release: " ++ show s
+                  ([], _) -> error $ "Unknown base release: " ++ show s
                   (base, "private") -> PrivateRelease (parse (init base))
                   (base, distro) -> ExtendedRelease (parse (init base)) (Distro distro)
 
