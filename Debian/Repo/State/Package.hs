@@ -24,7 +24,7 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Exception (SomeException)
 import Control.Exception as E (ErrorCall(ErrorCall), SomeException(..), try)
-import Control.Lens (makeLenses, over, view)
+import Control.Lens (_Left, makeLenses, over, view)
 import Control.Monad (filterM, foldM, when)
 import Control.Monad.State (StateT, runStateT, MonadState(get, put))
 import Control.Monad.Trans (liftIO, MonadIO, lift)
@@ -32,7 +32,7 @@ import qualified Data.ByteString.Lazy.Char8 as L (ByteString, fromChunks, readFi
 import Data.Digest.Pure.MD5 (md5)
 import Data.Digest.Pure.SHA (sha1, sha256)
 import Data.Either (partitionEithers, lefts, rights)
-import Data.List as List (filter, groupBy, intercalate, intersperse, isSuffixOf, map, partition, sortBy)
+import Data.List as List (filter, groupBy, intercalate, intersperse, isPrefixOf, isSuffixOf, map, partition, sortBy)
 import Data.Map as Map (fromList, lookup)
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Monoid ((<>))
@@ -47,7 +47,7 @@ import Debian.Apt.Index (Compression(..), controlFromIndex)
 import Debian.Arch (Arch(..), prettyArch)
 import Debian.Changes (ChangedFileSpec(..), ChangesFile(..), changesFileName)
 import Debian.Control (ControlFunctions(stripWS), formatControl, formatParagraph, Paragraph')
-import qualified Debian.Control.Text as B (appendFields, Control, Control'(Control), ControlFunctions(lookupP), ControlFunctions(parseControlFromHandle), Field, Field'(Field), fieldValue, modifyField, Paragraph, raiseFields, renameField)
+import qualified Debian.Control.Text as B (appendFields, Control, Control'(Control), ControlFunctions(lookupP), parseControl, ControlFunctions(parseControlFromHandle), Field, Field'(Field), fieldValue, modifyField, Paragraph, raiseFields, renameField)
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile))
 import Debian.Pretty (PP(..), ppPrint, ppShow)
 import Debian.Relation (BinPkgName, PkgName)
@@ -77,7 +77,8 @@ import System.FilePath.Extra2 (writeAndZipFileWithBackup)
 import System.IO ()
 import qualified System.Posix.Files as F (createLink, fileSize, getFileStatus)
 import System.Posix.Types (FileOffset)
-import System.Process (runInteractiveCommand, waitForProcess)
+import System.Process (waitForProcess, proc, shell, readCreateProcess, runInteractiveCommand)
+import Text.Parsec (ParseError)
 import Text.Regex (matchRegex, mkRegex, splitRegex)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text, hcat)
 
@@ -390,7 +391,7 @@ fileInfo changes file = do
                          control <-
                              case isSuffixOf ".deb" . changedFileName $ file of
                                -- Extract the control information from a .deb
-                               True -> getDebControl
+                               True -> getDebControl file
                                -- This is the .dsc file, parse it
                                False -> liftIO $ S.parseControlFromFile (dir </> changedFileName file) >>= return . either (Left . show) Right
                          case control of
@@ -405,16 +406,24 @@ fileInfo changes file = do
                         True -> addDebFields repo changes file info
                         False -> addSourceFields repo changes file info
                   -- | Extract the control file from a binary .deb.
-                  getDebControl :: MonadInstall m => m (Either String B.Control)
-                  getDebControl =
-                      do dir <- incoming
-                         let cmd = "ar p " ++ dir </> changedFileName file ++ " control.tar.gz | tar xzO ./control"
-                         (_, outh, _, handle) <- liftIO $ runInteractiveCommand cmd
-                         control <- liftIO $ B.parseControlFromHandle cmd outh >>= return . either (Left . show) Right
-                         exitcode <- liftIO $ waitForProcess handle
-                         case exitcode of
-                           ExitSuccess -> return control
-                           ExitFailure n -> return . Left $ "Failure: " ++ cmd ++ " -> " ++ show n
+getDebControl :: forall m. MonadInstall m => ChangedFileSpec -> m (Either String B.Control)
+getDebControl file = do
+  dir <- incoming
+  let path = dir </> changedFileName file
+  r <- liftIO (try (getDebControl' path)) :: m (Either IOError (Either ParseError B.Control))
+  return $ (either (Left . show) (either (Left . show) Right)) r
+
+-- let path = "/home/dsf/.autobuilder/localpools/bionic-seereason/incoming/haskell-devscripts-minimal_0.13.8-0+seereason1~bionic1_all.deb"
+getDebControl' :: FilePath -> IO (Either ParseError B.Control)
+getDebControl' path = do
+  names <- (filter (isPrefixOf "control.tar.") . lines) <$> readCreateProcess (proc "ar" ["t", path]) ""
+  let (name, c) =
+          case names of
+            ["control.tar.gz"] -> ("control.tar.gz", "z")
+            ["control.tar.xz"] -> ("control.tar.xz", "J")
+            _ -> error ("Unexpected result from ar t " ++ path)
+  text <- readCreateProcess (shell ("ar p " ++ path ++ " " ++ name ++ " | tar x" ++ c ++ "O ./control")) ""
+  return $ B.parseControl "" (pack text)
 
 findRelease' :: MonadInstall m => ReleaseName -> m (Maybe Release)
 findRelease' name = do
