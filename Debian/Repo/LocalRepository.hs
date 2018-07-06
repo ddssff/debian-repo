@@ -331,7 +331,7 @@ dupload uri dir changesFile  =
                       "$preupload{'changes'} = '';\n\n" ++
                       "1;\n")
         replaceFile (dir ++ "/dupload.conf") config
-        let cmd = (proc "dupload" ["--to", "default", "-c", changesFile]) {cwd = Just dir}
+        let cmd = (proc "dupload" ["--to", "default", "-c", (dir ++ "/dupload.conf"), changesFile]) {cwd = Just dir}
         qPutStrLn ("Uploading " ++ show changesFile)
         chunks <- readProcessVE cmd L.empty
         case chunks of
