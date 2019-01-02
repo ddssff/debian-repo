@@ -37,6 +37,7 @@ import Control.Applicative.Error (maybeRead)
 import Control.Exception (SomeException)
 import Control.Monad (unless)
 import Control.Monad.Catch (bracket, catch, MonadCatch, MonadMask)
+import Control.Monad.Fail (MonadFail)
 import Control.Monad.State (MonadIO(..), MonadState(get, put), StateT(runStateT))
 import Control.Monad.Trans (lift)
 import Data.Map as Map (empty, fromList, insert, lookup, Map, toList, union)
@@ -83,11 +84,11 @@ initState = ReposState
             }
 
 -- | A monad to support the IO requirements of the autobuilder.
-class (MonadCatch m, MonadMask m, MonadIO m, Functor m) => MonadRepos m where
+class (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => MonadRepos m where
     getRepos :: m ReposState
     putRepos :: ReposState -> m ()
 
-instance (MonadCatch m, MonadMask m, MonadIO m, Functor m) => MonadRepos (StateT ReposState m) where
+instance (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => MonadRepos (StateT ReposState m) where
     getRepos = get
     putRepos = put
 
@@ -112,16 +113,16 @@ type ReposCachedT m = TopT (StateT ReposState m)
 
 -- | To run a DebT we bracket an action with commands to load and save
 -- the repository list.
-runReposCachedT :: (MonadIO m, MonadCatch m, Functor m, MonadMask m) => FilePath -> ReposCachedT m a -> m a
+runReposCachedT :: (MonadIO m, MonadCatch m, MonadFail m, Functor m, MonadMask m) => FilePath -> ReposCachedT m a -> m a
 runReposCachedT top action = do
   qPutStrLn "Running MonadReposCached..."
   r <- runReposT $ runTopT top $ bracket loadRepoCache (\ r -> saveRepoCache >> return r) (\ () -> action)
   qPutStrLn "Exited MonadReposCached..."
   return r
 
-instance (MonadCatch m, MonadMask m, MonadIO m, Functor m) => MonadReposCached (ReposCachedT m)
+instance (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => MonadReposCached (ReposCachedT m)
 
-instance (MonadCatch m, MonadMask m, MonadIO m, Functor m) => MonadRepos (ReposCachedT m) where
+instance (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => MonadRepos (ReposCachedT m) where
     getRepos = lift get
     putRepos = lift . put
 
