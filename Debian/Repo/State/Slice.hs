@@ -10,6 +10,7 @@ module Debian.Repo.State.Slice
     ) where
 
 import Control.Exception (throw)
+import Control.Lens (view)
 import Control.Monad (when)
 import Control.Monad.Trans (liftIO)
 import qualified Data.ByteString.Char8 as B (concat)
@@ -22,7 +23,7 @@ import Debian.Control (Control'(Control), ControlFunctions(parseControl), fieldV
 import Debian.Control.Text (decodeParagraph)
 import Debian.Pretty (prettyShow)
 import Debian.Release (parseReleaseName, parseSection')
-import Debian.Repo.EnvPath (EnvPath(..), EnvRoot(..), outsidePath)
+import Debian.Repo.EnvPath (EnvPath(..), EnvRoot(..), outsidePath, rootPath)
 import Debian.Repo.Internal.Repos (MonadRepos)
 import Debian.Repo.Prelude (replaceFile, symbol)
 import Debian.Repo.Prelude.Verbosity (qPutStrLn)
@@ -66,7 +67,7 @@ uriSubdirs root uri =
     liftIO (dirFromURI uri') >>= either throw (return . map pack)
     where
       uri' = case uriScheme uri of
-               "file:" -> uri {uriPath = maybe "" rootPath root ++ (uriPath uri)}
+               "file:" -> uri {uriPath = maybe "" (view rootPath) root ++ (uriPath uri)}
                _ -> uri
 
 readRelease :: URI -> Text -> IO (Maybe (Paragraph' Text))

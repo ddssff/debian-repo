@@ -10,6 +10,7 @@ module Debian.Repo.State.Release
     , mergeReleases
     ) where
 
+import Control.Lens (view)
 import Control.Monad.State (filterM, liftM, MonadIO(..))
 import qualified Data.ByteString.Lazy.Char8 as L (empty, readFile)
 import Data.Digest.Pure.MD5 (md5)
@@ -45,12 +46,12 @@ import System.Unix.Directory (removeRecursiveSafely)
 -- the empty releases.
 flushLocalRepository :: MonadRepos m => LocalRepository -> m LocalRepository
 flushLocalRepository r =
-    do liftIO $ removeRecursiveSafely (outsidePath (repoRoot r))
+    do liftIO $ removeRecursiveSafely (outsidePath (view repoRoot r))
        r' <- repairLocalRepository r
        mapM_ (prepareRelease' r') releases
        repairLocalRepository r'
     where
-      releases = repoReleaseInfoLocal r
+      releases = view repoReleaseInfoLocal r
 
 -- The return value might not be the same as the input due to cached
 -- values in the monad.
@@ -87,7 +88,7 @@ prepareRelease repo dist aliases sections archSet =
              ensureIndex (dir </> name)
       initAlias root' dist alias =
           liftIO $ EF.prepareSymbolicLink (releaseName' dist) (root' </> "dists" </> releaseName' alias)
-      root = repoRoot repo
+      root = view repoRoot repo
 
 -- | Make sure an index file exists.
 ensureIndex :: MonadIO m => FilePath -> m (Either [String] ())
@@ -99,7 +100,7 @@ ensureIndex path =
 
 signRepo :: Maybe EG.PGPKey -> LocalRepository -> [FilePath] -> IO ()
 signRepo keyname repo files =
-    do let root = repoRoot repo
+    do let root = view repoRoot repo
        case keyname of
          Nothing -> return ()
          Just key -> do results <- liftIO (EG.pgpSignFiles (outsidePath root) key files)
@@ -111,7 +112,7 @@ signRepo keyname repo files =
 -- |Write out the @Release@ files that describe a 'Release'.
 writeRelease :: LocalRepository -> Release -> IO [FilePath]
 writeRelease repo release =
-    do let root = repoRoot repo
+    do let root = view repoRoot repo
        indexReleaseFiles <- liftIO $ writeIndexReleases (outsidePath root) release
        masterReleaseFile <- writeMasterRelease (outsidePath root) release
        return (masterReleaseFile : indexReleaseFiles)
@@ -183,7 +184,7 @@ mergeReleases _repo releases =
 
 -- | Find all the releases in a repository.
 findReleases :: MonadRepos m => LocalRepository -> m [Release]
-findReleases repo = mapM (findLocalRelease repo) (repoReleaseInfoLocal repo)
+findReleases repo = mapM (findLocalRelease repo) (view repoReleaseInfoLocal repo)
 
 findLocalRelease :: MonadRepos m => LocalRepository -> Release -> m Release
 findLocalRelease repo releaseInfo =
@@ -191,7 +192,7 @@ findLocalRelease repo releaseInfo =
     where
       readRelease :: MonadRepos m => m Release
       readRelease =
-          do let path = (outsidePath (repoRoot repo) </> "dists" </> releaseName' dist </> "Release")
+          do let path = (outsidePath (view repoRoot repo) </> "dists" </> releaseName' dist </> "Release")
              info <- liftIO $ S.parseControlFromFile path
              case info of
                Right (S.Control (paragraph : _)) ->

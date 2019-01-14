@@ -24,7 +24,7 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Exception (SomeException)
 import Control.Exception as E (ErrorCall(ErrorCall), SomeException(..), try)
-import Control.Lens (_Left, makeLenses, over, view)
+import Control.Lens (makeLenses, over, view)
 import Control.Monad (filterM, foldM, when)
 import Control.Monad.State (StateT, runStateT, MonadState(get, put))
 import Control.Monad.Trans (liftIO, MonadIO, lift)
@@ -248,8 +248,8 @@ plural _ _ = ""
 -- process each to install the package into a local repository.
 scanIncoming :: (MonadInstall m, MonadRepos m) => Bool -> Maybe PGPKey -> LocalRepository -> m [(ChangesFile, InstallResult)]
 scanIncoming createSections keyname repo = do
-  qPutStrLn ("Uploading packages to " ++ outsidePath (repoRoot repo) </> "incoming")
-  changes <- liftIO (findChangesFiles (outsidePath (repoRoot repo) </> "incoming"))
+  qPutStrLn ("Uploading packages to " ++ outsidePath (view repoRoot repo) </> "incoming")
+  changes <- liftIO (findChangesFiles (outsidePath (view repoRoot repo) </> "incoming"))
   case changes of
     [] -> qPutStrLn "Nothing to install."
     _ -> qPutStrLn ("To install:\n  " ++ (intercalate "\n  " . List.map ppShow $ changes))
@@ -285,7 +285,7 @@ installPackages createSections keyname repo changeFileList =
       (do results' <- foldM (installFiles createSections) [] changeFileList
           results'' <- updateIndexes (reverse results')
           when (elem Ok results'')
-               (do mapM_ (uncurry (finish (repoRoot repo) (maybe Flat id (repoLayout repo)))) (zip changeFileList results'')
+               (do mapM_ (uncurry (finish (view repoRoot repo) (maybe Flat id (view repoLayout repo)))) (zip changeFileList results'')
                    let releaseNames = nub' (List.map changeRelease changeFileList)
                    releases' <- catMaybes <$> mapM findRelease' releaseNames
                    mapM_ (\ rel -> liftIO $ writeRelease repo rel >>= signRepo keyname repo) releases')
@@ -368,13 +368,13 @@ installChangesFile root layout changes =
 
 incoming :: MonadInstall m => m FilePath
 incoming = do
-  root <- repoRoot . view repository <$> getInstall
+  root <- view (repository . repoRoot) <$> getInstall
   return $ outsidePath root </> "incoming" {- </> changedFileName file -}
 
 #if 0
 reject :: MonadInstall m => ChangedFileSpec -> m FilePath
 reject file = do
-  root <- repoRoot . view repository <$> getInstall
+  root <- view (repository . repoRoot) <$> getInstall
   return $ outsidePath root </> "reject" </> changedFileName file
 #endif
 
@@ -484,14 +484,14 @@ installFiles'' changes results = do
   when (result == Ok) (modifyInstall (over live (Just . Set.union (paths repo) . fromMaybe empty)))
   return $ result : results
     where
-      paths repo = Set.fromList $ List.map (T.pack . ((outsidePath (repoRoot repo)) </>) . poolDir' repo changes) (changeFiles changes)
+      paths repo = Set.fromList $ List.map (T.pack . ((outsidePath (view repoRoot repo)) </>) . poolDir' repo changes) (changeFiles changes)
 
 -- | Move one file into the repository
 installFile :: MonadInstall m => ChangesFile -> ChangedFileSpec -> m InstallResult
 installFile changes file = do
   repo <- view repository <$> getInstall
   live' <- view live <$> getInstall
-  let root = repoRoot repo
+  let root = view repoRoot repo
   let dir = outsidePath root </> poolDir' repo changes file
   let src = outsidePath root </> "incoming" </> changedFileName file
   let dst = dir </> changedFileName file
@@ -646,16 +646,16 @@ addPackagesToIndexes pairs =
 findLive :: MonadInstall m => m (Set Text)
 findLive = do
     repo <- view repository <$> getInstall
-    case repoLayout repo of
+    case view repoLayout repo of
       Nothing -> return Set.empty       -- Repository is empty
       Just layout ->
           do !releases <- findReleases repo
              !sourcePackages <- mapM releaseSourcePackages_ releases >>= return . Set.unions
              !binaryPackages <- mapM releaseBinaryPackages_ releases >>= return . Set.unions
-             let sourceFiles = Set.map (T.pack (outsidePath (repoRoot repo) ++ "/") <>) . Set.map T.pack . Set.fold Set.union Set.empty . Set.map sourceFilePaths_ $ sourcePackages
-             let binaryFiles = Set.map (T.pack (outsidePath (repoRoot repo) ++ "/") <>) . Set.fold (\ mt s -> maybe s (`Set.insert` s) mt) Set.empty $ Set.map (B.fieldValue "Filename" . packageInfo) binaryPackages
-             let changesFiles = Set.map T.pack . Set.fold Set.union Set.empty $ Set.map (Set.fromList . changesFilePaths (repoRoot repo) layout releases) sourcePackages
-             let uploadFiles = Set.map T.pack . Set.fold Set.union Set.empty . Set.map (uploadFilePaths (repoRoot repo) releases) $ sourcePackages
+             let sourceFiles = Set.map (T.pack (outsidePath (view repoRoot repo) ++ "/") <>) . Set.map T.pack . Set.fold Set.union Set.empty . Set.map sourceFilePaths_ $ sourcePackages
+             let binaryFiles = Set.map (T.pack (outsidePath (view repoRoot repo) ++ "/") <>) . Set.fold (\ mt s -> maybe s (`Set.insert` s) mt) Set.empty $ Set.map (B.fieldValue "Filename" . packageInfo) binaryPackages
+             let changesFiles = Set.map T.pack . Set.fold Set.union Set.empty $ Set.map (Set.fromList . changesFilePaths (view repoRoot repo) layout releases) sourcePackages
+             let uploadFiles = Set.map T.pack . Set.fold Set.union Set.empty . Set.map (uploadFilePaths (view repoRoot repo) releases) $ sourcePackages
              return $ Set.unions [sourceFiles, binaryFiles, changesFiles, uploadFiles]
     where
       changesFilePaths root Flat releases package =
@@ -827,8 +827,8 @@ merge packages =
 -- they belong to can be constructed from their name.
 deleteGarbage :: MonadInstall m => m ()
 deleteGarbage = do
-  layout <- (repoLayout . view repository) <$> getInstall
-  root <- (repoRoot . view repository) <$> getInstall
+  layout <- view (repository . repoLayout) <$> getInstall
+  root <- view (repository . repoRoot) <$> getInstall
   case layout of
       Just layout ->
           do
@@ -873,7 +873,7 @@ deleteSourcePackages :: MonadInstall m => Bool -> Maybe PGPKey -> [(Release, Pac
 deleteSourcePackages _ _ [] = return []
 deleteSourcePackages dry keyname packages =
     do qPutStrLn ("deleteSourcePackages:\n " ++ intercalate "\n " (List.map (ppShow . (\ (_, _, x) -> x)) packages))
-       releases <- (Set.fromList . repoReleaseInfoLocal . view repository) <$> getInstall
+       releases <- (Set.fromList . view (repository . repoReleaseInfoLocal)) <$> getInstall
        mapM doIndex (Set.toList (allIndexes releases))
     where
       doIndex (release, index) = getEntries release index >>= put release index . List.partition (victim release index)
@@ -902,7 +902,7 @@ deleteSourcePackages dry keyname packages =
         repo <- view repository <$> getInstall
         case dry of
           True -> ePutStrLn ("dry run: not changing " ++ show index)
-          False -> liftIO $ putIndex (repoRoot repo) release index entries >> writeRelease repo release >>= signRepo keyname repo
+          False -> liftIO $ putIndex (view repoRoot repo) release index entries >> writeRelease repo release >>= signRepo keyname repo
         return release
       putIndex :: EnvPath -> Release -> PackageIndex -> [BinaryPackage] -> IO (Either [String] ())
       putIndex root release index packages =
@@ -924,7 +924,7 @@ deleteBinaryPackages dry keyname blacklist = do
       put release index (junk, keep) =
           qPutStrLn ("deleteBinaryPackages - removing " ++ show (length junk) ++ " packages from " ++ ppShow (release, index) ++ ", leaving " ++ show (length keep) {- ++ ":\n " ++ intercalate "\n " (List.map (show . F.pretty . packageID) junk) -}) >>
           putIndex' keyname release index keep
-      allIndexes repo = Set.fold Set.union Set.empty (Set.map (\ r -> Set.fromList (List.map (r,) (packageIndexes r))) (Set.fromList (repoReleaseInfoLocal repo)))
+      allIndexes repo = Set.fold Set.union Set.empty (Set.map (\ r -> Set.fromList (List.map (r,) (packageIndexes r))) (Set.fromList (view repoReleaseInfoLocal repo)))
 
       -- (invalid, indexes) = Set.partition (\ (_, i) -> packageIndexArch i == Source) (Set.fromList (List.map (\ (r, i, _) -> (r, i)) (toList packages)))
       -- (source, invalid) = Set.partition (\ (r, i, b) -> packageIndexArch i == Source) (Set.fromList packages)
@@ -943,7 +943,7 @@ deleteBinaryPackages dry keyname blacklist = do
           do repo <- view repository <$> getInstall
              case dry of
                True -> ePutStrLn ("dry run: not changing " ++ show index)
-               False -> liftIO $ putIndex (repoRoot repo) release index entries >> writeRelease repo release >>= signRepo keyname repo
+               False -> liftIO $ putIndex (view repoRoot repo) release index entries >> writeRelease repo release >>= signRepo keyname repo
              return release
       putIndex :: EnvPath -> Release -> PackageIndex -> [BinaryPackage] -> IO (Either [String] ())
       putIndex root release index packages =
@@ -1176,7 +1176,7 @@ releaseBinaryPackages_ release =
 -- | Write a set of packages into a package index.
 putPackages_ :: LocalRepository -> Release -> PackageIndex ->  [BinaryPackage] -> IO ()
 putPackages_ repo release index packages =
-    writeAndZipFileWithBackup (outsidePath (repoRoot repo) </> packageIndexPath release index) (L.fromChunks [encodeUtf8 text]) >>= either (fail . intercalate "\n") return
+    writeAndZipFileWithBackup (outsidePath (view repoRoot repo) </> packageIndexPath release index) (L.fromChunks [encodeUtf8 text]) >>= either (fail . intercalate "\n") return
     where
       text = T.concat (intersperse (T.pack "\n") . List.map formatParagraph . List.map packageInfo $ packages)
 

@@ -6,6 +6,7 @@ module Debian.Repo.State.PackageIndex
     ) where
 
 import Control.Exception (try)
+import Control.Lens (view)
 import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Either (partitionEithers)
 import Data.List (intercalate)
@@ -19,7 +20,7 @@ import Debian.Pretty (prettyShow)
 import qualified Debian.Relation.Text as B (ParseRelations(..), Relations)
 import Debian.Release (ReleaseName(..), releaseName', sectionName')
 import Debian.Releases (BaseRelease(..), baseRelease, parseReleaseTree)
-import Debian.Repo.EnvPath (EnvRoot(rootPath))
+import Debian.Repo.EnvPath (EnvRoot, rootPath)
 import Debian.Repo.Internal.Repos (MonadRepos)
 import Debian.Repo.PackageID (makeBinaryPackageID, makeSourcePackageID)
 import Debian.Repo.PackageIndex (BinaryPackage, BinaryPackage(..), PackageIndex(..), PackageIndex(packageIndexArch, packageIndexComponent), packageIndexPath, SourceControl(..), SourceFileSpec(SourceFileSpec), SourcePackage(..), SourcePackage(sourcePackageID))
@@ -113,7 +114,7 @@ sourcePackagesOfIndex root arch repo release index =
     where
       makeLeft :: IOError -> (EnvRoot, Arch, RepoKey, Release, PackageIndex, IOError)
       makeLeft e = (root, arch, repo, release, index, e)
-      path = rootPath root ++ suff
+      path = view rootPath root ++ suff
       suff = indexCacheFile arch repo release index
 
 toSourcePackage :: PackageIndex -> B.Paragraph -> SourcePackage
@@ -186,7 +187,7 @@ binaryPackagesOfIndex root arch repo release index =
 -}
     where
        suff = indexCacheFile arch repo release index
-       path = rootPath root ++ suff
+       path = view rootPath root ++ suff
 
 toBinaryPackage :: Release -> PackageIndex -> B.Paragraph -> BinaryPackage
 toBinaryPackage release index p =

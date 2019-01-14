@@ -12,6 +12,7 @@ module Debian.Repo.AptImage
 import Control.Applicative ((<$>))
 #endif
 import Control.Category ((.))
+import Control.Lens (view)
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString as B
 import Data.Data (Data)
@@ -19,8 +20,8 @@ import Data.Typeable (Typeable)
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import Debian.Pretty (ppShow)
 import Debian.Relation (PkgName, SrcPkgName(unSrcPkgName))
-import Debian.Repo.EnvPath (EnvRoot(rootPath))
-import Debian.Repo.Internal.Apt (AptImage(aptImageRoot, aptImageSources), MonadApt(getApt))
+import Debian.Repo.EnvPath (EnvRoot(..), rootPath)
+import Debian.Repo.Internal.Apt (AptImage, aptImageRoot, aptImageSources, MonadApt(getApt))
 import Debian.Repo.Prelude.Process (readProcessV, readProcessQE)
 import Debian.Repo.Slice (NamedSliceList(sliceListName))
 import Debian.Repo.Top (distDir, MonadTop)
@@ -35,7 +36,7 @@ import System.Process (CreateProcess(cwd), proc, readProcessWithExitCode)
 -- an AptImage (but not an OSImage.)
 aptDir :: (MonadTop m, MonadApt m) => SrcPkgName -> m FilePath
 aptDir package =
-    do rel <- aptImageSources <$> getApt
+    do rel <- view aptImageSources <$> getApt
        dir <- distDir (sliceListName rel)
        return $ dir </> "apt" </> unSrcPkgName package
 
@@ -85,7 +86,7 @@ aptGetUpdate =
 
 aptOpts :: MonadApt m => m [String]
 aptOpts =
-    do root <- (rootPath . aptImageRoot) <$> getApt
+    do root <- view (aptImageRoot . rootPath) <$> getApt
        return $ [ "-o=Dir::State::status=" ++ root ++ "/var/lib/dpkg/status"
                 , "-o=Dir::State::Lists=" ++ root ++ "/var/lib/apt/lists"
                 , "-o=Dir::Cache::Archives=" ++ root ++ "/var/cache/apt/archives"

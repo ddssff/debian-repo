@@ -10,6 +10,7 @@ module Debian.Repo.State.Repository
     , foldRepository
     ) where
 
+import Control.Lens (view)
 import Control.Monad (filterM, when)
 import Control.Monad.Catch (MonadMask)
 import Control.Monad.Trans (liftIO, MonadIO)
@@ -17,7 +18,7 @@ import Data.Maybe (catMaybes)
 import Debian.Release (ReleaseName(ReleaseName), Section(Section))
 import Debian.Repo.EnvPath (EnvPath, EnvPath(EnvPath), EnvRoot(EnvRoot), outsidePath)
 import Debian.Repo.Internal.Repos (MonadRepos(..), repoByURI, putRepo)
-import Debian.Repo.LocalRepository (Layout(..), LocalRepository(..), readLocalRepo)
+import Debian.Repo.LocalRepository (Layout(..), LocalRepository(..), readLocalRepo, repoRoot, repoLayout, repoReleaseInfoLocal)
 import Debian.Repo.Release (getReleaseInfoRemote, parseArchitectures, Release(Release, releaseAliases, releaseArchitectures, releaseComponents, releaseName))
 import Debian.Repo.RemoteRepository (RemoteRepository, RemoteRepository(RemoteRepository))
 import Debian.Repo.Repo (RepoKey(..))
@@ -30,7 +31,7 @@ import qualified System.Posix.Files as F (fileMode, getFileStatus, setFileMode)
 import Text.Regex (matchRegex, mkRegex)
 
 repairLocalRepository :: (MonadIO m, MonadMask m) => LocalRepository -> m LocalRepository
-repairLocalRepository r = prepareLocalRepository (repoRoot r) (repoLayout r) (repoReleaseInfoLocal r)
+repairLocalRepository r = prepareLocalRepository (view repoRoot r) (view repoLayout r) (view repoReleaseInfoLocal r)
 
 createLocalRepository :: MonadIO m => EnvPath -> Maybe Layout -> m (Maybe Layout)
 createLocalRepository root layout = do
@@ -76,9 +77,9 @@ prepareLocalRepository' root layout =
 
 makeLocalRepo :: EnvPath -> Maybe Layout -> [Release] -> LocalRepository
 makeLocalRepo root layout releases =
-    LocalRepository { repoRoot = root
-                    , repoLayout = layout
-                    , repoReleaseInfoLocal = releases }
+    LocalRepository { _repoRoot = root
+                    , _repoLayout = layout
+                    , _repoReleaseInfoLocal = releases }
 
 -- |Try to determine a repository's layout.
 computeLayout :: FilePath -> IO (Maybe Layout)

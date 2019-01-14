@@ -11,12 +11,13 @@ module Debian.Repo.Repo
     ) where
 
 import Control.Exception (throw)
+import Control.Lens (view)
 import Data.Char (isDigit)
 import Data.Maybe (fromJust)
 import Data.Set (Set, unions)
 import Data.Text (unpack)
 import Debian.Arch (Arch)
-import Debian.Repo.EnvPath (EnvPath(..))
+import Debian.Repo.EnvPath (EnvPath, envPath)
 import Debian.Repo.Release (Release(releaseArchitectures))
 import Debian.URI (fileFromURI, fromURI', URI')
 import qualified Debian.UTF8 as Deb (decode)
@@ -37,7 +38,7 @@ class (Ord t, Eq t) => Repo t where
           uri' = uri {uriPath = uriPath uri </> compatibilityFile}
           uri = case repoKey r of
                   Remote x -> fromURI' x
-                  Local x -> fromJust . parseURI $ "file://" ++ envPath x
+                  Local x -> fromJust . parseURI $ "file://" ++ view envPath x
           parse :: String -> Maybe Int
           parse s = case takeWhile isDigit s of
                          "" -> Nothing
@@ -72,7 +73,7 @@ repoURI :: Repo r => r -> URI
 repoURI = repoKeyURI . repoKey
 
 repoKeyURI :: RepoKey -> URI
-repoKeyURI (Local path) = fromJust . parseURI $ "file://" ++ envPath path
+repoKeyURI (Local path) = fromJust . parseURI $ "file://" ++ view envPath path
 repoKeyURI (Remote uri) = fromURI' uri
 
 repoArchList :: Repo r => r -> Set Arch

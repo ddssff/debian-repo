@@ -25,8 +25,8 @@ module Debian.Repo.Prelude.Misc
     ) where
 
 import           Control.Exception
-import qualified Data.ByteString.Lazy.Char8 as B
-import qualified Data.Digest.Pure.MD5
+--import qualified Data.ByteString.Lazy.Char8 as B
+--import qualified Data.Digest.Pure.MD5
 import           Data.List
 import qualified Data.Map as Map
 import           Data.Maybe

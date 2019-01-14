@@ -2,7 +2,7 @@
 {-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, OverloadedStrings, PackageImports, StandaloneDeriving, ScopedTypeVariables, TemplateHaskell, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.LocalRepository
-    ( LocalRepository(..)
+    ( LocalRepository(..), repoRoot, repoLayout, repoReleaseInfoLocal
     , Layout(..)
     , poolDir'
     , readLocalRepo
@@ -18,6 +18,7 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Applicative.Error (Failing(Success, Failure))
 import Control.Exception (SomeException)
+import Control.Lens (makeLenses, view)
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (ByteString, empty)
 import Data.List (groupBy, isPrefixOf, partition, sort, sortBy)
@@ -31,7 +32,7 @@ import qualified Debian.Control.Text as T (fieldValue)
 import Debian.Pretty (PP(..))
 import Debian.Release (parseReleaseName, ReleaseName(..), releaseName', Section(..), sectionName', SubSection(section))
 import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
-import Debian.Repo.EnvPath (EnvPath(envPath), outsidePath)
+import Debian.Repo.EnvPath (EnvPath, envPath, outsidePath)
 import Debian.Repo.Fingerprint (readUpstreamFingerprint)
 import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile)
 import Debian.Repo.Prelude.Process (readProcessVE)
@@ -54,22 +55,24 @@ import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text)
 
 data LocalRepository
     = LocalRepository
-      { repoRoot :: EnvPath
-      , repoLayout :: (Maybe Layout)
-      , repoReleaseInfoLocal :: [Release]
+      { _repoRoot :: EnvPath
+      , _repoLayout :: (Maybe Layout)
+      , _repoReleaseInfoLocal :: [Release]
       } deriving (Read, Show, Ord, Eq)
+
+-- |The possible file arrangements for a repository.  An empty
+-- repository does not yet have either of these attributes.
+data Layout = Flat | Pool deriving (Eq, Ord, Read, Show, Bounded, Enum)
+
+$(makeLenses ''LocalRepository)
 
 instance Pretty (PP LocalRepository) where
     pPrint (PP (LocalRepository root _ _)) =
         text $ show $ URI { uriScheme = "file:"
                           , uriAuthority = Nothing
-                          , uriPath = envPath root
+                          , uriPath = view envPath root
                           , uriQuery = ""
                           , uriFragment = "" }
-
--- |The possible file arrangements for a repository.  An empty
--- repository does not yet have either of these attributes.
-data Layout = Flat | Pool deriving (Eq, Ord, Read, Show, Bounded, Enum)
 
 instance Repo LocalRepository where
     repoKey (LocalRepository path _ _) = Local path -- fromJust . parseURI $ "file://" ++ envPath path
@@ -80,7 +83,7 @@ instance Repo LocalRepository where
 -- repository.
 poolDir :: LocalRepository -> Section -> String -> FilePath
 poolDir r section' source =
-    case repoLayout r of
+    case view repoLayout r of
       Just Pool ->
           "pool/" ++ sectionName' section' </> prefixDir </> source
               where prefixDir =
@@ -108,9 +111,9 @@ readLocalRepo root layout =
        releaseInfo <- mapM (liftIO . getReleaseInfo) aliases
        case releaseInfo of
          [] -> return Nothing
-         _ -> return $ Just $ LocalRepository { repoRoot = root
-                                              , repoLayout = layout
-                                              , repoReleaseInfoLocal = releaseInfo }
+         _ -> return $ Just $ LocalRepository { _repoRoot = root
+                                              , _repoLayout = layout
+                                              , _repoReleaseInfoLocal = releaseInfo }
     where
       fstEq (a, _) (b, _) = a == b
       checkAliases :: ([(String, String)], [(String, String)]) -> (ReleaseName, [ReleaseName])
@@ -132,19 +135,19 @@ isSymLink path = F.getSymbolicLinkStatus path >>= return . F.isSymbolicLink
 copyLocalRepo :: (MonadIO m, Functor m) => EnvPath -> LocalRepository -> m LocalRepository
 copyLocalRepo dest repo =
     do liftIO $ createDirectoryIfMissing True (outsidePath dest)
-       (result :: (Either SomeException ExitCode, String, String)) <- rsyncOld [] (outsidePath (repoRoot repo)) (outsidePath dest)
+       (result :: (Either SomeException ExitCode, String, String)) <- rsyncOld [] (outsidePath (view repoRoot repo)) (outsidePath dest)
        case result of
-         (Right ExitSuccess, _, _) -> return $ repo {repoRoot = dest}
+         (Right ExitSuccess, _, _) -> return $ repo {_repoRoot = dest}
          code -> error $ "*** FAILURE syncing local repository " ++ src ++ " -> " ++ dst ++ ": " ++ show code
     where
-      src = outsidePath (repoRoot repo)
+      src = outsidePath (view repoRoot repo)
       dst = outsidePath dest
 
 -- | Create or update the compatibility level file for a repository.
 setRepositoryCompatibility :: LocalRepository -> IO ()
 setRepositoryCompatibility r =
     maybeWriteFile path (show libraryCompatibilityLevel ++ "\n")
-    where path = outsidePath (repoRoot r) </> compatibilityFile
+    where path = outsidePath (view repoRoot r) </> compatibilityFile
 
 -- |Make sure we can access the upload uri without typing a password.
 verifyUploadURI :: MonadIO m => Bool -> URI -> m ()
@@ -224,7 +227,7 @@ uploadRemote repo uri =
       successes (Failure _ : xs) = successes xs
       successes [] = []
 #endif
-      root = repoRoot repo
+      root = view repoRoot repo
 {-
       rejectOlder :: ([ChangesFile], [(ChangesFile, String)]) ->  ([ChangesFile], [(ChangesFile, String)])
       rejectOlder (accept, reject) =
@@ -354,7 +357,7 @@ uploadLocal repo changesFile =
     do let paths = map (\ file -> changeDir changesFile </> changedFileName file) (changeFiles changesFile)
        mapM_ (liftIO . install (outsidePath root)) (changePath changesFile : paths)
     where
-      root = repoRoot repo
+      root = view repoRoot repo
       -- Hard link a file into the incoming directory
       install root' path =
           do removeIfExists (dest root' path)

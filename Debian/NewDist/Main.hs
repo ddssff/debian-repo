@@ -3,6 +3,7 @@
 -- | Replacement for debpool.
 module Main where
 
+import Control.Lens (view)
 import Control.Monad (when)
 import Control.Monad.Trans (liftIO)
 import Data.Maybe (catMaybes)
@@ -86,7 +87,7 @@ runFlags flags =
           let subject = ("newdist: " ++ changePackage changesFile ++ "-" ++ show (prettyDebianVersion (changeVersion changesFile)) ++
                          " now available in " ++ releaseName' (changeRelease changesFile) ++
                          " (" ++ show (prettyArch (changeArch changesFile)) ++")")
-              body = ("Repository " ++ envPath (repoRoot repo)) : [] : (lines $ prettyShow $ changeInfo changesFile) in
+              body = ("Repository " ++ view envPath (view repoRoot repo)) : [] : (lines $ prettyShow $ changeInfo changesFile) in
           (subject, body)
       email _repo (changesFile, e) =
           let subject = ("newdist failure: " ++ changePackage changesFile ++ "-" ++ show (prettyDebianVersion (changeVersion changesFile)) ++

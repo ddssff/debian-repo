@@ -160,7 +160,7 @@ Executable newdist
   Buildable: True
   Main-is: Main.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
-  Build-Depends: cabal-debian
+  Build-Depends: cabal-debian, lens
   Build-Depends: debian >= 3.92
   Other-Modules:
         Config Options Version Paths_debian_repo

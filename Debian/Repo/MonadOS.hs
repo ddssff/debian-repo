@@ -16,6 +16,7 @@ import Control.Applicative (Applicative, pure, (<$>))
 #endif
 import Control.DeepSeq (force)
 import Control.Exception ({-evaluate,-} SomeException)
+import Control.Lens (set, view)
 import Control.Monad.Catch (mask_, MonadCatch, MonadMask)
 import Control.Monad.State (MonadState(get), StateT, evalStateT, get)
 import Control.Monad.Trans (liftIO, MonadIO, lift)
@@ -24,10 +25,10 @@ import Data.ByteString.Lazy as L (ByteString, empty)
 import Data.Traversable
 import Debian.Pretty (ppShow)
 import Debian.Relation (PkgName, Relations)
-import Debian.Repo.EnvPath (EnvPath(EnvPath, envPath, envRoot), EnvRoot(rootPath))
+import Debian.Repo.EnvPath (EnvPath(..), envPath, envRoot, EnvRoot(..), rootPath)
 import Debian.Repo.Internal.Repos (MonadRepos, osFromRoot, putOSImage, syncOS)
 import Debian.Repo.LocalRepository (copyLocalRepo)
-import Debian.Repo.OSImage as OS (OSImage(osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache))
+import Debian.Repo.OSImage as OS (OSImage(..), osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache)
 import qualified Debian.Repo.OSImage as OS (buildEssential)
 import Debian.Repo.Prelude.Process (readProcessVE, readProcessV, readProcessQE)
 import Debian.Repo.Top (MonadTop)
@@ -60,7 +61,7 @@ instance MonadOS m => MonadOS (WithProcAndSys m) where
 -- | Perform a task in the changeroot of an OS.
 useOS :: (MonadOS m, MonadIO m, MonadMask m) => IO a -> m a
 useOS action =
-  do root <- rootPath . osRoot <$> getOS
+  do root <- view (osRoot . rootPath) <$> getOS
      withProcAndSys root $ liftIO $ useEnv root (return {-. force-}) action
 
 -- | Run MonadOS and update the osImageMap with the modified value
@@ -92,7 +93,7 @@ updateLists = do
 -- binary or source package names.
 aptGetInstall :: (MonadOS m, MonadCatch m, MonadMask m, MonadIO m, PkgName n) => [(n, Maybe DebianVersion)] -> m ()
 aptGetInstall packages =
-    do root <- rootPath . osRoot <$> getOS
+    do root <- view (osRoot . rootPath) <$> getOS
        withProcAndSys root $ liftIO $ useEnv root (return . force) $ do
          _ <- readProcessV p L.empty
          return ()
@@ -116,15 +117,15 @@ forceList output = evaluate (length output) >> return output
 syncLocalPool :: (Applicative m, MonadIO m, MonadOS m, MonadCatch m, MonadMask m) => m ()
 syncLocalPool =
     do os <- getOS
-       repo' <- copyLocalRepo (EnvPath {envRoot = osRoot os, envPath = "/work/localpool"}) (osLocalMaster os)
-       putOS (os {osLocalCopy = repo'})
+       repo' <- copyLocalRepo (EnvPath {_envRoot = view osRoot os, _envPath = "/work/localpool"}) (view osLocalMaster os)
+       putOS (set osLocalCopy repo' os)
        _ <- updateLists
        -- Presumably we are doing this because the pool changed, and
        -- that invalidates the OS package lists.
        osFlushPackageCache
 
 osFlushPackageCache :: MonadOS m => m ()
-osFlushPackageCache = modifyOS (\ os -> os {osSourcePackageCache = Nothing, osBinaryPackageCache = Nothing})
+osFlushPackageCache = modifyOS (\ os -> os {_osSourcePackageCache = Nothing, _osBinaryPackageCache = Nothing})
 
 -- | Get the version of the newest ghc available in a build environment.
 -- ghcNewestAvailableVersion :: (MonadIO m, Functor m, MonadState OSImage m) => m (Maybe DebianVersion)

@@ -11,6 +11,7 @@ module Debian.Repo.State.AptImage
 import Control.Applicative ((<$>))
 #endif
 import Control.Exception (SomeException)
+import Control.Lens (set, view)
 import Control.Monad.Catch (MonadCatch, catch)
 import Control.Monad.State (StateT)
 import Control.Monad.Trans (MonadIO(..), MonadTrans(lift))
@@ -20,9 +21,9 @@ import Debian.Changes (ChangeLogEntry(logVersion))
 import Debian.Pretty (prettyShow)
 import Debian.Relation (SrcPkgName(unSrcPkgName))
 import Debian.Repo.AptImage (aptDir, aptGetSource, aptGetUpdate)
-import Debian.Repo.EnvPath (EnvRoot(rootPath))
-import Debian.Repo.Internal.Apt (AptImage(aptImageArch, aptImageRoot, aptImageSources,
-                                          aptBinaryPackageCache, aptSourcePackageCache),
+import Debian.Repo.EnvPath (EnvRoot, rootPath)
+import Debian.Repo.Internal.Apt (AptImage, aptImageArch, aptImageRoot, aptImageSources,
+                                 aptBinaryPackageCache, aptSourcePackageCache,
                                  cacheRootDir, createAptImage, MonadApt(..), modifyApt)
 import Debian.Repo.Internal.Repos (AptKey, evalMonadApt, getAptKey, MonadRepos(..), putAptImage)
 import Debian.Repo.PackageID (PackageID(packageName), PackageID(packageVersion))
@@ -73,7 +74,7 @@ prepareAptImage' sourcesChangedAction sources = do
         key <- putAptImage =<< createAptImage sources
         evalMonadApt (updateCacheSources sourcesChangedAction sources >> aptGetUpdate) key
         return key
-      removeAptImage = cacheRootDir (sliceListName sources) >>= liftIO . removeRecursiveSafely . rootPath
+      removeAptImage = cacheRootDir (sliceListName sources) >>= liftIO . removeRecursiveSafely . view rootPath
 
 -- |Run apt-get update and then retrieve all the packages referenced
 -- by the sources.list.  The source packages are sorted so that
@@ -83,30 +84,30 @@ prepareAptImage' sourcesChangedAction sources = do
 
 aptSourcePackages :: (MonadRepos m, MonadApt m) => m [SourcePackage]
 aptSourcePackages = do
-  mpkgs <- aptSourcePackageCache <$> getApt
+  mpkgs <- view aptSourcePackageCache <$> getApt
   maybe aptSourcePackages' return mpkgs
     where
       aptSourcePackages' = do
-        root <- aptImageRoot <$> getApt
-        arch <- aptImageArch <$> getApt
-        sources <- aptImageSources <$> getApt
+        root <- view aptImageRoot <$> getApt
+        arch <- view aptImageArch <$> getApt
+        sources <- view aptImageSources <$> getApt
         -- qPutStrLn ($(symbol 'aptSourcePackages) ++ " " ++ show (pretty (sliceListName sources)))
         pkgs <- sourcePackagesFromSources root arch (sliceList sources)
-        modifyApt (\ s -> s {aptSourcePackageCache = Just pkgs})
+        modifyApt (set aptSourcePackageCache (Just pkgs))
         return pkgs
 
 aptBinaryPackages :: (MonadRepos m, MonadApt m) => m [BinaryPackage]
 aptBinaryPackages = do
-  mpkgs <- aptBinaryPackageCache <$> getApt
+  mpkgs <- view aptBinaryPackageCache <$> getApt
   maybe aptBinaryPackages' return mpkgs
     where
       aptBinaryPackages' = do
-        root <- aptImageRoot <$> getApt
-        arch <- aptImageArch <$> getApt
-        sources <- aptImageSources <$> getApt
+        root <- view aptImageRoot <$> getApt
+        arch <- view aptImageArch <$> getApt
+        sources <- view aptImageSources <$> getApt
         -- qPutStrLn ($(symbol 'aptBinaryPackages) ++ " " ++ show (pretty (sliceListName sources)))
         pkgs <- binaryPackagesFromSources root arch (sliceList sources)
-        modifyApt (\ s -> s {aptBinaryPackageCache = Just pkgs})
+        modifyApt (set aptBinaryPackageCache (Just pkgs))
         return pkgs
 
 -- |Retrieve a source package via apt-get.
@@ -115,7 +116,7 @@ prepareSource :: (MonadRepos m, MonadApt m, MonadTop m, MonadIO m) =>
               -> Maybe DebianVersion            -- The desired version, if Nothing get newest
               -> m DebianBuildTree              -- The resulting source tree
 prepareSource package version =
-    do root <- (rootPath . aptImageRoot) <$> getApt
+    do root <- view (aptImageRoot . rootPath) <$> getApt
        dir <- aptDir package
        liftIO $ createDirectoryIfMissing True dir
        ready <- liftIO $ findDebianBuildTrees dir

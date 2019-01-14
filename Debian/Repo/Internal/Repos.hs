@@ -35,6 +35,7 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Applicative.Error (maybeRead)
 import Control.Exception (SomeException)
+import Control.Lens (makeLenses, view)
 import Control.Monad (unless)
 import Control.Monad.Catch (bracket, catch, MonadCatch, MonadMask)
 import Control.Monad.Fail (MonadFail)
@@ -44,8 +45,8 @@ import Data.Map as Map (empty, fromList, insert, lookup, Map, toList, union)
 import Data.Maybe (fromMaybe)
 import Debian.Release (ReleaseName)
 import Debian.Repo.EnvPath (EnvRoot)
-import Debian.Repo.Internal.Apt (AptImage(aptImageRoot))
-import Debian.Repo.OSImage (OSImage(osRoot), syncOS')
+import Debian.Repo.Internal.Apt (AptImage, aptImageRoot)
+import Debian.Repo.OSImage (OSImage(..), osRoot, syncOS')
 import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (Release(releaseName))
 import Debian.Repo.RemoteRepository (RemoteRepository)
@@ -64,11 +65,13 @@ newtype AptKey = AptKey EnvRoot deriving (Eq, Ord, Show)
 -- | This represents the state of the IO system.
 data ReposState
     = ReposState
-      { repoMap :: Map.Map URI' RemoteRepository                -- ^ Map to look up known (remote) Repository objects
-      , releaseMap :: Map.Map ReleaseKey Release -- ^ Map to look up known Release objects
-      , aptImageMap :: Map.Map AptKey AptImage  -- ^ Map to look up prepared AptImage objects
-      , osImageMap :: Map.Map EnvRoot OSImage   -- ^ Map to look up prepared OSImage objects
+      { _repoMap :: Map.Map URI' RemoteRepository                -- ^ Map to look up known (remote) Repository objects
+      , _releaseMap :: Map.Map ReleaseKey Release -- ^ Map to look up known Release objects
+      , _aptImageMap :: Map.Map AptKey AptImage  -- ^ Map to look up prepared AptImage objects
+      , _osImageMap :: Map.Map EnvRoot OSImage   -- ^ Map to look up prepared OSImage objects
       }
+
+$(makeLenses ''ReposState)
 
 runReposT :: Monad m => StateT ReposState m a -> m a
 runReposT action = (runStateT action) initState >>= return . fst
@@ -77,10 +80,10 @@ runReposT action = (runStateT action) initState >>= return . fst
 -- state information, no repositories in the repository map.
 initState :: ReposState
 initState = ReposState
-            { repoMap = Map.empty
-            , releaseMap = Map.empty
-            , aptImageMap = Map.empty
-            , osImageMap = Map.empty
+            { _repoMap = Map.empty
+            , _releaseMap = Map.empty
+            , _aptImageMap = Map.empty
+            , _osImageMap = Map.empty
             }
 
 -- | A monad to support the IO requirements of the autobuilder.
@@ -127,42 +130,42 @@ instance (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => Monad
     putRepos = lift . put
 
 putOSImage :: MonadRepos m => OSImage -> m ()
-putOSImage repo =
-    modifyRepos (\ s -> s {osImageMap = Map.insert (osRoot repo) repo (osImageMap s)})
+putOSImage repo = modifyRepos (\s -> s {_osImageMap = Map.insert (view osRoot repo) repo (view osImageMap s)})
+--putOSImage repo = modifyRepos (\s -> set osImageMap (Map.insert (view osRoot repo) repo (view osImageMap s)) s)
 
 osFromRoot :: MonadRepos m => EnvRoot -> m (Maybe OSImage)
-osFromRoot root = Map.lookup root . osImageMap <$> getRepos
+osFromRoot root = Map.lookup root . view osImageMap <$> getRepos
 
 putRepo :: MonadRepos m => URI' -> RemoteRepository -> m ()
-putRepo uri repo = modifyRepos (\ s -> s {repoMap = Map.insert uri repo (repoMap s)})
+putRepo uri repo = modifyRepos (\ s -> s {_repoMap = Map.insert uri repo (view repoMap s)})
 
 repoByURI :: MonadRepos m => URI' -> m (Maybe RemoteRepository)
-repoByURI uri = Map.lookup uri . repoMap <$> getRepos
+repoByURI uri = Map.lookup uri . view repoMap <$> getRepos
 
 getApt :: MonadRepos m => EnvRoot -> m (Maybe AptImage)
-getApt root = (Map.lookup (AptKey root) . aptImageMap) <$> getRepos
+getApt root = (Map.lookup (AptKey root) . view aptImageMap) <$> getRepos
 
 getAptKey :: MonadRepos m => EnvRoot -> m (Maybe AptKey)
-getAptKey root = fmap (AptKey . aptImageRoot) <$> (getApt root)
+getAptKey root = fmap (AptKey . view aptImageRoot) <$> (getApt root)
 
 findRelease :: (Repo r, MonadRepos m) => r -> ReleaseName -> m (Maybe Release)
-findRelease repo dist = (Map.lookup (ReleaseKey (repoKey repo) dist) . releaseMap) <$> getRepos
+findRelease repo dist = (Map.lookup (ReleaseKey (repoKey repo) dist) . view releaseMap) <$> getRepos
 
 releaseByKey :: MonadRepos m => ReleaseKey -> m Release
 releaseByKey key = do
-  Just rel <- (Map.lookup key . releaseMap) <$> getRepos
+  Just rel <- (Map.lookup key . view releaseMap) <$> getRepos
   return rel
 
 putRelease :: (Repo r, MonadRepos m) => r -> Release -> m ReleaseKey
 putRelease repo release = do
     let key = ReleaseKey (repoKey repo) (releaseName release)
-    modifyRepos (\ s -> s {releaseMap = Map.insert key release (releaseMap s)})
+    modifyRepos (\ s -> s {_releaseMap = Map.insert key release (view releaseMap s)})
     return key
 
 putAptImage :: MonadRepos m => AptImage -> m AptKey
 putAptImage repo = do
-  let key = AptKey (aptImageRoot repo)
-  modifyRepos (\ s -> s {aptImageMap = Map.insert key repo (aptImageMap s)})
+  let key = AptKey (view aptImageRoot repo)
+  modifyRepos (\ s -> s {_aptImageMap = Map.insert key repo (view aptImageMap s)})
   return key
 
 -- | Run MonadOS and update the osImageMap with the modified value
@@ -181,7 +184,7 @@ loadRepoCache :: MonadReposCached m => m ()
 loadRepoCache =
     do dir <- sub "repoCache"
        mp <- liftIO (loadRepoCache' dir `catch` (\ (e :: SomeException) -> qPutStrLn (show e) >> return Map.empty))
-       modifyRepos (\ s -> s {repoMap = mp})
+       modifyRepos (\ s -> s {_repoMap = mp})
     where
       loadRepoCache' :: FilePath -> IO (Map URI' RemoteRepository)
       loadRepoCache' repoCache =
@@ -200,7 +203,7 @@ loadRepoCache =
 saveRepoCache :: MonadReposCached m => m ()
 saveRepoCache =
           do path <- sub "repoCache"
-             live <- repoMap <$> getRepos
+             live <- view repoMap <$> getRepos
              repoCache <- liftIO $ loadCache path
              let merged = Map.union live repoCache
              liftIO (F.removeLink path `catch` (\e -> unless (isDoesNotExistError e) (ioError e)) >>
