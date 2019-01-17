@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings,
              PackageImports, ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Debian.Repo.Internal.Apt
+module Debian.Repo.MonadApt
     ( AptImage(..)
     , aptImageRoot, aptImageArch, aptImageSources
     , aptSourcePackageCache, aptBinaryPackageCache
