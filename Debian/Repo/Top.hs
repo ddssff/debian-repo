@@ -2,12 +2,12 @@
 -- for temporary storage.  The autobuilder usually assigns the path
 -- "~/.autobuilder", and stores build environments and downloaded
 -- source here.
-{-# LANGUAGE CPP, FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE ConstraintKinds, CPP, FlexibleInstances, TypeSynonymInstances #-}
 {-# OPTIONS -Wall #-}
 module Debian.Repo.Top
-    ( TopT
-    , runTopT
-    , MonadTop(askTop)
+    ( TopDir(TopDir)
+    , HasTop(toTop)
+    , MonadTop
     , sub
     , dists
     , distDir
@@ -17,40 +17,29 @@ module Debian.Repo.Top
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
 #endif
-import Control.Monad.Reader (ReaderT(runReaderT), MonadReader(ask))
-import Control.Monad.State (StateT)
-import Control.Monad.Trans (lift)
+import Control.Lens (Getter, view)
+import Control.Monad.Reader (MonadReader)
 import Debian.Release (ReleaseName(relName))
 import System.FilePath ((</>), isRelative)
 
-newtype TopDir = TopDir {unTopDir :: FilePath}
+newtype TopDir = TopDir FilePath
 
-type TopT = ReaderT TopDir
+class HasTop r where toTop :: Getter r TopDir
+instance HasTop TopDir where toTop = id
+type MonadTop r m = (HasTop r, MonadReader r m)
 
-runTopT :: FilePath -> TopT m a -> m a
-runTopT path action = (runReaderT action) (TopDir path)
-
-class (Monad m, Functor m) => MonadTop m where
-    askTop :: m FilePath
-
-instance (Monad m, Functor m) => MonadTop (TopT m) where
-    askTop = ask >>= return . unTopDir
-
-sub :: MonadTop m => FilePath -> m FilePath
-sub path | isRelative path = askTop >>= \ top -> return $ top </> path
+sub :: MonadTop r m => FilePath -> m FilePath
+sub path | isRelative path = view toTop >>= \(TopDir top) -> return $ top </> path
 sub path = fail ("sub - path argument must be relative: " ++ path)
 
-instance MonadTop m => MonadTop (StateT s m) where
-    askTop = lift askTop
-
-dists :: MonadTop m => m FilePath
+dists :: MonadTop r m => m FilePath
 dists = sub "dists"
 
 -- | The directory in a repository where the package index files for a
 -- particular dist or release is stored.  (Wait, that's not right.)
-distDir :: MonadTop m => ReleaseName -> m FilePath
+distDir :: MonadTop r m => ReleaseName -> m FilePath
 distDir rel = (</> relName rel) <$> dists
 
 -- | The path of the text file containing the sources.list (aka SliceList)
-sourcesPath :: MonadTop m => ReleaseName -> m FilePath
+sourcesPath :: MonadTop r m => ReleaseName -> m FilePath
 sourcesPath rel = (</> "sources") <$> distDir rel

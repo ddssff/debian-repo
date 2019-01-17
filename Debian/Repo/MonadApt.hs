@@ -61,7 +61,7 @@ instance Ord AptImage where
 instance Eq AptImage where
     a == b = compare a b == EQ
 
-createAptImage :: (MonadTop m, MonadIO m) => NamedSliceList -> m AptImage
+createAptImage :: (MonadTop r m, MonadIO m) => NamedSliceList -> m AptImage
 createAptImage sources = do
   root <- cacheRootDir (sliceListName sources)
   liftIO $ do
@@ -87,5 +87,5 @@ createAptImage sources = do
     replaceFile (view rootPath root ++ "/etc/apt/sources.list") sourceListText
     return apt
 
-cacheRootDir :: MonadTop m => ReleaseName -> m EnvRoot
+cacheRootDir :: MonadTop r m => ReleaseName -> m EnvRoot
 cacheRootDir release = EnvRoot . (</> relName release </> "aptEnv") <$> dists

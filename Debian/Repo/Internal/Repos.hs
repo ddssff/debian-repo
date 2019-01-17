@@ -1,6 +1,6 @@
 -- | Manage state information about the available repositories,
 -- releases, OS images, and Apt images.
-{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, ScopedTypeVariables, TemplateHaskell #-}
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables, TemplateHaskell #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 module Debian.Repo.Internal.Repos
     ( MonadRepos(getRepos, putRepos)
@@ -39,6 +39,7 @@ import Control.Lens (makeLenses, view)
 import Control.Monad (unless)
 import Control.Monad.Catch (bracket, catch, MonadCatch, MonadMask)
 import Control.Monad.Fail (MonadFail)
+import Control.Monad.Reader (ReaderT, runReaderT)
 import Control.Monad.State (MonadIO(..), MonadState(get, put), StateT(runStateT))
 import Control.Monad.Trans (lift)
 import Data.Map as Map (empty, fromList, insert, lookup, Map, toList, union)
@@ -51,7 +52,7 @@ import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (Release(releaseName))
 import Debian.Repo.RemoteRepository (RemoteRepository)
 import Debian.Repo.Repo (Repo, repoKey, RepoKey(..))
-import Debian.Repo.Top (MonadTop, runTopT, sub, TopT)
+import Debian.Repo.Top (HasTop, MonadTop, sub)
 import Debian.URI (URI')
 import System.Directory (removeFile)
 import System.IO (hPutStrLn, stderr)
@@ -110,22 +111,22 @@ modifyRepos f = getRepos >>= putRepos . f
 
 -- | Like @MonadRepos@, but is also an instance of MonadTop and tries to
 -- load and save a list of cached repositories from @top/repoCache@.
-class (MonadRepos m, MonadTop m, MonadCatch m) => MonadReposCached m
+class (MonadRepos m, MonadTop r m, MonadCatch m) => MonadReposCached r m
 
-type ReposCachedT m = TopT (StateT ReposState m)
+type ReposCachedT r m = ReaderT r (StateT ReposState m)
 
 -- | To run a DebT we bracket an action with commands to load and save
 -- the repository list.
-runReposCachedT :: (MonadIO m, MonadFail m, MonadMask m) => FilePath -> ReposCachedT m a -> m a
+runReposCachedT :: (MonadIO m, MonadFail m, MonadMask m, HasTop r) => r -> ReposCachedT r m a -> m a
 runReposCachedT top action = do
   qPutStrLn "Running MonadReposCached..."
-  r <- runReposT $ runTopT top $ bracket loadRepoCache (\ r -> saveRepoCache >> return r) (\ () -> action)
+  r <- runReposT $ runReaderT (bracket loadRepoCache (\ r -> saveRepoCache >> return r) (\ () -> action)) top
   qPutStrLn "Exited MonadReposCached..."
   return r
 
-instance (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => MonadReposCached (ReposCachedT m)
+instance (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m, HasTop r) => MonadReposCached r (ReposCachedT r m)
 
-instance (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => MonadRepos (ReposCachedT m) where
+instance (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => MonadRepos (ReposCachedT r m) where
     getRepos = lift get
     putRepos = lift . put
 
@@ -180,7 +181,7 @@ evalMonadApt task (AptKey key) = do
 -- downloading information from the remote repositories.  These values may
 -- go out of date, as when a new release is added to a repository.  When this
 -- happens some ugly errors will occur and the cache will have to be flushed.
-loadRepoCache :: MonadReposCached m => m ()
+loadRepoCache :: MonadReposCached r m => m ()
 loadRepoCache =
     do dir <- sub "repoCache"
        mp <- liftIO (loadRepoCache' dir `catch` (\ (e :: SomeException) -> qPutStrLn (show e) >> return Map.empty))
@@ -200,7 +201,7 @@ loadRepoCache =
                    return (fromList pairs)
 
 -- | Write the repo cache map into a file.
-saveRepoCache :: MonadReposCached m => m ()
+saveRepoCache :: MonadReposCached r m => m ()
 saveRepoCache =
           do path <- sub "repoCache"
              live <- view repoMap <$> getRepos
@@ -217,7 +218,7 @@ saveRepoCache =
                 readFile path `catch` (\ (_ :: SomeException) -> return "[]") >>=
                 return . Map.fromList . fromMaybe [] . maybeRead
 
-syncOS :: (MonadTop m, MonadRepos m) => OSImage -> EnvRoot -> m OSImage
+syncOS :: (MonadTop r m, MonadRepos m) => OSImage -> EnvRoot -> m OSImage
 syncOS srcOS dstRoot = do
   dstOS <- liftIO $ syncOS' srcOS dstRoot
   putOSImage dstOS

@@ -45,7 +45,7 @@ import Debian.Repo.Prelude.Verbosity (ePutStrLn, quieter, qPutStrLn)
 import Debian.Repo.Slice (NamedSliceList(sliceListName), Slice(sliceSource), SliceList(slices), SourcesChangedAction(SourcesChangedError), UpdateError(..))
 import Debian.Repo.State.PackageIndex (binaryPackagesFromSources, sourcePackagesFromSources)
 import Debian.Repo.State.Slice (verifySourcesList)
-import Debian.Repo.Top (askTop, distDir, MonadTop, sourcesPath)
+import Debian.Repo.Top (toTop, distDir, MonadTop, sourcesPath, TopDir(TopDir))
 import Debian.Sources (DebSource(sourceUri), parseSourcesList, SourceOption(..), SourceOp(..))
 import Debian.URI (URI(uriScheme))
 import System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
@@ -105,7 +105,7 @@ osBinaryPackages = do
 -- remove the value in the file system, rebuild everything, and
 -- proceed from there.  If that fails we are out of options.
 prepareOS
-    :: (Applicative m, MonadRepos m, MonadTop m) =>
+    :: (Applicative m, MonadRepos m, MonadTop r m) =>
        EnvSet                   -- ^ The location where image is to be built
     -> NamedSliceList           -- ^ The sources.list of the base distribution
     -> [Slice]                  -- ^ Extra repositories - e.g. personal package archives
@@ -150,7 +150,7 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
       cleanRoot = EnvRoot (cleanOS eset)
       dependRoot = EnvRoot (dependOS eset)
       buildRoot = EnvRoot (Debian.Debianize.buildOS eset)
-      recreate :: (Applicative m, MonadOS m, MonadTop m, MonadRepos m) => SomeException -> m ()
+      recreate :: (Applicative m, MonadOS m, MonadTop r m, MonadRepos m) => SomeException -> m ()
       recreate e =
           case fromException e of
             Just (Changed name path computed installed)
@@ -184,14 +184,14 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
              liftIO $ localeGen os (either (\ (_ :: IOError) -> "en_US.UTF-8") id localeName)
 
 -- | Not used, but could be a substitute for buildOS.
-_pbuilderBuild :: (MonadRepos m, MonadTop m) =>
+_pbuilderBuild :: (MonadRepos m, MonadTop r m) =>
             EnvRoot
          -> NamedSliceList
          -> [Slice]
          -> LocalRepository
          -> m OSImage
 _pbuilderBuild root distro extra repo =
-    do top <- askTop
+    do (TopDir top) <- view toTop
        os <- liftIO $ pbuilder top root distro extra repo
        putOSImage os
        try (evalMonadOS updateOS root) >>= either (\ (e :: SomeException) -> error (show e)) return

@@ -34,7 +34,7 @@ import System.Process (CreateProcess(cwd), proc, readProcessWithExitCode)
 
 -- | The location of the top directory of a source packages's files in
 -- an AptImage (but not an OSImage.)
-aptDir :: (MonadTop m, MonadApt m) => SrcPkgName -> m FilePath
+aptDir :: (MonadTop r m, MonadApt m) => SrcPkgName -> m FilePath
 aptDir package =
     do rel <- view aptImageSources <$> getApt
        dir <- distDir (sliceListName rel)

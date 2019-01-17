@@ -47,11 +47,11 @@ instance MonadRepos m => MonadRepos (StateT AptImage m) where
     getRepos = lift getRepos
     putRepos = lift . putRepos
 
-withAptImage :: (MonadRepos m, MonadTop m) => SourcesChangedAction -> NamedSliceList -> StateT AptImage m a -> m a
+withAptImage :: (MonadRepos m, MonadTop r m) => SourcesChangedAction -> NamedSliceList -> StateT AptImage m a -> m a
 withAptImage sourcesChangedAction sources action = prepareAptImage sourcesChangedAction sources >>= evalMonadApt action
 
 -- |Create a skeletal enviroment sufficient to run apt-get.
-prepareAptImage :: forall m. (MonadTop m, MonadRepos m) =>
+prepareAptImage :: forall r m. (MonadTop r m, MonadRepos m) =>
                  SourcesChangedAction   -- What to do if environment already exists and sources.list is different
               -> NamedSliceList         -- The sources.list
               -> m AptKey               -- The resulting environment
@@ -59,7 +59,7 @@ prepareAptImage sourcesChangedAction sources = do
   mkey <- getAptKey =<< cacheRootDir (sliceListName sources)
   maybe (prepareAptImage' sourcesChangedAction sources) return mkey
 
-prepareAptImage' :: forall m. (MonadCatch m, MonadTop m, MonadRepos m) => SourcesChangedAction -> NamedSliceList -> m AptKey
+prepareAptImage' :: forall r m. (MonadCatch m, MonadTop r m, MonadRepos m) => SourcesChangedAction -> NamedSliceList -> m AptKey
 prepareAptImage' sourcesChangedAction sources = do
   mkey <- getAptKey =<< cacheRootDir (sliceListName sources)
   maybe (prepareAptImage'' `catch` handle) return mkey
@@ -111,7 +111,7 @@ aptBinaryPackages = do
         return pkgs
 
 -- |Retrieve a source package via apt-get.
-prepareSource :: (MonadRepos m, MonadApt m, MonadTop m) =>
+prepareSource :: (MonadRepos m, MonadApt m, MonadTop r m) =>
                  SrcPkgName                     -- The name of the package
               -> Maybe DebianVersion            -- The desired version, if Nothing get newest
               -> m DebianBuildTree              -- The resulting source tree

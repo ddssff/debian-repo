@@ -98,7 +98,7 @@ verifyDebSource chroot line =
 
 -- |Change the sources.list of an AptCache object, subject to the
 -- value of sourcesChangedAction.  (FIXME: Does this really work for MonadOS?)
-updateCacheSources :: (MonadRepos m, MonadTop m) => SourcesChangedAction -> NamedSliceList -> m ()
+updateCacheSources :: (MonadRepos m, MonadTop r m) => SourcesChangedAction -> NamedSliceList -> m ()
 updateCacheSources sourcesChangedAction baseSources = do
   let rel = sliceListName baseSources
   dir <- distDir rel

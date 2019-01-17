@@ -136,7 +136,7 @@ osFlushPackageCache = modifyOS (\ os -> os {_osSourcePackageCache = Nothing, _os
 buildEssential :: (MonadOS m, MonadIO m) => m Relations
 buildEssential = getOS >>= liftIO . OS.buildEssential
 
-syncOS :: (MonadOS m, MonadTop m, MonadRepos m) => EnvRoot -> m ()
+syncOS :: (MonadOS m, MonadTop r m, MonadRepos m) => EnvRoot -> m ()
 syncOS dstRoot =
     do srcOS <- getOS
        dstOS <- Debian.Repo.Internal.Repos.syncOS srcOS dstRoot
