@@ -30,9 +30,9 @@ import Debian.Pretty (ppShow, prettyShow)
 import Debian.Relation (BinPkgName)
 import Debian.Release (ReleaseName(relName))
 import Debian.Repo.EnvPath (EnvRoot(EnvRoot), rootPath)
-import Debian.Repo.Internal.IO (buildArchOfRoot)
-import Debian.Repo.Internal.Repos (osFromRoot, MonadRepos, putOSImage)
+import Debian.Repo.IO (buildArchOfRoot)
 import Debian.Repo.LocalRepository (LocalRepository)
+import Debian.Repo.MonadRepos (osFromRoot, MonadRepos, putOSImage)
 import Debian.Repo.OSImage (createOSImage, OSImage(..), osArch, osBaseDistro, osLocalMaster,
                             osRoot, osSourcePackageCache, osBinaryPackageCache,
                             pbuilder, debootstrap, localeGen, neuterEnv, osFullDistro)

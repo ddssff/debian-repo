@@ -3,7 +3,7 @@
 -- Map in ReposState.
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Debian.Repo.Internal.IO
+module Debian.Repo.IO
     ( buildArchOfRoot
     ) where
 

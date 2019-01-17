@@ -2,7 +2,7 @@
 -- releases, OS images, and Apt images.
 {-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables, TemplateHaskell #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
-module Debian.Repo.Internal.Repos
+module Debian.Repo.MonadRepos
     ( MonadRepos(getRepos, putRepos)
     , ReposState
     , runReposT

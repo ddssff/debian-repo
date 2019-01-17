@@ -6,8 +6,8 @@ module Debian.Repo
     , module Debian.Repo.Changes
     , module Debian.Repo.Dependencies
     , module Debian.Repo.EnvPath
-    , module Debian.Repo.Internal.Repos
     , module Debian.Repo.LocalRepository
+    , module Debian.Repo.MonadRepos
     , module Debian.Repo.OSImage
     , module Debian.Repo.Package
     , module Debian.Repo.PackageID
@@ -31,8 +31,8 @@ import Debian.Repo.AptImage
 import Debian.Repo.Changes
 import Debian.Repo.Dependencies
 import Debian.Repo.EnvPath
-import Debian.Repo.Internal.Repos (MonadRepos)
 import Debian.Repo.LocalRepository
+import Debian.Repo.MonadRepos (MonadRepos)
 import Debian.Repo.OSImage
 import Debian.Repo.Package
 import Debian.Repo.PackageID

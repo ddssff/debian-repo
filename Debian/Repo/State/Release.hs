@@ -26,7 +26,7 @@ import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(p
 import Debian.Pretty (ppShow, prettyShow)
 import Debian.Release (ReleaseName, releaseName', Section, sectionName')
 import Debian.Repo.EnvPath (outsidePath)
-import Debian.Repo.Internal.Repos (MonadRepos, findRelease, putRelease)
+import Debian.Repo.MonadRepos (MonadRepos, findRelease, putRelease)
 import qualified Debian.Repo.Prelude.GPGSign as EG (cd, PGPKey, pgpSignFiles)
 import Debian.Repo.LocalRepository (LocalRepository, repoReleaseInfoLocal, repoRoot)
 import Debian.Repo.PackageIndex (PackageIndex(packageIndexArch, packageIndexComponent), packageIndexDir, packageIndexes, packageIndexName, releaseDir)

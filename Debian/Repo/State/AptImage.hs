@@ -22,10 +22,10 @@ import Debian.Pretty (prettyShow)
 import Debian.Relation (SrcPkgName(unSrcPkgName))
 import Debian.Repo.AptImage (aptDir, aptGetSource, aptGetUpdate)
 import Debian.Repo.EnvPath (EnvRoot, rootPath)
-import Debian.Repo.Internal.Repos (AptKey, evalMonadApt, getAptKey, MonadRepos(..), putAptImage)
 import Debian.Repo.MonadApt (AptImage, aptImageArch, aptImageRoot, aptImageSources,
                                  aptBinaryPackageCache, aptSourcePackageCache,
                                  cacheRootDir, createAptImage, MonadApt(..), modifyApt)
+import Debian.Repo.MonadRepos (AptKey, evalMonadApt, getAptKey, MonadRepos(..), putAptImage)
 import Debian.Repo.PackageID (PackageID(packageName), PackageID(packageVersion))
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage(sourcePackageID))
 import Debian.Repo.Prelude (symbol)

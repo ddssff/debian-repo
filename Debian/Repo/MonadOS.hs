@@ -26,8 +26,8 @@ import Data.Traversable
 import Debian.Pretty (ppShow)
 import Debian.Relation (PkgName, Relations)
 import Debian.Repo.EnvPath (EnvPath(..), envPath, envRoot, EnvRoot(..), rootPath)
-import Debian.Repo.Internal.Repos (MonadRepos, osFromRoot, putOSImage, syncOS)
 import Debian.Repo.LocalRepository (copyLocalRepo)
+import Debian.Repo.MonadRepos (MonadRepos, osFromRoot, putOSImage, syncOS)
 import Debian.Repo.OSImage as OS (OSImage(..), osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache)
 import qualified Debian.Repo.OSImage as OS (buildEssential)
 import Debian.Repo.Prelude.Process (readProcessVE, readProcessV, readProcessQE)
@@ -139,5 +139,5 @@ buildEssential = getOS >>= liftIO . OS.buildEssential
 syncOS :: (MonadOS m, MonadTop r m, MonadRepos m) => EnvRoot -> m ()
 syncOS dstRoot =
     do srcOS <- getOS
-       dstOS <- Debian.Repo.Internal.Repos.syncOS srcOS dstRoot
+       dstOS <- Debian.Repo.MonadRepos.syncOS srcOS dstRoot
        putOS dstOS
