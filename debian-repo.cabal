@@ -50,7 +50,7 @@ flag listlike
 Library
   Buildable: True
   Hs-Source-Dirs: .
-  ghc-options: -O2 -Wall
+  ghc-options: -O2 -Wall -Wredundant-constraints -fprint-potential-instances
 
   if flag(no-verbosity-control)
     cpp-options: -DNO_VERBOSITY_CONTROL
@@ -107,6 +107,7 @@ Library
         Debian.Repo.Fingerprint,
         Debian.Repo.LocalRepository,
         Debian.Repo.MonadOS,
+        Debian.Repo.Mount,
         Debian.Repo.OSImage,
         Debian.Repo.Package,
         Debian.Repo.PackageID,
