@@ -33,7 +33,6 @@ import Debian.Repo.PackageIndex (PackageIndex(packageIndexArch, packageIndexComp
 import qualified Debian.Repo.Prelude.Time as ET (formatDebianDate)
 import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (parseArchitectures, parseComponents, Release(..))
-import Debian.Repo.Repo (Repo)
 import Debian.Repo.State.Repository (repairLocalRepository)
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath ((</>))
@@ -171,7 +170,7 @@ pad padchar padlen s = replicate p padchar ++ s
     where p = padlen - length s
 
 -- | Merge a list of releases so each dist only appears once
-mergeReleases :: Repo r => r -> [Release] -> Release
+mergeReleases :: r -> [Release] -> Release
 mergeReleases _repo releases =
     Release { releaseName = (releaseName . head $ releases)
             , releaseAliases = aliases

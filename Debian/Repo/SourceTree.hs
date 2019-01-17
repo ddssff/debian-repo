@@ -87,7 +87,7 @@ findChanges tree =
          lst -> fail ("Multiple .changes files in " ++ dir ++ ": " ++ intercalate ", " (map ppShow lst))
 
 -- |Rewrite the changelog with an added entry.
-addLogEntry :: (HasChangeLog t, HasDebDir t) => ChangeLogEntry -> t -> IO ()
+addLogEntry :: HasDebDir t => ChangeLogEntry -> t -> IO ()
 addLogEntry entry'' debtree =
 -- readFile changelogPath >>= replaceFile changelogPath . ((show (pretty entry'')) ++)
   withFile changelogPath ReadMode (\ handle -> hGetContents handle >>= replaceFile changelogPath . ((ppShow entry'' ++ "\n\n") ++))

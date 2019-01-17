@@ -17,7 +17,7 @@ import Control.Applicative (Applicative, pure, (<$>))
 import Control.DeepSeq (force)
 import Control.Exception ({-evaluate,-} SomeException)
 import Control.Lens (set, view)
-import Control.Monad.Catch (mask_, MonadCatch, MonadMask)
+import Control.Monad.Catch (mask_, MonadMask)
 import Control.Monad.State (MonadState(get), StateT, evalStateT, get)
 import Control.Monad.Trans (liftIO, MonadIO, lift)
 import Control.Monad.Trans.Except () -- instances
@@ -70,7 +70,7 @@ evalMonadOS task root = evalStateT task root
 
 -- | Run @apt-get update@ and @apt-get dist-upgrade@.  If @update@
 -- fails, run @dpkg --configure -a@ before running @dist-upgrade@.
-updateLists :: forall m. (Applicative m, MonadOS m, MonadIO m, MonadCatch m, MonadMask m) => m Bool
+updateLists :: forall m. (Applicative m, MonadOS m, MonadIO m, MonadMask m) => m Bool
 updateLists = do
   r1 <- update >>= f
   r2 <- if r1 then pure True else or <$> sequence [aptinstall >>= f, configure >>= f, update >>= f]
@@ -91,7 +91,7 @@ updateLists = do
 -- | Run an apt-get command in a particular directory with a
 -- particular list of packages.  Note that apt-get source works for
 -- binary or source package names.
-aptGetInstall :: (MonadOS m, MonadCatch m, MonadMask m, MonadIO m, PkgName n) => [(n, Maybe DebianVersion)] -> m ()
+aptGetInstall :: (MonadOS m, MonadMask m, MonadIO m, PkgName n) => [(n, Maybe DebianVersion)] -> m ()
 aptGetInstall packages =
     do root <- view (osRoot . rootPath) <$> getOS
        withProcAndSys root $ liftIO $ useEnv root (return . force) $ do
@@ -114,7 +114,7 @@ forceList output = evaluate (length output) >> return output
 -- environment where apt can see and install the packages.  On the
 -- assumption that we are doing this because the pool changed, we also
 -- flush the cached package lists.
-syncLocalPool :: (Applicative m, MonadIO m, MonadOS m, MonadCatch m, MonadMask m) => m ()
+syncLocalPool :: (MonadIO m, MonadOS m, MonadMask m) => m ()
 syncLocalPool =
     do os <- getOS
        repo' <- copyLocalRepo (EnvPath {_envRoot = view osRoot os, _envPath = "/work/localpool"}) (view osLocalMaster os)

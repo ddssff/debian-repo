@@ -246,7 +246,7 @@ plural _ _ = ""
 
 -- | Find all the .changes files in the incoming directory and try to
 -- process each to install the package into a local repository.
-scanIncoming :: (MonadInstall m, MonadRepos m) => Bool -> Maybe PGPKey -> LocalRepository -> m [(ChangesFile, InstallResult)]
+scanIncoming :: MonadInstall m => Bool -> Maybe PGPKey -> LocalRepository -> m [(ChangesFile, InstallResult)]
 scanIncoming createSections keyname repo = do
   qPutStrLn ("Uploading packages to " ++ outsidePath (view repoRoot repo) </> "incoming")
   changes <- liftIO (findChangesFiles (outsidePath (view repoRoot repo) </> "incoming"))

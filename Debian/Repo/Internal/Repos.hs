@@ -116,7 +116,7 @@ type ReposCachedT m = TopT (StateT ReposState m)
 
 -- | To run a DebT we bracket an action with commands to load and save
 -- the repository list.
-runReposCachedT :: (MonadIO m, MonadCatch m, MonadFail m, Functor m, MonadMask m) => FilePath -> ReposCachedT m a -> m a
+runReposCachedT :: (MonadIO m, MonadFail m, MonadMask m) => FilePath -> ReposCachedT m a -> m a
 runReposCachedT top action = do
   qPutStrLn "Running MonadReposCached..."
   r <- runReposT $ runTopT top $ bracket loadRepoCache (\ r -> saveRepoCache >> return r) (\ () -> action)

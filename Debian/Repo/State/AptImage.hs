@@ -111,7 +111,7 @@ aptBinaryPackages = do
         return pkgs
 
 -- |Retrieve a source package via apt-get.
-prepareSource :: (MonadRepos m, MonadApt m, MonadTop m, MonadIO m) =>
+prepareSource :: (MonadRepos m, MonadApt m, MonadTop m) =>
                  SrcPkgName                     -- The name of the package
               -> Maybe DebianVersion            -- The desired version, if Nothing get newest
               -> m DebianBuildTree              -- The resulting source tree

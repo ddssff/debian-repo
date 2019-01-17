@@ -105,7 +105,7 @@ osBinaryPackages = do
 -- remove the value in the file system, rebuild everything, and
 -- proceed from there.  If that fails we are out of options.
 prepareOS
-    :: (Applicative m, MonadRepos m, MonadTop m, MonadMask m, MonadIO m) =>
+    :: (Applicative m, MonadRepos m, MonadTop m) =>
        EnvSet                   -- ^ The location where image is to be built
     -> NamedSliceList           -- ^ The sources.list of the base distribution
     -> [Slice]                  -- ^ Extra repositories - e.g. personal package archives
@@ -150,7 +150,7 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
       cleanRoot = EnvRoot (cleanOS eset)
       dependRoot = EnvRoot (dependOS eset)
       buildRoot = EnvRoot (Debian.Debianize.buildOS eset)
-      recreate :: (Applicative m, MonadOS m, MonadTop m, MonadMask m, MonadRepos m, MonadIO m) => SomeException -> m ()
+      recreate :: (Applicative m, MonadOS m, MonadTop m, MonadRepos m) => SomeException -> m ()
       recreate e =
           case fromException e of
             Just (Changed name path computed installed)
@@ -184,7 +184,7 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
              liftIO $ localeGen os (either (\ (_ :: IOError) -> "en_US.UTF-8") id localeName)
 
 -- | Not used, but could be a substitute for buildOS.
-_pbuilderBuild :: (MonadRepos m, MonadTop m, MonadMask m) =>
+_pbuilderBuild :: (MonadRepos m, MonadTop m) =>
             EnvRoot
          -> NamedSliceList
          -> [Slice]
@@ -197,7 +197,7 @@ _pbuilderBuild root distro extra repo =
        try (evalMonadOS updateOS root) >>= either (\ (e :: SomeException) -> error (show e)) return
        return os
 
-rebuildOS :: (Applicative m, MonadOS m, MonadRepos m, MonadTop m, MonadMask m) =>
+rebuildOS :: (Applicative m, MonadOS m, MonadRepos m) =>
              EnvRoot                    -- ^ The location where image is to be built
            -> NamedSliceList            -- ^ The sources.list of the base distribution
            -> [Slice]
@@ -212,7 +212,7 @@ rebuildOS root distro extra include exclude components =
 
 -- | Create a new clean build environment in root.clean FIXME: create
 -- an ".incomplete" flag and remove it when build-env succeeds
-buildOS :: (MonadRepos m, MonadTop m, MonadMask m) =>
+buildOS :: MonadRepos m =>
             EnvRoot
          -> NamedSliceList
          -> [Slice]
@@ -230,7 +230,7 @@ buildOS root distro extra repo include exclude components =
 
 -- | Try to update an existing build environment: run apt-get update
 -- and dist-upgrade.
-updateOS :: (Applicative m, MonadOS m, MonadRepos m, MonadMask m) => m ()
+updateOS :: (Applicative m, MonadOS m, MonadRepos m) => m ()
 updateOS = quieter 1 $ do
   root <- view (osRoot . rootPath) <$> getOS
   liftIO $ createDirectoryIfMissing True (root </> "etc")

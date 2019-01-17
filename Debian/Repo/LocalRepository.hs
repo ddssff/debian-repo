@@ -132,7 +132,7 @@ isSymLink path = F.getSymbolicLinkStatus path >>= return . F.isSymbolicLink
 -- repoCD :: EnvPath -> LocalRepository -> LocalRepository
 -- repoCD path repo = repo { repoRoot_ = path }
 
-copyLocalRepo :: (MonadIO m, Functor m) => EnvPath -> LocalRepository -> m LocalRepository
+copyLocalRepo :: MonadIO m => EnvPath -> LocalRepository -> m LocalRepository
 copyLocalRepo dest repo =
     do liftIO $ createDirectoryIfMissing True (outsidePath dest)
        (result :: (Either SomeException ExitCode, String, String)) <- rsyncOld [] (outsidePath (view repoRoot repo)) (outsidePath dest)
