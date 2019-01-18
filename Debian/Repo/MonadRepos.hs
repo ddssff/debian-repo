@@ -1,18 +1,20 @@
 -- | Manage state information about the available repositories,
 -- releases, OS images, and Apt images.
-{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables, TemplateHaskell #-}
+{-# LANGUAGE ConstraintKinds, CPP, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables, TemplateHaskell #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 module Debian.Repo.MonadRepos
-    ( MonadRepos(getRepos, putRepos)
-    , ReposState
+    ( HasReposState(..)
+    , MonadRepos, getRepos, putRepos
+    , ReposState, repoMap, releaseMap, aptImageMap, osImageMap
     , runReposT
 
     , putOSImage
-    , osFromRoot
+    --, osFromRoot
 
-    , AptKey
     , getApt
-    , getAptKey
+    , putApt
+    , modifyApt
+    -- , getAptKey
     , putAptImage
     , evalMonadApt
 
@@ -35,19 +37,19 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Applicative.Error (maybeRead)
 import Control.Exception (SomeException)
-import Control.Lens (makeLenses, view)
+import Control.Lens ((.=), at, Lens', makeLenses, use, view)
 import Control.Monad (unless)
 import Control.Monad.Catch (bracket, catch, MonadCatch, MonadMask)
-import Control.Monad.Fail (MonadFail)
-import Control.Monad.Reader (ReaderT, runReaderT)
-import Control.Monad.State (MonadIO(..), MonadState(get, put), StateT(runStateT))
-import Control.Monad.Trans (lift)
+--import Control.Monad.Fail (MonadFail)
+import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
+import Control.Monad.State (MonadIO(..), MonadState, StateT(runStateT))
+--import Control.Monad.Trans (lift)
 import Data.Map as Map (empty, fromList, insert, lookup, Map, toList, union)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromJust, fromMaybe)
 import Debian.Release (ReleaseName)
 import Debian.Repo.EnvPath (EnvRoot)
-import Debian.Repo.OSImage (OSImage(..), osRoot, syncOS')
-import Debian.Repo.MonadApt (AptImage, aptImageRoot)
+import Debian.Repo.OSImage (OSImage(..), OSKey(..), osRoot, syncOS')
+import Debian.Repo.MonadApt (AptImage, AptKey(AptKey), aptKey, aptImageRoot, MonadApt)
 import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (Release(releaseName))
 import Debian.Repo.RemoteRepository (RemoteRepository)
@@ -61,21 +63,16 @@ import qualified System.Posix.Files as F (removeLink)
 
 data ReleaseKey = ReleaseKey RepoKey ReleaseName deriving (Eq, Ord, Show)
 
-newtype AptKey = AptKey EnvRoot deriving (Eq, Ord, Show)
-
 -- | This represents the state of the IO system.
 data ReposState
     = ReposState
       { _repoMap :: Map.Map URI' RemoteRepository                -- ^ Map to look up known (remote) Repository objects
       , _releaseMap :: Map.Map ReleaseKey Release -- ^ Map to look up known Release objects
       , _aptImageMap :: Map.Map AptKey AptImage  -- ^ Map to look up prepared AptImage objects
-      , _osImageMap :: Map.Map EnvRoot OSImage   -- ^ Map to look up prepared OSImage objects
+      , _osImageMap :: Map.Map OSKey OSImage   -- ^ Map to look up prepared OSImage objects
       }
 
 $(makeLenses ''ReposState)
-
-runReposT :: Monad m => StateT ReposState m a -> m a
-runReposT action = (runStateT action) initState >>= return . fst
 
 -- |The initial output state - at the beginning of the line, no special handle
 -- state information, no repositories in the repository map.
@@ -87,8 +84,27 @@ initState = ReposState
             , _osImageMap = Map.empty
             }
 
+class HasReposState s where reposState :: Lens' s ReposState
+instance HasReposState ReposState where reposState = id
+type MonadRepos s m = (HasReposState s, MonadState s m, MonadIO m, MonadCatch m, MonadMask m)
+
+getRepos :: MonadRepos s m => m ReposState
+getRepos = use reposState
+
+putRepos :: MonadRepos s m => ReposState -> m ()
+putRepos x = reposState .= x
+
+modifyRepos :: MonadRepos s m => (ReposState -> ReposState) -> m ()
+modifyRepos f = getRepos >>= putRepos . f
+
+type MonadReposCached r s m = (MonadRepos s m, MonadTop r m)
+
+runReposT :: Monad m => StateT ReposState m a -> m a
+runReposT action = (runStateT action) initState >>= return . fst
+
+#if 0
 -- | A monad to support the IO requirements of the autobuilder.
-class (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => MonadRepos m where
+class (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => MonadRepos s m where
     getRepos :: m ReposState
     putRepos :: ReposState -> m ()
 
@@ -102,86 +118,96 @@ instance (MonadRepos m, Functor m) => MonadRepos (StateT s m) where
     putRepos = lift . putRepos
 -}
 
-instance MonadRepos m => MonadRepos (StateT EnvRoot m) where
+instance MonadRepos s m => MonadRepos (StateT EnvRoot m) where
     getRepos = lift getRepos
     putRepos = lift . putRepos
 
-modifyRepos :: MonadRepos m => (ReposState -> ReposState) -> m ()
-modifyRepos f = getRepos >>= putRepos . f
-
 -- | Like @MonadRepos@, but is also an instance of MonadTop and tries to
 -- load and save a list of cached repositories from @top/repoCache@.
-class (MonadRepos m, MonadTop r m, MonadCatch m) => MonadReposCached r m
+class (MonadRepos s m, MonadTop r m, MonadCatch m) => MonadReposCached r m
+#endif
 
 type ReposCachedT r m = ReaderT r (StateT ReposState m)
 
 -- | To run a DebT we bracket an action with commands to load and save
 -- the repository list.
-runReposCachedT :: (MonadIO m, MonadFail m, MonadMask m, HasTop r) => r -> ReposCachedT r m a -> m a
+runReposCachedT :: (MonadIO m, MonadMask m, HasTop r) => r -> ReposCachedT r m a -> m a
 runReposCachedT top action = do
   qPutStrLn "Running MonadReposCached..."
   r <- runReposT $ runReaderT (bracket loadRepoCache (\ r -> saveRepoCache >> return r) (\ () -> action)) top
   qPutStrLn "Exited MonadReposCached..."
   return r
 
+#if 0
 instance (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m, HasTop r) => MonadReposCached r (ReposCachedT r m)
 
 instance (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => MonadRepos (ReposCachedT r m) where
     getRepos = lift get
     putRepos = lift . put
+#endif
 
-putOSImage :: MonadRepos m => OSImage -> m ()
+putOSImage :: MonadRepos s m => OSImage -> m ()
 putOSImage repo = modifyRepos (\s -> s {_osImageMap = Map.insert (view osRoot repo) repo (view osImageMap s)})
 --putOSImage repo = modifyRepos (\s -> set osImageMap (Map.insert (view osRoot repo) repo (view osImageMap s)) s)
 
-osFromRoot :: MonadRepos m => EnvRoot -> m (Maybe OSImage)
-osFromRoot root = Map.lookup root . view osImageMap <$> getRepos
+--osFromRoot :: MonadRepos s m => EnvRoot -> m (Maybe OSImage)
+--osFromRoot root = Map.lookup root . view osImageMap <$> getRepos
 
-putRepo :: MonadRepos m => URI' -> RemoteRepository -> m ()
+putRepo :: MonadRepos s m => URI' -> RemoteRepository -> m ()
 putRepo uri repo = modifyRepos (\ s -> s {_repoMap = Map.insert uri repo (view repoMap s)})
 
-repoByURI :: MonadRepos m => URI' -> m (Maybe RemoteRepository)
+repoByURI :: MonadRepos s m => URI' -> m (Maybe RemoteRepository)
 repoByURI uri = Map.lookup uri . view repoMap <$> getRepos
 
-getApt :: MonadRepos m => EnvRoot -> m (Maybe AptImage)
-getApt root = (Map.lookup (AptKey root) . view aptImageMap) <$> getRepos
+getApt :: (MonadRepos s m, MonadApt r m) => m AptImage
+getApt = do
+  key <- view aptKey
+  fromJust <$> use (reposState . aptImageMap . at key)
 
-getAptKey :: MonadRepos m => EnvRoot -> m (Maybe AptKey)
+putApt :: MonadRepos s m => AptImage -> m ()
+putApt img = do
+  (reposState . aptImageMap . at (AptKey key)) .= Just img
+    where key :: EnvRoot
+          key = view aptImageRoot img
+
+modifyApt :: (MonadRepos s m, MonadApt r m) => (AptImage -> AptImage) -> m ()
+modifyApt f = getApt >>= putApt . f
+
+#if 0
+getAptKey :: MonadRepos s m => EnvRoot -> m (Maybe AptKey)
 getAptKey root = fmap (AptKey . view aptImageRoot) <$> (getApt root)
+#endif
 
-findRelease :: (Repo r, MonadRepos m) => r -> ReleaseName -> m (Maybe Release)
+findRelease :: (Repo r, MonadRepos s m) => r -> ReleaseName -> m (Maybe Release)
 findRelease repo dist = (Map.lookup (ReleaseKey (repoKey repo) dist) . view releaseMap) <$> getRepos
 
-releaseByKey :: MonadRepos m => ReleaseKey -> m Release
+releaseByKey :: MonadRepos s m => ReleaseKey -> m Release
 releaseByKey key = do
-  Just rel <- (Map.lookup key . view releaseMap) <$> getRepos
+  ~(Just rel) <- (Map.lookup key . view releaseMap) <$> getRepos
   return rel
 
-putRelease :: (Repo r, MonadRepos m) => r -> Release -> m ReleaseKey
+putRelease :: (Repo r, MonadRepos s m) => r -> Release -> m ReleaseKey
 putRelease repo release = do
     let key = ReleaseKey (repoKey repo) (releaseName release)
     modifyRepos (\ s -> s {_releaseMap = Map.insert key release (view releaseMap s)})
     return key
 
-putAptImage :: MonadRepos m => AptImage -> m AptKey
+putAptImage :: MonadRepos s m => AptImage -> m AptKey
 putAptImage repo = do
   let key = AptKey (view aptImageRoot repo)
   modifyRepos (\ s -> s {_aptImageMap = Map.insert key repo (view aptImageMap s)})
   return key
 
--- | Run MonadOS and update the osImageMap with the modified value
-evalMonadApt :: MonadRepos m => StateT AptImage m a -> AptKey -> m a
-evalMonadApt task (AptKey key) = do
-  Just apt <- getApt key
-  (a, apt') <- runStateT task apt
-  _ <- putAptImage apt'
-  return a
+evalMonadApt :: (MonadRepos s m, MonadReader r m) => ReaderT (AptKey, r) m a -> AptKey -> m a
+evalMonadApt task key = do
+  r <- ask
+  runReaderT task (key, r)
 
 -- | Load the value of the repo cache map from a file as a substitute for
 -- downloading information from the remote repositories.  These values may
 -- go out of date, as when a new release is added to a repository.  When this
 -- happens some ugly errors will occur and the cache will have to be flushed.
-loadRepoCache :: MonadReposCached r m => m ()
+loadRepoCache :: MonadReposCached r s m => m ()
 loadRepoCache =
     do dir <- sub "repoCache"
        mp <- liftIO (loadRepoCache' dir `catch` (\ (e :: SomeException) -> qPutStrLn (show e) >> return Map.empty))
@@ -201,7 +227,7 @@ loadRepoCache =
                    return (fromList pairs)
 
 -- | Write the repo cache map into a file.
-saveRepoCache :: MonadReposCached r m => m ()
+saveRepoCache :: MonadReposCached r s m => m ()
 saveRepoCache =
           do path <- sub "repoCache"
              live <- view repoMap <$> getRepos
@@ -218,9 +244,9 @@ saveRepoCache =
                 readFile path `catch` (\ (_ :: SomeException) -> return "[]") >>=
                 return . Map.fromList . fromMaybe [] . maybeRead
 
-syncOS :: (MonadTop r m, MonadRepos m) => OSImage -> EnvRoot -> m OSImage
+syncOS :: (MonadTop r m, MonadRepos s m) => OSImage -> OSKey -> m OSImage
 syncOS srcOS dstRoot = do
   dstOS <- liftIO $ syncOS' srcOS dstRoot
   putOSImage dstOS
-  dstOS' <- osFromRoot dstRoot
+  dstOS' <- use (reposState . osImageMap . at dstRoot)
   maybe (error ("syncOS failed for " ++ show dstRoot)) return dstOS'

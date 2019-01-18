@@ -17,7 +17,7 @@ import Data.Maybe (catMaybes)
 import Debian.Release (ReleaseName(ReleaseName), Section(Section))
 import Debian.Repo.EnvPath (EnvPath, EnvPath(EnvPath), EnvRoot(EnvRoot), outsidePath)
 import Debian.Repo.LocalRepository (Layout(..), LocalRepository(..), readLocalRepo, repoRoot, repoLayout, repoReleaseInfoLocal)
-import Debian.Repo.MonadRepos (MonadRepos(..), repoByURI, putRepo)
+import Debian.Repo.MonadRepos (MonadRepos, repoByURI, putRepo)
 import Debian.Repo.Release (getReleaseInfoRemote, parseArchitectures, Release(Release, releaseAliases, releaseArchitectures, releaseComponents, releaseName))
 import Debian.Repo.RemoteRepository (RemoteRepository, RemoteRepository(RemoteRepository))
 import Debian.Repo.Repo (RepoKey(..))
@@ -95,14 +95,14 @@ computeLayout root =
         (False, True) -> return (Just Pool)
         _ -> return Nothing
 
-prepareRemoteRepository :: MonadRepos m => URI -> m RemoteRepository
+prepareRemoteRepository :: MonadRepos s m => URI -> m RemoteRepository
 prepareRemoteRepository uri =
     let uri' = toURI' uri in
     repoByURI uri' >>= maybe (loadRemoteRepository uri') return
 
 -- |To create a RemoteRepo we must query it to find out the
 -- names, sections, and supported architectures of its releases.
-loadRemoteRepository :: MonadRepos m => URI' -> m RemoteRepository
+loadRemoteRepository :: MonadRepos s m => URI' -> m RemoteRepository
 loadRemoteRepository uri =
     do releaseInfo <- liftIO . unsafeInterleaveIO . getReleaseInfoRemote . fromURI' $ uri
        let repo = RemoteRepository uri releaseInfo
@@ -119,7 +119,7 @@ loadRemoteRepository uri =
 --             "file:" -> prepareLocalRepository (EnvPath (EnvRoot "") (uriPath uri)) Nothing >>= f
 --             _ -> prepareRemoteRepository uri >>= f
 
-foldRepository :: MonadRepos m => (LocalRepository -> m a) -> (RemoteRepository -> m a) -> RepoKey -> m a
+foldRepository :: MonadRepos s m => (LocalRepository -> m a) -> (RemoteRepository -> m a) -> RepoKey -> m a
 foldRepository f g key =
     case key of
       Local path -> readLocalRepository path Nothing >>= maybe (error $ "No repository at " ++ show path) f

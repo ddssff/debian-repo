@@ -39,7 +39,7 @@ import qualified System.IO as IO (hClose, IOMode(ReadMode), openBinaryFile)
 
 -- |Return a list of the index files that contain the packages of a
 -- slice.
-sliceIndexes :: MonadRepos m => Arch -> Slice -> m [(RepoKey, Release, PackageIndex)]
+sliceIndexes :: MonadRepos s m => Arch -> Slice -> m [(RepoKey, Release, PackageIndex)]
 sliceIndexes arch slice =
     foldRepository f f (sliceRepoKey slice)
     where
@@ -76,7 +76,7 @@ instance Show UpdateError where
     show Flushed = "Flushed"
 
 sourcePackagesFromSources ::
-    MonadRepos m
+    MonadRepos s m
     => EnvRoot
     -> Arch
     -> SliceList
@@ -96,7 +96,7 @@ uncurry3 f (a, b, c) = f a b c
 
 -- FIXME: assuming the index is part of the cache
 sourcePackagesOfIndex ::
-    MonadRepos m
+    MonadRepos s m
     => EnvRoot
     -> Arch
     -> RepoKey
@@ -170,13 +170,13 @@ parseSourceParagraph p =
                   , homepage = fmap stripWS $ B.fieldValue "Homepage" p })
       _x -> Left ["parseSourceParagraph - One or more required fields (Package, Maintainer, Standards-Version) missing: " ++ show p]
 
-binaryPackagesFromSources :: MonadRepos m => EnvRoot -> Arch -> SliceList -> m [BinaryPackage]
+binaryPackagesFromSources :: MonadRepos s m => EnvRoot -> Arch -> SliceList -> m [BinaryPackage]
 binaryPackagesFromSources root arch sources = do
   indexes <- mapM (sliceIndexes arch) (slices . binarySlices $ sources) >>= return . concat
   concat <$> (mapM (\ (repo, rel, index) -> either (const []) id <$> (binaryPackagesOfIndex root arch repo rel index)) indexes)
 
 -- FIXME: assuming the index is part of the cache
-binaryPackagesOfIndex :: MonadRepos m => EnvRoot -> Arch -> RepoKey -> Release -> PackageIndex -> m (Either IOError [BinaryPackage])
+binaryPackagesOfIndex :: MonadRepos s m => EnvRoot -> Arch -> RepoKey -> Release -> PackageIndex -> m (Either IOError [BinaryPackage])
 binaryPackagesOfIndex root arch repo release index =
     -- quieter 2 $ qBracket ($(symbol 'binaryPackagesOfIndex) ++ ": " ++ path) $
     either Left ((\paras -> Right (List.map (toBinaryPackage release index) paras))) <$> (liftIO (readParagraphs path))

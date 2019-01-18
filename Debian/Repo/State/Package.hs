@@ -1,8 +1,8 @@
 -- | Install packages to and delete packages from a local repository.
-{-# LANGUAGE BangPatterns, CPP, FlexibleContexts, FlexibleInstances, OverloadedStrings, PackageImports, ScopedTypeVariables, TemplateHaskell, TupleSections, UndecidableInstances #-}
+{-# LANGUAGE BangPatterns, ConstraintKinds, CPP, FlexibleContexts, FlexibleInstances, OverloadedStrings, PackageImports, ScopedTypeVariables, TemplateHaskell, TupleSections, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-name-shadowing #-}
 module Debian.Repo.State.Package
-    ( MonadInstall
+    ( MonadInstall, getInstall, putInstall
     , evalInstall
     , scanIncoming
     , installPackages
@@ -24,8 +24,9 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Exception (SomeException)
 import Control.Exception as E (ErrorCall(ErrorCall), SomeException(..), try)
-import Control.Lens (makeLenses, over, view)
+import Control.Lens ((%=), (.=), _1, _2, Lens', makeLenses, over, use, view)
 import Control.Monad (filterM, foldM, when)
+import Control.Monad.Catch (MonadMask)
 import Control.Monad.State (StateT, runStateT, MonadState(get, put))
 import Control.Monad.Trans (liftIO, MonadIO, lift)
 import qualified Data.ByteString.Lazy.Char8 as L (ByteString, fromChunks, readFile)
@@ -56,7 +57,7 @@ import Debian.Release (parseSection', ReleaseName, releaseName', Section(..), se
 import Debian.Repo.Changes (changeName, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath, outsidePath)
 import Debian.Repo.LocalRepository (Layout(..), LocalRepository, poolDir', repoLayout, repoReleaseInfoLocal, repoRoot)
-import Debian.Repo.MonadRepos (MonadRepos(..), ReleaseKey, releaseByKey, putRelease)
+import Debian.Repo.MonadRepos (HasReposState(..), MonadRepos, ReleaseKey, releaseByKey, putRelease)
 import Debian.Repo.PackageID (makeBinaryPackageID, makeSourcePackageID, PackageID(packageName, packageVersion), prettyPackageID)
 import Debian.Repo.PackageIndex (binaryIndexes, BinaryPackage(packageID, packageInfo), BinaryPackage(BinaryPackage, pConflicts, pDepends, pPreDepends, pProvides, pReplaces), PackageIndex(..), packageIndexes, packageIndexPath, SourceControl(..), SourceFileSpec(SourceFileSpec, sourceFileName), sourceIndexes, SourcePackage(sourcePackageID), SourcePackage(SourcePackage, sourceControl, sourceDirectory, sourcePackageFiles, sourceParagraph))
 import Debian.Repo.Prelude (nub')
@@ -85,10 +86,12 @@ import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text, hcat)
 instance Pretty FileOffset where
     pPrint = text . show
 
+#if 0
 -- | A monad for installing or deleting a repository's packages
-class MonadRepos m => MonadInstall m where
+class MonadRepos s m => MonadInstall m where
     getInstall :: m InstallState
     putInstall :: InstallState -> m ()
+#endif
 
 data InstallState
     = InstallState
@@ -102,28 +105,46 @@ data InstallState
       -- ^ Releases which have been modified and need to be rewritten and signed
       }
 
-instance MonadRepos m => MonadInstall (StateT InstallState m) where
+#if 0
+instance MonadRepos s m => MonadInstall (StateT InstallState m) where
     getInstall = get
     putInstall = put
 
-instance MonadRepos m => MonadRepos (StateT InstallState m) where
+instance MonadRepos s m => MonadRepos (StateT InstallState m) where
     getRepos = lift getRepos
     putRepos = lift . putRepos
+#endif
 
 $(makeLenses ''InstallState)
 
-runInstall :: MonadRepos m => StateT InstallState m a -> LocalRepository -> Maybe PGPKey -> m (a, InstallState)
+-- | A monad for installing or deleting a repository's packages
+class HasInstallState s where installState :: Lens' s InstallState
+instance HasInstallState InstallState where installState = id
+type MonadInstall s m = (HasInstallState s, MonadState s m, MonadIO m)
+
+instance HasInstallState (InstallState, s) where installState = _1
+instance HasReposState s => HasReposState (InstallState, s) where reposState = _2 . reposState
+
+getInstall :: MonadInstall s m => m InstallState
+getInstall = use installState
+
+putInstall :: MonadInstall s m => InstallState -> m ()
+putInstall x = installState .= x
+
+runInstall :: MonadRepos s m => StateT (InstallState, s) m a -> LocalRepository -> Maybe PGPKey -> m (a, InstallState)
 runInstall task repo keyname = do
   releases <- findReleases repo
-  (r, st) <- runStateT task (InstallState repo Nothing releases empty)
+  s <- get
+  (r, (st, s')) <- runStateT task (InstallState repo Nothing releases empty, s)
+  put s'
   mapM_ (\ key -> releaseByKey key >>= \ rel -> liftIO (writeRelease repo rel >>= signRepo keyname repo)) (Set.toList (view modified st))
   return (r, st)
 
-evalInstall :: MonadRepos m => StateT InstallState m a -> LocalRepository -> Maybe PGPKey -> m a
+evalInstall :: MonadRepos s m => StateT (InstallState, s) m a -> LocalRepository -> Maybe PGPKey -> m a
 evalInstall task repo keyname = fst <$> runInstall task repo keyname
 
-modifyInstall :: MonadInstall m => (InstallState -> InstallState) -> m ()
-modifyInstall f = getInstall >>= putInstall . f
+modifyInstall :: MonadInstall s m => (InstallState -> InstallState) -> m ()
+modifyInstall f = installState %= f
 
 data InstallResult
     = Ok
@@ -174,9 +195,9 @@ instance Pretty (PP Problem) where
     pPrint (PP (InvalidControlInfo path a)) = text "InvalidControlInfo " <> text path <> text " " <> pPrint a
     pPrint (PP (OtherProblem s)) = text "OtherProblem " <> pPrint s
 
-releaseKey :: MonadInstall m => Release -> m ReleaseKey
+releaseKey :: (MonadRepos s m, MonadInstall s m) => Release -> m ReleaseKey
 releaseKey release = do
-  repo <- view repository <$> getInstall
+  repo <- use (installState . repository)
   putRelease repo release
 
 mergeResults :: [InstallResult] -> InstallResult
@@ -246,7 +267,7 @@ plural _ _ = ""
 
 -- | Find all the .changes files in the incoming directory and try to
 -- process each to install the package into a local repository.
-scanIncoming :: MonadInstall m => Bool -> Maybe PGPKey -> LocalRepository -> m [(ChangesFile, InstallResult)]
+scanIncoming :: (MonadRepos s m) => Bool -> Maybe PGPKey -> LocalRepository -> m [(ChangesFile, InstallResult)]
 scanIncoming createSections keyname repo = do
   qPutStrLn ("Uploading packages to " ++ outsidePath (view repoRoot repo) </> "incoming")
   changes <- liftIO (findChangesFiles (outsidePath (view repoRoot repo) </> "incoming"))
@@ -274,7 +295,7 @@ scanIncoming createSections keyname repo = do
 -- 4. updating the Packages and Sources files, and
 -- 5. moving the files from the incoming directory to the proper
 --    place in the package pool.
-installPackages :: MonadRepos m =>
+installPackages :: MonadRepos s m =>
                    Bool                 -- ^ ok to create new releases and sections
                 -> Maybe PGPKey         -- ^ key to sign repository with
                 -> LocalRepository      -- ^ destination repository
@@ -296,7 +317,7 @@ installPackages createSections keyname repo changeFileList =
       -- Update all the index files affected by the successful
       -- installs.  This is a time consuming operation, so we want to
       -- do this all at once, rather than one package at a time
-      updateIndexes :: MonadInstall m => [InstallResult] -> m [InstallResult]
+      updateIndexes :: MonadInstall s m => [InstallResult] -> m [InstallResult]
       updateIndexes results =
           do (pairLists :: [Either InstallResult [((Release, PackageIndex), B.Paragraph)]]) <-
                  mapM (uncurry buildInfo) (zip changeFileList results)
@@ -311,7 +332,7 @@ installPackages createSections keyname repo changeFileList =
             compareIndex (a, _) (b, _) = compare a b
 
 -- Build the control information to be added to the package indexes.
-buildInfo :: MonadInstall m => ChangesFile -> InstallResult -> m (Either InstallResult [((Release, PackageIndex), B.Paragraph)])
+buildInfo :: MonadInstall s m => ChangesFile -> InstallResult -> m (Either InstallResult [((Release, PackageIndex), B.Paragraph)])
 buildInfo changes Ok =
           do mrel <- findRelease' (changeRelease changes)
              case mrel of
@@ -345,7 +366,7 @@ buildInfo _ notOk = return . Left $ notOk
 -- For a successful install this unlinks the files from INCOMING and
 -- moves the .changes file into INSTALLED.  For a failure it moves
 -- all the files to REJECT.
-finish :: MonadInstall m => EnvPath -> Layout -> ChangesFile -> InstallResult -> m ()
+finish :: MonadInstall s m => EnvPath -> Layout -> ChangesFile -> InstallResult -> m ()
 finish root layout changes Ok =
           do --vPutStrBl 1 stderr $ "  finish Ok " ++ changesFileName changes
              mapM_ (liftIO . removeFile . ((outsidePath root </> "incoming") </>) . changedFileName) (changeFiles changes)
@@ -359,32 +380,32 @@ finish _ _ changes (Failed _) =
           do qPutStrLn $ "  Finish Failed " ++ changesFileName changes
              return ()
 
-installChangesFile :: MonadInstall m => EnvPath -> Layout -> ChangesFile -> m ()
+installChangesFile :: MonadInstall s m => EnvPath -> Layout -> ChangesFile -> m ()
 installChangesFile root layout changes =
           liftIO (moveFile (changePath changes) dst)
           where dst = case layout of
                         Flat -> outsidePath root </> changeName changes
                         Pool -> outsidePath root </> "installed" </> changeName changes
 
-incoming :: MonadInstall m => m FilePath
+incoming :: MonadInstall s m => m FilePath
 incoming = do
   root <- view (repository . repoRoot) <$> getInstall
   return $ outsidePath root </> "incoming" {- </> changedFileName file -}
 
 #if 0
-reject :: MonadInstall m => ChangedFileSpec -> m FilePath
+reject :: MonadInstall s m => ChangedFileSpec -> m FilePath
 reject file = do
   root <- view (repository . repoRoot) <$> getInstall
   return $ outsidePath root </> "reject" </> changedFileName file
 #endif
 
 -- | Get information about one of the (.deb or .dsc) files listed in a .changes file.
-fileInfo :: MonadInstall m => ChangesFile -> ChangedFileSpec -> m (Either InstallResult B.Paragraph)
+fileInfo :: MonadInstall s m => ChangesFile -> ChangedFileSpec -> m (Either InstallResult B.Paragraph)
 fileInfo changes file = do
   repo <- view repository <$> getInstall
   getControl >>= addFields repo
                 where
-                  getControl :: MonadInstall m => m (Either InstallResult B.Paragraph)
+                  getControl :: MonadInstall s m => m (Either InstallResult B.Paragraph)
                   getControl =
                       do -- path <- incoming file
                          dir <- incoming
@@ -399,14 +420,14 @@ fileInfo changes file = do
                            Right (S.Control [info]) -> return (Right info)
                            Left message -> return . Left . Rejected $ [InvalidControlInfo (dir </> changedFileName file) message]
                            Right (S.Control _) -> return . Left . Rejected $ [InvalidControlInfo (dir </> changedFileName file) "Expected one paragraph"]
-                  addFields :: MonadInstall m => LocalRepository -> (Either InstallResult B.Paragraph) -> m (Either InstallResult B.Paragraph)
+                  addFields :: MonadInstall s m => LocalRepository -> (Either InstallResult B.Paragraph) -> m (Either InstallResult B.Paragraph)
                   addFields _ (Left result) = return $ Left result
                   addFields repo (Right info) =
                       case isSuffixOf ".deb" . changedFileName $ file of
                         True -> addDebFields repo changes file info
                         False -> addSourceFields repo changes file info
                   -- | Extract the control file from a binary .deb.
-getDebControl :: forall m. MonadInstall m => ChangedFileSpec -> m (Either String B.Control)
+getDebControl :: forall s m. MonadInstall s m => ChangedFileSpec -> m (Either String B.Control)
 getDebControl file = do
   dir <- incoming
   let path = dir </> changedFileName file
@@ -425,7 +446,7 @@ getDebControl' path = do
   text <- readCreateProcess (shell ("ar p " ++ path ++ " " ++ name ++ " | tar x" ++ c ++ "O ./control")) ""
   return $ B.parseControl "" (pack text)
 
-findRelease' :: MonadInstall m => ReleaseName -> m (Maybe Release)
+findRelease' :: MonadInstall s m => ReleaseName -> m (Maybe Release)
 findRelease' name = do
     rels <- view releases <$> getInstall
     return $ findRelease rels name
@@ -438,19 +459,19 @@ findRelease releases name =
       _ -> error $ "Internal error 16 - multiple releases named " ++ releaseName' name
 
 #if 0
-markReleaseModified :: MonadInstall m => ReleaseKey -> m ()
+markReleaseModified :: MonadInstall s m => ReleaseKey -> m ()
 markReleaseModified = modifyInstall . over modified . Set.insert
 #endif
 
 -- | Hard link the files of each package into the repository pool,
 -- but don't unlink the files in incoming in case of subsequent
 -- failure.
-installFiles :: MonadInstall m => Bool -> [InstallResult] -> ChangesFile -> m [InstallResult]
+installFiles :: forall s m. (MonadRepos s m, MonadInstall s m) => Bool -> [InstallResult] -> ChangesFile -> m [InstallResult]
 installFiles createSections results changes = do
   mrel <- findOrCreateRelease (changeRelease changes)
   maybe (return (Failed [NoSuchRelease (changeRelease changes)] : results)) (installFiles' createSections changes results) mrel
     where
-      findOrCreateRelease :: MonadInstall m => ReleaseName -> m (Maybe Release)
+      findOrCreateRelease :: ReleaseName -> m (Maybe Release)
       findOrCreateRelease name = do
         rels <- view releases <$> getInstall
         case createSections of
@@ -464,7 +485,7 @@ installFiles createSections results changes = do
                                 return (Just newRelease)
                          Just release -> return (Just release)
 
-installFiles' :: MonadInstall m => Bool -> ChangesFile -> [InstallResult] -> Release -> m [InstallResult]
+installFiles' :: (MonadRepos s m, MonadInstall s m) => Bool -> ChangesFile -> [InstallResult] -> Release -> m [InstallResult]
 installFiles' createSections changes results release =
                 let sections = nub' . List.map (section . changedFileSection) . changeFiles $ changes in
                 case (createSections, listDiff sections (releaseComponents release)) of
@@ -477,7 +498,7 @@ installFiles' createSections changes results release =
                   (False, missing) ->
                       return (Failed [NoSuchSection (releaseName release) missing] : results)
 
-installFiles'' :: MonadInstall m => ChangesFile -> [InstallResult] -> m [InstallResult]
+installFiles'' :: MonadInstall s m => ChangesFile -> [InstallResult] -> m [InstallResult]
 installFiles'' changes results = do
   repo <- view repository <$> getInstall
   result <- mapM (installFile changes) (changeFiles changes) >>= return . mergeResults
@@ -487,7 +508,7 @@ installFiles'' changes results = do
       paths repo = Set.fromList $ List.map (T.pack . ((outsidePath (view repoRoot repo)) </>) . poolDir' repo changes) (changeFiles changes)
 
 -- | Move one file into the repository
-installFile :: MonadInstall m => ChangesFile -> ChangedFileSpec -> m InstallResult
+installFile :: MonadInstall s m => ChangesFile -> ChangedFileSpec -> m InstallResult
 installFile changes file = do
   repo <- view repository <$> getInstall
   live' <- view live <$> getInstall
@@ -516,8 +537,8 @@ installFile changes file = do
       return (Failed [MissingFromPool dst])
     (True, True, True) -> do           -- Further inspection is required
       installedSize <- liftIO $ F.getFileStatus dst >>= return . F.fileSize
-      installedMD5sum <- liftIO $ L.readFile dst >>= return . show . md5
-      installedSHA1sum <- liftIO $ L.readFile dst >>= return . show . sha1
+      --installedMD5sum <- liftIO $ L.readFile dst >>= return . show . md5
+      --installedSHA1sum <- liftIO $ L.readFile dst >>= return . show . sha1
       installedSHA256sum <- liftIO $ L.readFile dst >>= return . show . sha256
       let status =
               case (compare (changedFileSize file) installedSize, compare (changedFileSHA256sum file) installedSHA256sum) of
@@ -550,7 +571,7 @@ undistribute ([] : tail) = undistribute tail
 undistribute (((index, info) : items) : tail) =
     (index, info : List.map snd items) : undistribute tail
 
-addDebFields :: MonadInstall m => LocalRepository -> ChangesFile -> ChangedFileSpec -> Paragraph' Text -> m (Either InstallResult (Paragraph' Text))
+addDebFields :: MonadInstall s m => LocalRepository -> ChangesFile -> ChangedFileSpec -> Paragraph' Text -> m (Either InstallResult (Paragraph' Text))
 addDebFields repo changes file info =
     let (binaryVersion :: DebianVersion) =
             maybe (error $ "Missing 'Version' field") parseDebianVersion' (B.fieldValue "Version" info) in
@@ -569,7 +590,7 @@ addDebFields repo changes file info =
       sourceVersion = changeVersion changes
 
 
-addSourceFields :: MonadInstall m => LocalRepository -> ChangesFile -> ChangedFileSpec -> B.Paragraph -> m (Either InstallResult B.Paragraph)
+addSourceFields :: MonadInstall s m => LocalRepository -> ChangesFile -> ChangedFileSpec -> B.Paragraph -> m (Either InstallResult B.Paragraph)
 addSourceFields repo changes file info =
     return . Right . append . raise . modify . rename $ info
     where
@@ -609,7 +630,7 @@ moveFile src dst =
 
 -- |Add control information to several package indexes, making sure
 -- that that no duplicate package ids are inserted.
-addPackagesToIndexes :: MonadInstall m => [((Release, PackageIndex), [B.Paragraph])] -> m InstallResult
+addPackagesToIndexes :: MonadInstall s m => [((Release, PackageIndex), [B.Paragraph])] -> m InstallResult
 addPackagesToIndexes pairs =
     do repo <- view repository <$> getInstall
        oldPackageLists <- mapM (uncurry getPackages_) indexKeys
@@ -643,7 +664,7 @@ addPackagesToIndexes pairs =
 
 -- | Return a list of all the files in a release which are
 -- 'live', in the sense that they appear in some index files.
-findLive :: MonadInstall m => m (Set Text)
+findLive :: (MonadRepos s m, MonadInstall s m) => m (Set Text)
 findLive = do
     repo <- view repository <$> getInstall
     case view repoLayout repo of
@@ -710,7 +731,7 @@ instance Pretty (PP BinaryPackage) where
 -- packages.  These packages are not technically garbage because they
 -- can still be installed by explicitly giving their version number to
 -- apt, but it is not really a good idea to use them.
-deleteTrumped :: MonadInstall m => Bool -> Maybe PGPKey -> [Release] -> m [Release]
+deleteTrumped :: MonadInstall s m => Bool -> Maybe PGPKey -> [Release] -> m [Release]
 deleteTrumped _ _ [] = error "deleteTrumped called with empty release list"
 deleteTrumped dry keyname releases =
     mapM findTrumped releases >>=
@@ -728,7 +749,7 @@ deleteTrumped dry keyname releases =
 
 -- | Return a list of packages in a release which are trumped by some
 -- newer version.
-findTrumped :: MonadInstall m => Release -> m (Either String [(Release, PackageIndex, BinaryPackage)])
+findTrumped :: MonadInstall s m => Release -> m (Either String [(Release, PackageIndex, BinaryPackage)])
 findTrumped release =
     do
       mapM doIndex (sourceIndexes release) >>= return . merge
@@ -739,7 +760,7 @@ findTrumped release =
 -- packages.  These packages are not technically garbage because they
 -- can still be installed by explicitly giving their version number to
 -- apt, but it is not really a good idea to use them.
-deleteBinaryOrphans :: MonadInstall m => Bool -> Maybe PGPKey -> [Release] -> m ()
+deleteBinaryOrphans :: MonadInstall s m => Bool -> Maybe PGPKey -> [Release] -> m ()
 deleteBinaryOrphans _ _ [] = error "deleteBinaryOrphans called with empty release list"
 deleteBinaryOrphans dry keyname releases =
     do -- All the source packages in the repository
@@ -825,7 +846,7 @@ merge packages =
 -- them to the removed directory.  The .changes files are treated
 -- specially: they don't appear in any index files, but the package
 -- they belong to can be constructed from their name.
-deleteGarbage :: MonadInstall m => m ()
+deleteGarbage :: (MonadRepos s m, MonadInstall s m) => m ()
 deleteGarbage = do
   layout <- view (repository . repoLayout) <$> getInstall
   root <- view (repository . repoRoot) <$> getInstall
@@ -869,7 +890,7 @@ deleteGarbage = do
           renameFile file (outsidePath root </> "removed" </> snd (splitFileName file))
 
 -- | Delete specific source packages and their associated binary packages.
-deleteSourcePackages :: MonadInstall m => Bool -> Maybe PGPKey -> [(Release, PackageIndex, PackageID BinPkgName)] -> m [Release]
+deleteSourcePackages :: MonadInstall s m => Bool -> Maybe PGPKey -> [(Release, PackageIndex, PackageID BinPkgName)] -> m [Release]
 deleteSourcePackages _ _ [] = return []
 deleteSourcePackages dry keyname packages =
     do qPutStrLn ("deleteSourcePackages:\n " ++ intercalate "\n " (List.map (ppShow . (\ (_, _, x) -> x)) packages))
@@ -877,7 +898,7 @@ deleteSourcePackages dry keyname packages =
        mapM doIndex (Set.toList (allIndexes releases))
     where
       doIndex (release, index) = getEntries release index >>= put release index . List.partition (victim release index)
-      put :: MonadInstall m => Release -> PackageIndex -> ([BinaryPackage], [BinaryPackage]) -> m Release
+      put :: MonadInstall s m => Release -> PackageIndex -> ([BinaryPackage], [BinaryPackage]) -> m Release
       put release index ([], _) = do
         qPutStrLn ("deleteSourcePackages - nothing to remove from " ++ show index)
         return release
@@ -894,9 +915,9 @@ deleteSourcePackages dry keyname packages =
       -- it is one of the packages we are deleting.
       victim :: Release -> PackageIndex -> BinaryPackage -> Bool
       victim release index binaryPackage = Set.member (sourceIdent (release, index, binaryPackage)) (Set.fromList packages)
-      getEntries :: MonadInstall m => Release -> PackageIndex -> m [BinaryPackage]
+      getEntries :: MonadInstall s m => Release -> PackageIndex -> m [BinaryPackage]
       getEntries release index = getPackages_ release index >>= return . either (error . show) id
-      putIndex' :: MonadInstall m => Maybe PGPKey -> Release -> PackageIndex -> [BinaryPackage] -> m Release
+      putIndex' :: MonadInstall s m => Maybe PGPKey -> Release -> PackageIndex -> [BinaryPackage] -> m Release
       putIndex' keyname release index entries = do
         -- markReleaseModified
         repo <- view repository <$> getInstall
@@ -910,14 +931,14 @@ deleteSourcePackages dry keyname packages =
                 liftIO $ writeAndZipFileWithBackup (outsidePath root </> packageIndexPath release index) (L.fromChunks [encodeUtf8 (mconcat text)])
 
 -- | Delete specific source packages and their associated binary packages.
-deleteBinaryPackages :: MonadInstall m => Bool -> Maybe PGPKey -> Set (Release, PackageIndex, PackageID BinPkgName) -> m ()
+deleteBinaryPackages :: MonadInstall s m => Bool -> Maybe PGPKey -> Set (Release, PackageIndex, PackageID BinPkgName) -> m ()
 deleteBinaryPackages _ _ s | Set.null s = return ()
 deleteBinaryPackages dry keyname blacklist = do
   repo <- view repository <$> getInstall
   mapM_ doIndex (Set.toList (allIndexes repo))
     where
       doIndex (release, index) = getEntries release index >>= put release index . List.partition (victim release index)
-      put :: MonadInstall m => Release -> PackageIndex -> ([BinaryPackage], [BinaryPackage]) -> m Release
+      put :: MonadInstall s m => Release -> PackageIndex -> ([BinaryPackage], [BinaryPackage]) -> m Release
       put release index ([], _) =
           qPutStrLn ("deleteBinaryPackages - nothing to remove from " ++ show index) >>
           return release
@@ -936,9 +957,9 @@ deleteBinaryPackages dry keyname blacklist = do
       victim :: Release -> PackageIndex -> BinaryPackage -> Bool
       victim release index binaryPackage = Set.member (release, index, packageID binaryPackage) blacklist
 
-      getEntries :: MonadInstall m => Release -> PackageIndex -> m [BinaryPackage]
+      getEntries :: MonadInstall s m => Release -> PackageIndex -> m [BinaryPackage]
       getEntries release index = getPackages_ release index >>= return . either (error . show) id
-      putIndex' :: MonadInstall m => Maybe PGPKey -> Release -> PackageIndex -> [BinaryPackage] -> m Release
+      putIndex' :: MonadInstall s m => Maybe PGPKey -> Release -> PackageIndex -> [BinaryPackage] -> m Release
       putIndex' keyname release index entries =
           do repo <- view repository <$> getInstall
              case dry of
@@ -1066,7 +1087,7 @@ sourcePackageBinaryIDs_ package =
       info = sourceParagraph package
 
 -- | Get the contents of a package index
-getPackages_ :: MonadInstall m => Release -> PackageIndex -> m (Either SomeException [BinaryPackage])
+getPackages_ :: MonadInstall s m => Release -> PackageIndex -> m (Either SomeException [BinaryPackage])
 getPackages_ release index = do
   repo <- view repository <$> getInstall
   let uri = repoKeyURI . repoKey $ repo
@@ -1082,14 +1103,14 @@ getPackages_ release index = do
           return . either (\ (e :: SomeException) -> Left . SomeException . ErrorCall . ((show uri' ++ ":") ++) . show $ e) id
 
 -- | Get the contents of a package index
-binaryPackagesOfIndex_ :: MonadInstall m => Release -> PackageIndex -> m (Either SomeException [BinaryPackage])
+binaryPackagesOfIndex_ :: MonadInstall s m => Release -> PackageIndex -> m (Either SomeException [BinaryPackage])
 binaryPackagesOfIndex_ release index =
     case packageIndexArch index of
       Source -> return (Right [])
       _ -> getPackages_ release index -- >>= return . either Left (Right . List.map (toBinaryPackage index . packageInfo))
 
 -- | Get the contents of a package index
-sourcePackagesOfIndex_ :: MonadInstall m => Release -> PackageIndex -> m (Either SomeException [SourcePackage])
+sourcePackagesOfIndex_ :: MonadInstall s m => Release -> PackageIndex -> m (Either SomeException [SourcePackage])
 sourcePackagesOfIndex_ release index =
     case packageIndexArch index of
       Source -> getPackages_ release index >>= return . either Left (Right . List.map (toSourcePackage_ index . packageInfo))
@@ -1155,7 +1176,7 @@ indexPrefix repo release index =
 -}
 
 -- | Return a list of all source packages.
-releaseSourcePackages_ :: MonadInstall m => Release -> m (Set SourcePackage)
+releaseSourcePackages_ :: MonadInstall s m => Release -> m (Set SourcePackage)
 releaseSourcePackages_ release =
     mapM (sourcePackagesOfIndex_ release) (sourceIndexes release) >>= return . test
     where
@@ -1165,7 +1186,7 @@ releaseSourcePackages_ release =
                   (bad, _) -> error $ intercalate ", " (List.map show bad)
 
 -- | Return a list of all the binary packages for all supported architectures.
-releaseBinaryPackages_ :: MonadInstall m => Release -> m (Set BinaryPackage)
+releaseBinaryPackages_ :: MonadInstall s m => Release -> m (Set BinaryPackage)
 releaseBinaryPackages_ release =
     mapM (binaryPackagesOfIndex_ release) (binaryIndexes release) >>= return . test
     where

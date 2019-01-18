@@ -42,7 +42,7 @@ import Text.Regex (mkRegex, splitRegex)
 -- set of sources that includes all of its releases.  This is used to
 -- ensure that a package we want to upload doesn't already exist in
 -- the repository.
-repoSources :: MonadRepos m => Maybe EnvRoot -> [SourceOption] -> URI -> m SliceList
+repoSources :: MonadRepos s m => Maybe EnvRoot -> [SourceOption] -> URI -> m SliceList
 repoSources chroot opts uri =
     do dirs <- liftIO (uriSubdirs chroot (uri {uriPath = uriPath uri ++ "/dists/"}))
        releaseFiles <- mapM (liftIO . readRelease uri) dirs >>= return . catMaybes
@@ -83,12 +83,12 @@ readRelease uri name =
 
 -- | Make sure all the required local and remote repository objects
 -- used by a sources.list file are in our cache.
-verifySourcesList :: MonadRepos m => Maybe EnvRoot -> [DebSource] -> m SliceList
+verifySourcesList :: MonadRepos s m => Maybe EnvRoot -> [DebSource] -> m SliceList
 verifySourcesList chroot list =
     mapM (verifyDebSource chroot) list >>=
     (\ xs -> return $ SliceList { slices = xs })
 
-verifyDebSource :: MonadRepos m => Maybe EnvRoot -> DebSource -> m Slice
+verifyDebSource :: MonadRepos s m => Maybe EnvRoot -> DebSource -> m Slice
 verifyDebSource chroot line =
     case uriScheme (sourceUri line) of
       "file:" -> let path = EnvPath chroot' (uriPath (sourceUri line)) in readLocalRepository path Nothing >>= maybe (error $ "No repository at " ++ show (outsidePath path)) (\ repo' -> return $ Slice {sliceRepoKey = repoKey repo', sliceSource = line})
@@ -98,7 +98,7 @@ verifyDebSource chroot line =
 
 -- |Change the sources.list of an AptCache object, subject to the
 -- value of sourcesChangedAction.  (FIXME: Does this really work for MonadOS?)
-updateCacheSources :: (MonadRepos m, MonadTop r m) => SourcesChangedAction -> NamedSliceList -> m ()
+updateCacheSources :: (MonadRepos s m, MonadTop r m) => SourcesChangedAction -> NamedSliceList -> m ()
 updateCacheSources sourcesChangedAction baseSources = do
   let rel = sliceListName baseSources
   dir <- distDir rel

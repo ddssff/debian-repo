@@ -43,7 +43,7 @@ import System.Unix.Directory (removeRecursiveSafely)
 
 -- | Remove all the packages from the repository and then re-create
 -- the empty releases.
-flushLocalRepository :: MonadRepos m => LocalRepository -> m LocalRepository
+flushLocalRepository :: MonadRepos s m => LocalRepository -> m LocalRepository
 flushLocalRepository r =
     do liftIO $ removeRecursiveSafely (outsidePath (view repoRoot r))
        r' <- repairLocalRepository r
@@ -54,16 +54,16 @@ flushLocalRepository r =
 
 -- The return value might not be the same as the input due to cached
 -- values in the monad.
-prepareRelease' :: MonadRepos m => LocalRepository -> Release -> m Release
+prepareRelease' :: MonadRepos s m => LocalRepository -> Release -> m Release
 prepareRelease' repo rel = prepareRelease repo (releaseName rel) (releaseAliases rel) (releaseComponents rel) (releaseArchitectures rel)
 
 -- | Find or create a (local) release.
-prepareRelease :: MonadRepos m => LocalRepository -> ReleaseName -> [ReleaseName] -> [Section] -> Set Arch -> m Release
+prepareRelease :: MonadRepos s m => LocalRepository -> ReleaseName -> [ReleaseName] -> [Section] -> Set Arch -> m Release
 prepareRelease repo dist aliases sections archSet =
     -- vPutStrLn 0 ("prepareRelease " ++ name ++ ": " ++ show repo ++ " sections " ++ show sections) >>
     findRelease repo dist >>= maybe prepare (const prepare) -- return -- JAS - otherwise --create-section does not do anything
     where
-      prepare :: MonadRepos m => m Release
+      prepare :: MonadRepos s m => m Release
       prepare =
           do -- FIXME: errors get discarded in the mapM calls here
              let release = Release { releaseName = dist
@@ -182,14 +182,14 @@ mergeReleases _repo releases =
       architectures = unions . map releaseArchitectures $ releases
 
 -- | Find all the releases in a repository.
-findReleases :: MonadRepos m => LocalRepository -> m [Release]
+findReleases :: MonadRepos s m => LocalRepository -> m [Release]
 findReleases repo = mapM (findLocalRelease repo) (view repoReleaseInfoLocal repo)
 
-findLocalRelease :: MonadRepos m => LocalRepository -> Release -> m Release
+findLocalRelease :: MonadRepos s m => LocalRepository -> Release -> m Release
 findLocalRelease repo releaseInfo =
     findRelease repo dist >>= maybe readRelease return
     where
-      readRelease :: MonadRepos m => m Release
+      readRelease :: MonadRepos s m => m Release
       readRelease =
           do let path = (outsidePath (view repoRoot repo) </> "dists" </> releaseName' dist </> "Release")
              info <- liftIO $ S.parseControlFromFile path

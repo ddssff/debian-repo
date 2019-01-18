@@ -17,7 +17,7 @@ module Debian.Repo.Top
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
 #endif
-import Control.Lens (Getter, view)
+import Control.Lens (_1, Getter, view)
 import Control.Monad.Reader (MonadReader)
 import Debian.Release (ReleaseName(relName))
 import System.FilePath ((</>), isRelative)
@@ -27,6 +27,9 @@ newtype TopDir = TopDir FilePath
 class HasTop r where toTop :: Getter r TopDir
 instance HasTop TopDir where toTop = id
 type MonadTop r m = (HasTop r, MonadReader r m)
+
+instance HasTop a => HasTop (a, b) where toTop = _1 . toTop
+instance HasTop a => HasTop (a, b, c) where toTop = _1 . toTop
 
 sub :: MonadTop r m => FilePath -> m FilePath
 sub path | isRelative path = view toTop >>= \(TopDir top) -> return $ top </> path

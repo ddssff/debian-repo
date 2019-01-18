@@ -1,12 +1,13 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings,
+{-# LANGUAGE ConstraintKinds, CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings,
              PackageImports, ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.MonadApt
     ( AptImage(..)
     , aptImageRoot, aptImageArch, aptImageSources
     , aptSourcePackageCache, aptBinaryPackageCache
-    , MonadApt(getApt, putApt)
-    , modifyApt
+    , AptKey(AptKey)
+    , HasAptKey(aptKey)
+    , MonadApt --, getApt, putApt, modifyApt
     , cacheRootDir
     , createAptImage
     ) where
@@ -15,7 +16,8 @@ module Debian.Repo.MonadApt
 import Control.Applicative ((<$>))
 #endif
 import Control.Category ((.))
-import Control.Lens (makeLenses, view)
+import Control.Lens (_1, _2, Getter, makeLenses, view)
+import Control.Monad.Reader (MonadReader)
 import Control.Monad.State (MonadState(get, put), StateT)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Debian.Arch (Arch)
@@ -41,16 +43,27 @@ data AptImage =
 
 $(makeLenses ''AptImage)
 
+#if 0
 class (Monad m, Functor m) => MonadApt m where
     getApt :: m AptImage
     putApt :: AptImage -> m ()
 
-modifyApt :: MonadApt m => (AptImage -> AptImage) -> m ()
-modifyApt f = getApt >>= putApt . f
-
 instance (Monad m, Functor m) => MonadApt (StateT AptImage m) where
     getApt = get
     putApt = put
+
+modifyApt :: MonadApt m => (AptImage -> AptImage) -> m ()
+modifyApt f = getApt >>= putApt . f
+#else
+newtype AptKey = AptKey EnvRoot deriving (Eq, Ord, Show)
+
+class HasAptKey r where aptKey :: Getter r AptKey
+instance HasAptKey AptKey where aptKey = id
+type MonadApt r m = (HasAptKey r, MonadReader r m)
+
+instance HasAptKey (a, AptKey) where aptKey = _2
+instance HasAptKey (a, AptKey, b) where aptKey = _2
+#endif
 
 instance Show AptImage where
     show apt = "AptImage " ++ relName (sliceListName (view aptImageSources apt))

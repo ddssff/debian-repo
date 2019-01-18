@@ -26,7 +26,7 @@ module Debian.Repo.SourceTree
 import Control.Applicative ((<$>), (<*>), pure)
 #endif
 import Control.Exception (SomeException, try, throw)
-import Control.Lens (view)
+import Control.Lens (to, view)
 import Control.Monad (foldM)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.ByteString as B
@@ -38,8 +38,8 @@ import Debian.Pretty (ppShow)
 import Debian.Relation (BinPkgName(..))
 import Debian.Repo.Changes (findChangesFiles)
 import Debian.Repo.EnvPath (EnvRoot, rootPath)
-import Debian.Repo.MonadOS (MonadOS(getOS))
-import Debian.Repo.OSImage (osRoot)
+import Debian.Repo.MonadOS (MonadOS, getOS)
+import Debian.Repo.OSImage (OSKey(..), osRoot)
 import Debian.Repo.Prelude (getSubDirectories, replaceFile, dropPrefix)
 import Debian.Repo.Prelude.Process (readProcessVE, timeTask, modifyProcessEnv)
 import Debian.Repo.Prelude.Verbosity (noisier)
@@ -120,10 +120,10 @@ instance Show BuildDecision where
     show (Error reason) = "Error - " ++ reason
 
 -- | Run dpkg-buildpackage in a build tree.
-buildDebs :: (MonadOS m, MonadIO m) => Bool -> [(String, Maybe String)] -> DebianBuildTree -> BuildDecision -> m NominalDiffTime
+buildDebs :: MonadOS r s m => Bool -> [(String, Maybe String)] -> DebianBuildTree -> BuildDecision -> m NominalDiffTime
 buildDebs noClean setEnv buildTree decision =
     do
-      root <- view (osRoot . rootPath) <$> getOS
+      root <- view (osRoot . to _root . rootPath) <$> getOS
       noSecretKey <- liftIO $ getEnv "HOME" >>= return . (++ "/.gnupg") >>= doesDirectoryExist >>= return . not
       -- env0 <- liftIO getEnvironment
       -- Set LOGNAME so dpkg-buildpackage doesn't die when it fails to

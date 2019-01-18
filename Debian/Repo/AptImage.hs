@@ -13,6 +13,7 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Category ((.))
 import Control.Lens (view)
+import Control.Monad.Catch (MonadMask)
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString as B
 import Data.Data (Data)
@@ -21,7 +22,8 @@ import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import Debian.Pretty (ppShow)
 import Debian.Relation (PkgName, SrcPkgName(unSrcPkgName))
 import Debian.Repo.EnvPath (EnvRoot(..), rootPath)
-import Debian.Repo.MonadApt (AptImage, aptImageRoot, aptImageSources, MonadApt(getApt))
+import Debian.Repo.MonadApt (AptImage, aptImageRoot, aptImageSources, MonadApt)
+import Debian.Repo.MonadRepos (getApt, MonadRepos)
 import Debian.Repo.Prelude.Process (readProcessV, readProcessQE)
 import Debian.Repo.Slice (NamedSliceList(sliceListName))
 import Debian.Repo.Top (distDir, MonadTop)
@@ -34,7 +36,7 @@ import System.Process (CreateProcess(cwd), proc, readProcessWithExitCode)
 
 -- | The location of the top directory of a source packages's files in
 -- an AptImage (but not an OSImage.)
-aptDir :: (MonadTop r m, MonadApt m) => SrcPkgName -> m FilePath
+aptDir :: (MonadRepos s m, MonadTop r m, MonadApt r m) => SrcPkgName -> m FilePath
 aptDir package =
     do rel <- view aptImageSources <$> getApt
        dir <- distDir (sliceListName rel)
@@ -68,7 +70,7 @@ data SourcesChangedAction =
 -- | Run an apt-get command in a particular directory with a
 -- particular list of packages.  Note that apt-get source works for
 -- binary or source package names.
-aptGetSource :: (MonadIO m, MonadApt m, PkgName n) => FilePath -> [(n, Maybe DebianVersion)] -> m ()
+aptGetSource :: (MonadRepos s m, MonadApt r m, PkgName n) => FilePath -> [(n, Maybe DebianVersion)] -> m ()
 aptGetSource dir packages =
     do args <- aptOpts
        let p = (proc "apt-get" (args ++ ["source"] ++ map formatPackage packages)) {cwd = Just dir}
@@ -77,14 +79,14 @@ aptGetSource dir packages =
       formatPackage (name, Nothing) = ppShow name
       formatPackage (name, Just version) = ppShow name ++ "=" ++ show (prettyDebianVersion version)
 
-aptGetUpdate :: (MonadIO m, MonadApt m) => m ()
+aptGetUpdate :: (MonadRepos s m, MonadApt r m) => m ()
 aptGetUpdate =
     do args <- aptOpts
        let p = (proc "apt-get" (args ++ ["update"]))
        _ <- liftIO $ readProcessQE p B.empty
        return ()
 
-aptOpts :: MonadApt m => m [String]
+aptOpts :: (MonadRepos s m, MonadApt r m) => m [String]
 aptOpts =
     do root <- view (aptImageRoot . rootPath) <$> getApt
        return $ [ "-o=Dir::State::status=" ++ root ++ "/var/lib/dpkg/status"

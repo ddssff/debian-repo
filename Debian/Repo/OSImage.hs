@@ -3,7 +3,8 @@
 module Debian.Repo.OSImage
     (
     -- * OSImage type
-      OSImage(..), osRoot, osBaseDistro, osArch, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache
+      OSKey(..), OSImage(..)
+    , osRoot, osBaseDistro, osArch, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache
     , createOSImage
     , cloneOSImage
 
@@ -25,7 +26,7 @@ module Debian.Repo.OSImage
 
 -- import Control.DeepSeq (force)
 import Control.Exception (SomeException)
-import Control.Lens (makeLenses, view)
+import Control.Lens (makeLenses, to, view)
 import Control.Monad.Catch (try)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
@@ -67,13 +68,15 @@ instance Ord FileStatus where
 instance Eq FileStatus where
     a == b = compare a b == EQ
 
+newtype OSKey = OSKey {_root :: EnvRoot} deriving (Eq, Ord, Show)
+
 -- |This type represents an OS image located at osRoot built from a
 -- particular osBaseDistro using a particular osArch.  If an
 -- osLocalRepo argument is given, that repository will be copied into
 -- the environment and kept in sync, and lines will be added to
 -- sources.list to point to it.
 data OSImage
-    = OS { _osRoot :: EnvRoot
+    = OS { _osRoot :: OSKey
          , _osBaseDistro :: NamedSliceList
          , _osArch :: Arch
          , _osExtraRepos :: [Slice]
@@ -100,19 +103,19 @@ instance Eq OSImage where
 
 -- |Create an OS image record
 createOSImage ::
-              EnvRoot                   -- ^ The location where image is to be built
+              OSKey                     -- ^ The location where image is to be built
            -> NamedSliceList            -- ^ The sources.list of the base distribution
            -> [Slice]
            -> LocalRepository           -- ^ The location of the local upload repository
            -> IO OSImage
-createOSImage root distro extra repo =
+createOSImage (OSKey root) distro extra repo =
     do copy <- copyLocalRepo (EnvPath {_envRoot = root, _envPath = "/work/localpool"}) repo
        -- At this point we can only support the build architecture of
        -- the underlying system.  We can support multiple
        -- distributions, but if the hardware is an amd64 the packages
        -- produced will be amd64.
        arch <- buildArchOfRoot
-       let os = OS { _osRoot = root
+       let os = OS { _osRoot = OSKey root
                    , _osBaseDistro = distro
                    , _osArch = arch
                    , _osExtraRepos = extra
@@ -124,9 +127,9 @@ createOSImage root distro extra repo =
 
 -- | Create the OSImage record for a copy of an existing OSImage at a
 -- different location.
-cloneOSImage :: OSImage -> EnvRoot -> IO OSImage
+cloneOSImage :: OSImage -> OSKey -> IO OSImage
 cloneOSImage src dst = do
-  copy <- copyLocalRepo (EnvPath {_envRoot = dst, _envPath = "/work/localpool"}) (view osLocalMaster src)
+  copy <- copyLocalRepo (EnvPath {_envRoot = _root dst, _envPath = "/work/localpool"}) (view osLocalMaster src)
   return $ src {_osRoot = dst, _osLocalCopy = copy}
 
 -- | Set the location of the OSImage's root directory - where you
@@ -147,7 +150,7 @@ data SourcesChangedAction =
 
 instance Show OSImage where
     show os = intercalate " " ["OS {",
-                               view (osRoot . rootPath) os,
+                               view (osRoot . to _root . rootPath) os,
                                relName (sliceListName (view osBaseDistro os)),
                                show (view osArch os),
                                show (view osLocalCopy os)]
@@ -176,17 +179,17 @@ instance Show UpdateError where
     show (Missing r p) = unwords ["Missing", show r, show p]
     show Flushed = "Flushed"
 
-syncOS' :: OSImage -> EnvRoot -> IO OSImage
+syncOS' :: OSImage -> OSKey -> IO OSImage
 syncOS' src dst = do
   mkdir
   umount
-  (_result, _, _) <- rsyncOld ["--exclude=/work/build/*"] (view (osRoot . rootPath) src) (view rootPath dst)
+  (_result, _, _) <- rsyncOld ["--exclude=/work/build/*"] (view (osRoot . to _root . rootPath) src) (view (to _root . rootPath) dst)
   cloneOSImage src dst
     where
-      mkdir = createDirectoryIfMissing True (view rootPath dst ++ "/work")
+      mkdir = createDirectoryIfMissing True (view (to _root . rootPath) dst ++ "/work")
       umount =
-          do srcResult <- umountBelow False (view (osRoot . rootPath) src)
-             dstResult <- umountBelow False (view rootPath dst)
+          do srcResult <- umountBelow False (view (osRoot . to _root . rootPath) src)
+             dstResult <- umountBelow False (view (to _root . rootPath) dst)
              case filter (\ (_, (code, _, _)) -> code /= ExitSuccess) (srcResult ++ dstResult) of
                [] -> return ()
                failed -> fail $ "umount failure(s): " ++ show failed
@@ -195,11 +198,11 @@ syncOS' src dst = do
 localeGen :: OSImage -> String -> IO ()
 localeGen os locale =
     do let root = view osRoot os
-       qPutStr ("Generating locale " ++  locale ++ " (in " ++ stripDist (view rootPath root) ++ ")...")
-       chunks <- useEnv (view rootPath root) return (readProcessVE (shell cmd) B.empty)
+       qPutStr ("Generating locale " ++  locale ++ " (in " ++ stripDist (view (to _root . rootPath) root) ++ ")...")
+       chunks <- useEnv (view (to _root . rootPath) root) return (readProcessVE (shell cmd) B.empty)
        case chunks of
          (Right (ExitSuccess, _, _)) -> qPutStrLn "done"
-         e -> error $ "Failed to generate locale " ++ view rootPath root ++ ": " ++ cmd ++ " -> " ++ show e
+         e -> error $ "Failed to generate locale " ++ view (to _root . rootPath) root ++ ": " ++ cmd ++ " -> " ++ show e
     where
       cmd = "locale-gen " ++ locale
 
@@ -217,7 +220,7 @@ neuterEnv os =
               (\ _ -> qPutStrLn "done.")
               result
     where
-      root = view (osRoot . rootPath) os
+      root = view (osRoot . to _root . rootPath) os
 
 neuterFiles :: [(FilePath, Bool)]
 neuterFiles = [("/sbin/start-stop-daemon", True),
@@ -262,7 +265,7 @@ neuterFile os (file, mustExist) =
 
       fullPath = EnvPath root file
       binTrue = EnvPath root "/bin/true"
-      root = view osRoot os
+      root = view (osRoot . to _root) os
 
 -- |Reverse the neuterEnv operation.
 restoreEnv :: OSImage -> IO OSImage
@@ -270,7 +273,7 @@ restoreEnv os =
     do
       qPutStr "De-neutering OS image..."
       result <- try $ mapM_ (restoreFile os) neuterFiles
-      either (\ (e :: SomeException) -> error $ "damaged environment " ++ view rootPath root ++ ": " ++ show e ++ "\n  please remove it.")
+      either (\ (e :: SomeException) -> error $ "damaged environment " ++ view (to _root . rootPath) root ++ ": " ++ show e ++ "\n  please remove it.")
                  (\ _ -> return os) result
     where
       root = view osRoot os
@@ -298,9 +301,10 @@ restoreFile os (file, mustExist) =
               (False, _) -> error "Can't restore file not linked to /bin/true"
               (_, False) -> error "Can't restore file with no .real version"
 
-      fullPath = EnvPath root file
-      binTrue = EnvPath root "/bin/true"
-      root = view osRoot os
+      fullPath = EnvPath root2 file
+      binTrue = EnvPath root2 "/bin/true"
+      root2 = view (to _root) root1
+      root1 = view osRoot os
 
 -- | Build the dependency relations for the build essential packages.
 -- For this to work the @build-essential@ package must be installed in
@@ -310,13 +314,13 @@ buildEssential os = do
       let root = view osRoot os
       -- qPutStrLn "Computing build essentials"
       essential <-
-          readFile (view rootPath root ++ "/usr/share/build-essential/essential-packages-list") >>=
+          readFile (view (to _root . rootPath) root ++ "/usr/share/build-essential/essential-packages-list") >>=
           return . lines >>= return . dropWhile (/= "") >>= return . tail >>= return . filter (/= "sysvinit") >>=
           return . parseRelations . (intercalate ", ") >>=
           return . (either (error "parse error in /usr/share/build-essential/essential-packages-list") id)
       let re = mkRegex "^[^ \t]"
       relationText <-
-          readFile (view rootPath root ++ "/usr/share/build-essential/list") >>=
+          readFile (view (to _root . rootPath) root ++ "/usr/share/build-essential/list") >>=
           return . lines >>=
           return . dropWhile (/= "BEGIN LIST OF PACKAGES") >>= return . tail >>=
           return . takeWhile (/= "END LIST OF PACKAGES") >>=
@@ -333,7 +337,7 @@ removeEnv :: OSImage -> IO ()
 removeEnv os =
     do
       ePutStr "Removing build environment..."
-      removeRecursiveSafely (view rootPath root)
+      removeRecursiveSafely (view (to _root . rootPath) root)
       ePutStrLn "done."
     where
       root = view osRoot os
@@ -349,7 +353,7 @@ stripDist path = maybe path (\ n -> drop (n + 7) path) (isSublistOf "/dists/" pa
 -- forceList output = evaluate (length output) >> return output
 
 pbuilder :: FilePath
-         -> EnvRoot
+         -> OSKey
          -> NamedSliceList
          -> [Slice]
          -> LocalRepository
@@ -366,11 +370,11 @@ pbuilder top root distro extra repo =
        readProcessVE (shell (cmd top)) B.empty >>= codefn
        ePutStrLn "done."
        os <- createOSImage root distro extra repo -- arch?  copy?
-       let sourcesPath' = view rootPath root ++ "/etc/apt/sources.list"
+       let sourcesPath' = view (to _root . rootPath) root ++ "/etc/apt/sources.list"
        -- Rewrite the sources.list with the local pool added.
            sources = prettyShow $ osFullDistro os
        replaceFile sourcesPath' sources
-       _ <- useEnv (view rootPath root) return $ mapM addAptRepository extra
+       _ <- useEnv (view (to _root . rootPath) root) return $ mapM addAptRepository extra
        return os
     where
       cmd x =
@@ -378,14 +382,14 @@ pbuilder top root distro extra repo =
                             , "--create"
                             , "--distribution", (relName . sliceListName $ distro)
                             , "--basetgz", x </> "pbuilderBase"
-                            , "--buildplace", view rootPath root
+                            , "--buildplace", view (to _root . rootPath) root
                             , "--preserve-buildplace"
                             ]
 
 -- Create a new clean build environment in root.clean
 -- FIXME: create an ".incomplete" flag and remove it when build-env succeeds
 debootstrap
-    :: EnvRoot
+    :: OSKey
     -> NamedSliceList
     -> [Slice]
     -> LocalRepository
@@ -396,7 +400,7 @@ debootstrap
 debootstrap root distro extra repo include exclude components =
     do
       ePutStr (unlines [ "Creating clean build environment (" ++ relName (sliceListName distro) ++ ")"
-                       , "  root: " ++ show root
+                       , "  root: " ++ show (_root root)
                        , "  baseDist: " ++ show baseDist
                        , "  mirror: " ++ show mirror ])
       -- We can't create the environment if the sources.list has any
@@ -406,17 +410,17 @@ debootstrap root distro extra repo include exclude components =
       readProcessVE (shell cmd) B.empty >>= codefn
       ePutStrLn "done."
       os <- createOSImage root distro extra repo -- arch?  copy?
-      let sourcesPath' = view rootPath root ++ "/etc/apt/sources.list"
+      let sourcesPath' = view (to _root . rootPath) root ++ "/etc/apt/sources.list"
       -- Rewrite the sources.list with the local pool added.
           sources = prettyShow $ osFullDistro os
       replaceFile sourcesPath' sources
-      _ <- useEnv (view rootPath root) return $ mapM addAptRepository extra
+      _ <- useEnv (view (to _root . rootPath) root) return $ mapM addAptRepository extra
       return os
     where
       codefn (Right (ExitSuccess, _, _)) = return ()
       codefn e = error ("Could not create build environment:\n " ++ cmd ++ " -> " ++ show e)
 
-      woot = view rootPath root
+      woot = view (to _root . rootPath) root
       wootNew = woot ++ ".new"
       baseDist = either id (relName . fst) . sourceDist . head . map sliceSource . slices . sliceList $ distro
       mirror = uriToString' . sourceUri . head . map sliceSource . slices . sliceList $ distro
