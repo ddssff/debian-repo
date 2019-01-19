@@ -55,14 +55,18 @@ readProcessVE p input = do
   ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++  either show (\ (code, _, _) -> show code) result)
   return result
 
-readProcessV :: forall a c m. (Eq c, IsString a, ProcessResult a (ExitCode, a, a), ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
+readProcessV ::
+    (Eq c, IsString a, ProcessResult a (ExitCode, a', a'), ListLikeProcessIO a c, MonadIO m)
+    => CreateProcess
+    -> a
+    -> m (ExitCode, a', a')
 readProcessV p input = do
   ePutStrLn (" -> " ++ showCreateProcessForUser p)
   result@(code, _, _) <- liftIO $ readCreateProcessLazy p input >>= putIndented >>= return . collectOutput
   ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++ show code)
   return result
 
-readProcessQE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+readProcessQE :: (ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
 readProcessQE p input = do
     -- liftIO $ try $ readProcessV p input
   ePutStrLn (" -> " ++ showCreateProcessForUser p)
@@ -94,7 +98,7 @@ data BOL = BOL | MOL deriving (Eq)
 -- stderr.  The state monad keeps track of whether we are at the
 -- beginning of a line - when we are and more text comes we insert one
 -- of the prefixes.
-indentChunk :: forall a c m. (Monad m, Functor m, ListLikeProcessIO a c, Eq c) => c -> a -> a -> Chunk a -> StateT BOL m [Chunk a]
+indentChunk :: forall a c m. (Monad m, ListLikeProcessIO a c, Eq c) => c -> a -> a -> Chunk a -> StateT BOL m [Chunk a]
 indentChunk nl outp errp chunk =
     case chunk of
       Stdout x -> doText Stdout outp x

@@ -3,7 +3,7 @@
 module Debian.Repo.OSImage
     (
     -- * OSImage type
-      OSKey(..), OSImage(..)
+      OSImage(..)
     , osRoot, osBaseDistro, osArch, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache
     , createOSImage
     , cloneOSImage
@@ -39,9 +39,10 @@ import Debian.Arch (Arch)
 import Debian.Pretty (prettyShow)
 import Debian.Relation (BinPkgName(..), ParseRelations(parseRelations), Relations)
 import Debian.Release (parseReleaseName, parseSection', ReleaseName(relName))
-import Debian.Repo.EnvPath (EnvPath(..), EnvRoot(..), rootPath, outsidePath)
+import Debian.Repo.EnvPath (EnvPath(..), rootPath, outsidePath)
 import Debian.Repo.IO (buildArchOfRoot)
 import Debian.Repo.LocalRepository (copyLocalRepo, LocalRepository)
+import Debian.Repo.OSKey (OSKey(..))
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
 import Debian.Repo.Prelude (isSublistOf, replaceFile, sameInode)
 import Debian.Repo.Prelude.Process (readProcessVE)
@@ -67,8 +68,6 @@ instance Ord FileStatus where
 
 instance Eq FileStatus where
     a == b = compare a b == EQ
-
-newtype OSKey = OSKey {_root :: EnvRoot} deriving (Eq, Ord, Show)
 
 -- |This type represents an OS image located at osRoot built from a
 -- particular osBaseDistro using a particular osArch.  If an

@@ -1,8 +1,7 @@
 {-# LANGUAGE ConstraintKinds, CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, PackageImports, ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.MonadOS
-    ( HasOSKey(..)
-    , MonadOS, getOS, putOS, modifyOS
+    ( MonadOS, getOS, putOS, modifyOS
     , evalMonadOS, evalMonadOS'
     , updateLists
     , aptGetInstall
@@ -17,23 +16,23 @@ import Control.Applicative (Applicative, pure, (<$>))
 #endif
 import Control.DeepSeq (force)
 import Control.Exception ({-evaluate,-} SomeException)
-import Control.Lens (_1, _2, _3, at, Getter, set, to, use, view)
-import Control.Monad.Catch (mask_, MonadMask)
+import Control.Lens (at, set, to, use, view)
+import Control.Monad.Catch (mask_)
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
-import Control.Monad.State (MonadState(get), StateT, evalStateT, get)
-import Control.Monad.Trans (liftIO, MonadIO, lift)
+import Control.Monad.Trans (liftIO, MonadIO)
 import Control.Monad.Trans.Except () -- instances
 import Data.ByteString.Lazy as L (ByteString, empty)
 import Data.Traversable
 import Debian.Pretty (ppShow)
 import Debian.Relation (PkgName, Relations)
-import Debian.Repo.EnvPath (EnvPath(..), envPath, envRoot, EnvRoot(..), rootPath)
+import Debian.Repo.EnvPath (EnvPath(..), rootPath)
 import Debian.Repo.LocalRepository (copyLocalRepo)
 import Debian.Repo.MonadRepos (MonadRepos, osImageMap, putOSImage, reposState, syncOS)
-import Debian.Repo.OSImage as OS (OSImage(..), OSKey(..), osRoot, osLocalMaster, osLocalCopy, osSourcePackageCache, osBinaryPackageCache)
+import Debian.Repo.OSImage as OS (OSImage(..), osRoot, osLocalMaster, osLocalCopy)
+import Debian.Repo.OSKey (OSKey(..), HasOSKey(..))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
 import Debian.Repo.Prelude.Process (readProcessVE, readProcessV, readProcessQE)
-import Debian.Repo.Top (HasTop(..), MonadTop, TopDir)
+import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
 import Prelude hiding (mapM, sequence)
 import System.Exit (ExitCode(ExitSuccess))
@@ -45,12 +44,7 @@ import System.Unix.Mount (withProcAndSys, WithProcAndSys)
 -- that then we are modifying a copy of the OSImage in MonadRepos, we
 -- want to go into MonadRepos and modify the map element there.  So
 -- instead put an EnvRoot to look up the OSImage.
-class HasOSKey r where osKey :: Getter r OSKey
-instance HasOSKey OSKey where osKey = id
 type MonadOS r s m = (HasOSKey r, MonadReader r m, MonadRepos s m)
-
-instance HasOSKey (a, OSKey) where osKey = _2
-instance HasOSKey (a, b, OSKey) where osKey = _3
 
 getOS :: MonadOS r s m => m OSImage
 getOS = view osKey >>= \key -> maybe (error "getOS") id <$> use (reposState . osImageMap . at key)
@@ -60,23 +54,6 @@ putOS = putOSImage
 
 modifyOS :: MonadOS r s m => (OSImage -> OSImage) -> m ()
 modifyOS f = getOS >>= putOS . f
-
-#if 0
-class (MonadRepos s m, Functor m) => MonadOS s m where
-    getOS :: m OSImage
-    putOS :: OSImage -> m ()
-    modifyOS :: (OSImage -> OSImage) -> m ()
-
-instance MonadOS s (StateT EnvRoot m) where
-    getOS = get >>= \ root -> maybe (error "getOS") id <$> (lift $ osFromRoot root)
-    putOS = lift . putOSImage
-    modifyOS f = getOS >>= putOS . f
-
-instance MonadOS s m => MonadOS s (WithProcAndSys m) where
-    getOS = lift getOS
-    putOS = lift . putOS
-    modifyOS f = lift $ getOS >>= putOS . f
-#endif
 
 -- | Perform a task in the changeroot of an OS.
 useOS :: MonadOS r s m => IO a -> m a

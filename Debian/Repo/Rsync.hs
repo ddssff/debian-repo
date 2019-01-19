@@ -96,7 +96,7 @@ rsyncErrorInfo 35 = (TimeoutWaitingForDaemonConnection, "rsync: Timeout waiting 
 rsyncErrorInfo n = (RsyncUnexpected n, "Unexpected rsync error: " ++ show n)
 
 -- | For backwards compatibility
-rsyncOld :: forall m. (Functor m, MonadIO m) =>
+rsyncOld :: forall m. MonadIO m =>
             [String] -- Additional rsync arguments
          -> FilePath -- Original directory
          -> FilePath -- Copy (desitination) directory
