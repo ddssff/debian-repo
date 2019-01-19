@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -Wall #-}
 module Debian.Repo.Prelude.Process
     ( timeTask
+    , run
     , readProcessVE
     , readProcessV
     , readProcessQE
@@ -19,14 +20,16 @@ module Debian.Repo.Prelude.Process
 import Control.Applicative ((<$>), (<*>))
 #endif
 import Control.Arrow (second)
-import Control.Exception (evaluate, SomeException, try)
+import Control.Exception (evaluate, SomeException)
+import Control.Monad.Catch (MonadCatch, try)
 import Control.Monad.State (evalState, StateT, get, put)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Data.ListLike (break, head, hPutStr, null, singleton, tail)
-import Data.Monoid ((<>))
+--import Data.Monoid ((<>))
 #if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (Monoid)
 #endif
+import Data.Semigroup (Semigroup((<>)))
 import Data.String (IsString(fromString))
 import Data.Time (diffUTCTime, getCurrentTime, NominalDiffTime)
 import Debian.Repo.Prelude.Verbosity (ePutStrLn)
@@ -37,7 +40,7 @@ import System.Exit (ExitCode(..))
 import System.IO (stdout, stderr)
 import System.IO.Error (mkIOError)
 import System.Process (CreateProcess(cwd, env))
-import System.Process.ListLike (Chunk(..), collectOutput, ListLikeProcessIO, ProcessResult, readCreateProcessLazy, showCreateProcessForUser)
+import System.Process.ListLike (Chunk(..), collectOutput, ListLikeProcessIO, {-ProcessResult,-} readCreateProcessLazy, showCreateProcessForUser)
 
 -- | Run a task and return the elapsed time along with its result.
 timeTask :: IO a -> IO (a, NominalDiffTime)
@@ -47,41 +50,68 @@ timeTask x =
        finish <- getCurrentTime
        return (result, diffUTCTime finish start)
 
-readProcessVE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
-readProcessVE p input = do
-    -- liftIO $ try $ readProcessV p input
-  ePutStrLn (" -> " ++ showCreateProcessForUser p)
-  result <- liftIO $ try $ readCreateProcessLazy p input >>= putIndented >>= return . collectOutput
-  ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++  either show (\ (code, _, _) -> show code) result)
-  return result
+data RunOptions a m
+    = StartMessage (String -> CreateProcess -> m ())
+    | OverOutput ([Chunk a] -> m [Chunk a]) -- e.g. putIndented
+    | FinishMessage (String -> CreateProcess -> (ExitCode, a, a) -> m ())
+    -- | Verbosity Int
+    | RunOptions [RunOptions a m]
 
-readProcessV ::
-    (Eq c, IsString a, ProcessResult a (ExitCode, a', a'), ListLikeProcessIO a c, MonadIO m)
-    => CreateProcess
-    -> a
-    -> m (ExitCode, a', a')
-readProcessV p input = do
-  ePutStrLn (" -> " ++ showCreateProcessForUser p)
-  result@(code, _, _) <- liftIO $ readCreateProcessLazy p input >>= putIndented >>= return . collectOutput
-  ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++ show code)
-  return result
+instance Semigroup (RunOptions a m) where
+    RunOptions a <> RunOptions b = RunOptions (a <> b)
+    RunOptions a <> b = RunOptions (a <> [b])
+    a <> RunOptions b = RunOptions ([a] <> b)
+    a <> b = RunOptions [a, b]
 
-readProcessQE :: (ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
-readProcessQE p input = do
-    -- liftIO $ try $ readProcessV p input
-  ePutStrLn (" -> " ++ showCreateProcessForUser p)
-  result <- liftIO $ try $ readCreateProcessLazy p input >>= return . collectOutput
-  ePutStrLn (" <- " ++ showCreateProcessForUser p ++ " -> " ++  either show (\ (code, _, _) -> show code) result)
-  return result
+showCommand :: MonadIO m => String -> CreateProcess -> m ()
+showCommand prefix p = ePutStrLn (prefix ++ showCreateProcessForUser p)
 
-putIndented :: forall a c. (Eq c, ListLikeProcessIO a c, IsString a) => [Chunk a] -> IO [Chunk a]
+showCommandAndResult :: MonadIO m => [Char] -> CreateProcess -> (ExitCode, a, a) -> m ()
+showCommandAndResult prefix p (code, _, _) =
+    ePutStrLn (prefix ++ showCreateProcessForUser p ++ " -> " ++ show code)
+
+putIndented :: forall a c m. (Eq c, ListLikeProcessIO a c, IsString a, MonadIO m) => [Chunk a] -> m [Chunk a]
 putIndented chunks =
-    mapM_ echo (indentChunks "     1> " "     2> " chunks) >> return chunks
+    liftIO $ mapM_ echo (indentChunks "     1> " "     2> " chunks) >> return chunks
     where
       echo :: Chunk a -> IO (Chunk a)
       echo c@(Stdout x) = hPutStr stdout x >> return c
       echo c@(Stderr x) = hPutStr stderr x >> return c
       echo c = return c
+
+run :: forall a c m. ({-Eq c, IsString a,-} ListLikeProcessIO a c, MonadIO m {-, MonadCatch m-})
+       => RunOptions a m
+       -> CreateProcess
+       -> a
+       -> m (ExitCode, a, a)
+run opts p input = do
+  start " -> " p
+  (result :: (ExitCode, a, a)) <- liftIO (readCreateProcessLazy p input) >>= overOutput >>= return . collectOutput
+  finish " <- " p result
+  return result
+    where
+      -- We need the options as a Foldable type
+      opts' :: [RunOptions a m]
+      opts' = case opts of RunOptions xs -> xs; x -> [x]
+      start :: String -> CreateProcess -> m ()
+      start = foldr (\o f -> case o of (StartMessage f') -> f'; _ -> f) (\_ _ -> pure ()) opts'
+      finish :: String -> CreateProcess -> (ExitCode, a, a) -> m ()
+      finish = foldr (\o f -> case o of (FinishMessage f') -> f'; _ -> f) (\_ _ _ -> pure ()) opts'
+      overOutput :: [Chunk a] -> m [Chunk a]
+      overOutput = foldr (\o f -> case o of (OverOutput f') -> f'; _ -> f) return opts'
+
+readProcessVE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m, MonadCatch m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+readProcessVE p input = try $ readProcessV p input
+
+
+readProcessV :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
+readProcessV p input = run (StartMessage showCommand <> OverOutput putIndented <> FinishMessage showCommandAndResult) p input
+
+readProcessQE :: (ListLikeProcessIO a c, MonadIO m, MonadCatch m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+readProcessQE p input = try $ readProcessQ p input
+
+readProcessQ :: (ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
+readProcessQ p input = run (StartMessage showCommand <> FinishMessage showCommandAndResult) p input
 
 -- | Pure function to indent the text of a chunk list.
 indentChunks :: forall a c. (ListLikeProcessIO a c, Eq c, IsString a) => String -> String -> [Chunk a] -> [Chunk a]
@@ -124,24 +154,6 @@ indentChunk nl outp errp chunk =
         tl <- doText con pre (tail x)
         return $ (if bol == BOL then [con pre] else []) <> [con (singleton nl)] <> tl
 
-{-
-readProcessV p input = liftIO $ do
-  v <- verbosity
-  case v of
-    n | n <= 0 -> readCreateProcessWithExitCode p input >>= putMapped (insertResult . insertStart p . filter (not . isOutput))
-    1 -> readCreateProcess p input >>= putMapped (insertResult . insertStart p . dotifyChunks 100)
-    _ -> readCreateProcess p input >>= putIndentedShowCommand p " 1> " " 2> "
-    where
-      putMapped :: (OutputChunks a -> OutputChunks a) -> OutputChunks a -> IO (OutputChunks a)
-      putMapped f ocs = putMappedChunks (\ xs -> unOutputChunks $ f $ OutputChunks xs) (unOutputChunks ocs)
-      isOutput (Stdout _) = True
-      isOutput (Stderr _) = True
-      isOutput _ = False
--}
-
--- readProcFailing :: (ListLikeLazyIO a c, IsString a, Eq c, MonadIO m) => CreateProcess -> a -> m [Chunk a]
--- readProcFailing p input = readProcLazy p input >>= liftIO . throwProcessFailure p
-
 -- | Turn process exit codes into exceptions.
 {-
 throwProcessResult' :: (ExitCode -> Maybe IOError) -> CreateProcess -> [Chunk a] -> IO [Chunk a]
@@ -174,16 +186,6 @@ processException p code =
 -- with what is in the current environment.
 insertProcessEnv :: [(String, String)] -> CreateProcess -> IO CreateProcess
 insertProcessEnv pairs = modifyProcessEnv (map (second Just) pairs)
-{-
-insertEnv pairs p = do
-    pairs' <- maybe (getEnvironment >>= return . (++ pairs)) return (env p)
-    return p {env = Just pairs'}
-
-modEnv :: [(String, Maybe String)] -> [(String, String)] -> [(String, String)]
-modEnv [] env0 = env0
-modEnv pairs env0 = foldl modEnv1 env0 pairs
--- foldM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a
--}
 
 modEnv1 :: [(String, String)] -> (String, Maybe String) -> [(String, String)]
 modEnv1 env0 (name, mvalue) = maybe [] (\ v -> [(name, v)]) mvalue ++ filter ((/= name) . fst) env0
