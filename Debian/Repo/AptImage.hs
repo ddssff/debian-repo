@@ -20,11 +20,10 @@ import Data.Typeable (Typeable)
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import Debian.Pretty (ppShow)
 import Debian.Relation (PkgName, SrcPkgName(unSrcPkgName))
-import Debian.Repo.AptKey (MonadApt)
+import Debian.Repo.AptKey (MonadApt, runV, runQE)
 import Debian.Repo.EnvPath (rootPath)
 import Debian.Repo.MonadApt (aptImageRoot, aptImageSources)
 import Debian.Repo.MonadRepos (getApt, MonadRepos)
-import Debian.Repo.Prelude.Process (readProcessV, readProcessQE)
 import Debian.Repo.Slice (NamedSliceList(sliceListName))
 import Debian.Repo.Top (distDir, MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
@@ -74,7 +73,7 @@ aptGetSource :: (MonadRepos s m, MonadApt r m, PkgName n) => FilePath -> [(n, Ma
 aptGetSource dir packages =
     do args <- aptOpts
        let p = (proc "apt-get" (args ++ ["source"] ++ map formatPackage packages)) {cwd = Just dir}
-       liftIO $ createDirectoryIfMissing True dir >> readProcessV p B.empty >> return ()
+       liftIO (createDirectoryIfMissing True dir) >> runV p B.empty >> return ()
     where
       formatPackage (name, Nothing) = ppShow name
       formatPackage (name, Just version) = ppShow name ++ "=" ++ show (prettyDebianVersion version)
@@ -83,7 +82,7 @@ aptGetUpdate :: (MonadRepos s m, MonadApt r m) => m ()
 aptGetUpdate =
     do args <- aptOpts
        let p = (proc "apt-get" (args ++ ["update"]))
-       _ <- liftIO $ readProcessQE p B.empty
+       _ <- runQE p B.empty
        return ()
 
 aptOpts :: (MonadRepos s m, MonadApt r m) => m [String]

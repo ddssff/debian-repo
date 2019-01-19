@@ -45,7 +45,7 @@ import Debian.Repo.LocalRepository (copyLocalRepo, LocalRepository)
 import Debian.Repo.OSKey (OSKey(..))
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
 import Debian.Repo.Prelude (isSublistOf, replaceFile, sameInode)
-import Debian.Repo.Prelude.Process (readProcessVE)
+import Debian.Repo.Prelude.Process (runVE)
 import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn)
 import Debian.Repo.Repo (repoKey, repoURI)
 import Debian.Repo.Rsync (rsyncOld)
@@ -198,7 +198,7 @@ localeGen :: OSImage -> String -> IO ()
 localeGen os locale =
     do let root = view osRoot os
        qPutStr ("Generating locale " ++  locale ++ " (in " ++ stripDist (view (to _root . rootPath) root) ++ ")...")
-       chunks <- useEnv (view (to _root . rootPath) root) return (readProcessVE (shell cmd) B.empty)
+       chunks <- useEnv (view (to _root . rootPath) root) return (runVE (shell cmd) B.empty)
        case chunks of
          (Right (ExitSuccess, _, _)) -> qPutStrLn "done"
          e -> error $ "Failed to generate locale " ++ view (to _root . rootPath) root ++ ": " ++ cmd ++ " -> " ++ show e
@@ -366,7 +366,7 @@ pbuilder top root distro extra repo =
        ePutStrLn ("# " ++ cmd top)
        let codefn (Right (ExitSuccess, _, _)) = return ()
            codefn failure = error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show failure)
-       readProcessVE (shell (cmd top)) B.empty >>= codefn
+       runVE (shell (cmd top)) B.empty >>= codefn
        ePutStrLn "done."
        os <- createOSImage root distro extra repo -- arch?  copy?
        let sourcesPath' = view (to _root . rootPath) root ++ "/etc/apt/sources.list"
@@ -406,7 +406,7 @@ debootstrap root distro extra repo include exclude components =
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
       -- then add them back in.
-      readProcessVE (shell cmd) B.empty >>= codefn
+      runVE (shell cmd) B.empty >>= codefn
       ePutStrLn "done."
       os <- createOSImage root distro extra repo -- arch?  copy?
       let sourcesPath' = view (to _root . rootPath) root ++ "/etc/apt/sources.list"

@@ -35,7 +35,7 @@ import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath, envPath, outsidePath)
 import Debian.Repo.Fingerprint (readUpstreamFingerprint)
 import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile)
-import Debian.Repo.Prelude.Process (readProcessVE)
+import Debian.Repo.Prelude.Process (runVE)
 import Debian.Repo.Prelude.SSH (sshVerify)
 import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (parseReleaseFile, Release)
@@ -336,7 +336,7 @@ dupload uri dir changesFile  =
         replaceFile (dir ++ "/dupload.conf") config
         let cmd = (proc "dupload" ["--to", "default", "-c", (dir ++ "/dupload.conf"), changesFile]) {cwd = Just dir}
         qPutStrLn ("Uploading " ++ show changesFile)
-        chunks <- readProcessVE cmd L.empty
+        chunks <- runVE cmd L.empty
         case chunks of
           (Right output@(ExitSuccess, _, _)) ->
               return $ Success output

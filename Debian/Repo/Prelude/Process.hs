@@ -1,11 +1,19 @@
 {-# LANGUAGE CPP, FlexibleContexts, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
 module Debian.Repo.Prelude.Process
-    ( timeTask
+    ( CreateProcess
+    , timeTask
     , run
-    , readProcessVE
-    , readProcessV
-    , readProcessQE
+    , RunOptions(..)
+    -- * builders for RunOptions
+    , showCommand
+    , showCommandAndResult
+    , putIndented
+    -- * Simple process runners
+    , runVE
+    , runV
+    , runQE
+    , runQ
     -- , throwProcessResult'
     -- , throwProcessResult''
     -- , throwProcessFailure
@@ -43,11 +51,11 @@ import System.Process (CreateProcess(cwd, env))
 import System.Process.ListLike (Chunk(..), collectOutput, ListLikeProcessIO, {-ProcessResult,-} readCreateProcessLazy, showCreateProcessForUser)
 
 -- | Run a task and return the elapsed time along with its result.
-timeTask :: IO a -> IO (a, NominalDiffTime)
+timeTask :: MonadIO m => m a -> m (a, NominalDiffTime)
 timeTask x =
-    do start <- getCurrentTime
-       result <- x >>= evaluate
-       finish <- getCurrentTime
+    do start <- liftIO $ getCurrentTime
+       result <- x >>= liftIO . evaluate
+       finish <- liftIO $ getCurrentTime
        return (result, diffUTCTime finish start)
 
 data RunOptions a m
@@ -100,18 +108,18 @@ run opts p input = do
       overOutput :: [Chunk a] -> m [Chunk a]
       overOutput = foldr (\o f -> case o of (OverOutput f') -> f'; _ -> f) return opts'
 
-readProcessVE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m, MonadCatch m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
-readProcessVE p input = try $ readProcessV p input
+runVE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m, MonadCatch m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+runVE p input = try $ runV p input
 
 
-readProcessV :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
-readProcessV p input = run (StartMessage showCommand <> OverOutput putIndented <> FinishMessage showCommandAndResult) p input
+runV :: (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
+runV p input = run (StartMessage showCommand <> OverOutput putIndented <> FinishMessage showCommandAndResult) p input
 
-readProcessQE :: (ListLikeProcessIO a c, MonadIO m, MonadCatch m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
-readProcessQE p input = try $ readProcessQ p input
+runQE :: (ListLikeProcessIO a c, MonadIO m, MonadCatch m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+runQE p input = try $ runQ p input
 
-readProcessQ :: (ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
-readProcessQ p input = run (StartMessage showCommand <> FinishMessage showCommandAndResult) p input
+runQ :: (ListLikeProcessIO a c, MonadIO m) => CreateProcess -> a -> m (ExitCode, a, a)
+runQ p input = run (StartMessage showCommand <> FinishMessage showCommandAndResult) p input
 
 -- | Pure function to indent the text of a chunk list.
 indentChunks :: forall a c. (ListLikeProcessIO a c, Eq c, IsString a) => String -> String -> [Chunk a] -> [Chunk a]
@@ -190,8 +198,8 @@ insertProcessEnv pairs = modifyProcessEnv (map (second Just) pairs)
 modEnv1 :: [(String, String)] -> (String, Maybe String) -> [(String, String)]
 modEnv1 env0 (name, mvalue) = maybe [] (\ v -> [(name, v)]) mvalue ++ filter ((/= name) . fst) env0
 
-modifyProcessEnv :: [(String, Maybe String)] -> CreateProcess -> IO CreateProcess
+modifyProcessEnv :: MonadIO m => [(String, Maybe String)] -> CreateProcess -> m CreateProcess
 modifyProcessEnv pairs p = do
-  env0 <- maybe getEnvironment return (env p)
+  env0 <- liftIO $ maybe getEnvironment return (env p)
   let env' = foldl modEnv1 env0 pairs
   return $ p {env = Just env'}

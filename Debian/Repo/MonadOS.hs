@@ -9,6 +9,7 @@ module Debian.Repo.MonadOS
     , osFlushPackageCache
     , buildEssential
     , Debian.Repo.MonadOS.syncOS
+    , runV, runVE, runQ, runQE
     ) where
 
 #if !MIN_VERSION_base(4,8,0)
@@ -17,28 +18,32 @@ import Control.Applicative (Applicative, pure, (<$>))
 import Control.DeepSeq (force)
 import Control.Exception ({-evaluate,-} SomeException)
 import Control.Lens (at, set, to, use, view)
-import Control.Monad.Catch (mask_)
+import Control.Monad.Catch (mask_, MonadCatch, try)
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Control.Monad.Trans.Except () -- instances
 import Data.ByteString.Lazy as L (ByteString, empty)
+import Data.String (IsString)
 import Data.Traversable
 import Debian.Pretty (ppShow)
 import Debian.Relation (PkgName, Relations)
 import Debian.Repo.EnvPath (EnvPath(..), rootPath)
 import Debian.Repo.LocalRepository (copyLocalRepo)
 import Debian.Repo.MonadRepos (MonadRepos, osImageMap, putOSImage, reposState, syncOS)
+import Debian.Repo.Mount (withProcAndSys)
 import Debian.Repo.OSImage as OS (OSImage(..), osRoot, osLocalMaster, osLocalCopy)
 import Debian.Repo.OSKey (OSKey(..), HasOSKey(..))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
-import Debian.Repo.Prelude.Process (readProcessVE, readProcessV, readProcessQE)
+import Debian.Repo.Prelude.Process (CreateProcess, run, RunOptions(..), showCommand, showCommandAndResult, putIndented)
+import Debian.Repo.Prelude.Verbosity (ePutStrLn)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
 import Prelude hiding (mapM, sequence)
 import System.Exit (ExitCode(ExitSuccess))
 import System.Process (proc)
+import System.Process.ListLike (ListLikeProcessIO, showCreateProcessForUser)
 import System.Unix.Chroot (useEnv)
-import System.Unix.Mount (withProcAndSys, WithProcAndSys)
+-- import System.Unix.Mount (withProcAndSys, WithProcAndSys)
 
 -- | The problem with having an OSImage in the state of MonadOS is
 -- that then we are modifying a copy of the OSImage in MonadRepos, we
@@ -56,10 +61,10 @@ modifyOS :: MonadOS r s m => (OSImage -> OSImage) -> m ()
 modifyOS f = getOS >>= putOS . f
 
 -- | Perform a task in the changeroot of an OS.
-useOS :: MonadOS r s m => IO a -> m a
+useOS :: MonadOS r s m => m a -> m a
 useOS action =
   do root <- view (osRoot . to _root . rootPath) <$> getOS
-     withProcAndSys root $ liftIO $ useEnv root (return {-. force-}) action
+     withProcAndSys root $ useEnv root (return {-. force-}) action
 
 -- | Run MonadOS and update the osImageMap with the modified value
 evalMonadOS :: MonadReader r m => ReaderT (r, OSKey) m a -> OSKey -> m a
@@ -80,22 +85,39 @@ updateLists = do
       f (Right (ExitSuccess, _, _)) = return True
       f _ = return False
       update :: m (Either SomeException (ExitCode, ByteString, ByteString))
-      update = useOS (readProcessQE (proc "apt-get" ["update"]) L.empty)
+      update = try $ useOS (runQ (proc "apt-get" ["update"]) L.empty)
       aptinstall :: m (Either SomeException (ExitCode, ByteString, ByteString))
-      aptinstall = useOS (readProcessVE (proc "apt-get" ["-f", "--yes", "install"]) L.empty)
+      aptinstall = try $ useOS (runV (proc "apt-get" ["-f", "--yes", "install"]) L.empty)
       configure :: m (Either SomeException (ExitCode, ByteString, ByteString))
-      configure = useOS (readProcessVE (proc "dpkg" ["--configure", "-a"]) L.empty)
+      configure = try $ useOS (runV (proc "dpkg" ["--configure", "-a"]) L.empty)
       upgrade :: m (Either SomeException (ExitCode, ByteString, ByteString))
-      upgrade = useOS (readProcessQE (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
+      upgrade = try $ useOS (runQ (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
+
+runV :: (Eq c, IsString a, ListLikeProcessIO a c, MonadOS r s m) => CreateProcess -> a -> m (ExitCode, a, a)
+runV p input =
+    run (StartMessage showCommand' <> OverOutput putIndented <> FinishMessage showCommandAndResult) p input
+
+runVE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadOS r s m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+runVE p input = try $ runV p input
+
+runQ :: (Eq c, IsString a, ListLikeProcessIO a c, MonadOS r s m) => CreateProcess -> a -> m (ExitCode, a, a)
+runQ p input =
+    run (StartMessage showCommand' <> FinishMessage showCommandAndResult) p input
+
+runQE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadOS r s m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+runQE p input = try $ runQ p input
+
+showCommand' :: MonadOS r s m => String -> CreateProcess -> m ()
+showCommand' prefix p = view osKey >>= \key -> ePutStrLn (prefix ++ showCreateProcessForUser p ++ " (in " ++ show key ++ ")")
 
 -- | Run an apt-get command in a particular directory with a
 -- particular list of packages.  Note that apt-get source works for
 -- binary or source package names.
-aptGetInstall :: (MonadOS r s m, PkgName n) => [(n, Maybe DebianVersion)] -> m ()
+aptGetInstall :: (MonadOS r s m, PkgName n, MonadCatch m) => [(n, Maybe DebianVersion)] -> m ()
 aptGetInstall packages =
     do root <- view (osRoot . to _root . rootPath) <$> getOS
-       withProcAndSys root $ liftIO $ useEnv root (return . force) $ do
-         _ <- readProcessV p L.empty
+       withProcAndSys root $ useEnv root (return . force) $ do
+         _ <- runV p L.empty
          return ()
     where
       p = proc "apt-get" args'

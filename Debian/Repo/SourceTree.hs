@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, PackageImports, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, PackageImports, ScopedTypeVariables, UndecidableInstances #-}
 module Debian.Repo.SourceTree
     ( addLogEntry
     , buildDebs
@@ -28,6 +28,7 @@ import Control.Applicative ((<$>), (<*>), pure)
 import Control.Exception (SomeException, try, throw)
 import Control.Lens (to, view)
 import Control.Monad (foldM)
+import Control.Monad.Catch (MonadMask)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.ByteString as B
 import Data.List (intercalate, nubBy, sortBy)
@@ -38,11 +39,12 @@ import Debian.Pretty (ppShow)
 import Debian.Relation (BinPkgName(..))
 import Debian.Repo.Changes (findChangesFiles)
 import Debian.Repo.EnvPath (rootPath)
-import Debian.Repo.MonadOS (MonadOS, getOS)
+import Debian.Repo.MonadOS (MonadOS, getOS, runVE)
 import Debian.Repo.OSImage (osRoot)
 import Debian.Repo.OSKey (OSKey(..))
 import Debian.Repo.Prelude (getSubDirectories, replaceFile, dropPrefix)
-import Debian.Repo.Prelude.Process (readProcessVE, timeTask, modifyProcessEnv)
+import Debian.Repo.Prelude.Process (timeTask, modifyProcessEnv)
+import qualified Debian.Repo.Prelude.Process as IO (runVE)
 import Debian.Repo.Prelude.Verbosity (noisier)
 import Debian.Repo.Rsync (rsyncOld)
 import qualified Debian.Version as V (version)
@@ -66,11 +68,11 @@ class HasDebDir t where
 class HasChangeLog t where
     entry :: t -> ChangeLogEntry
 
-class HasSourceTree t where
-    findSourceTree :: FilePath -> IO t
+class HasSourceTree t m where
+    findSourceTree :: FilePath -> m t
     -- ^ This just determines whether path is a directory and if so
     -- wraps SourceTree around it.
-    copySourceTree :: t -> FilePath -> IO t
+    copySourceTree :: t -> FilePath -> m t
 
 class HasBuildTree t where
     findBuildTree :: FilePath -> String -> IO t
@@ -129,17 +131,17 @@ buildDebs noClean setEnv buildTree decision =
       -- env0 <- liftIO getEnvironment
       -- Set LOGNAME so dpkg-buildpackage doesn't die when it fails to
       -- get the original user's login information
-      let run cmd =
-              liftIO $ do
-                cmd' <- modifyProcessEnv (("LOGNAME", Just "root") : setEnv) cmd
+      let run :: MonadOS r s m => CreateProcess -> m (Either SomeException (ExitCode, String, String), NominalDiffTime)
+          run cmd =
+             do cmd' <- modifyProcessEnv (("LOGNAME", Just "root") : setEnv) cmd
                 let cmd'' = cmd' {cwd = dropPrefix root path}
-                timeTask $ useEnv root return $ readProcessVE cmd'' ("" :: String)
-      _ <- liftIO $ run (proc "chmod" ["ugo+x", "debian/rules"])
+                timeTask $ useEnv root return $ runVE cmd'' ("" :: String)
+      _ <- run (proc "chmod" ["ugo+x", "debian/rules"])
       let buildCmd = proc "dpkg-buildpackage" (concat [["-sa"],
                                                        case decision of Arch _ -> ["-B"]; _ -> [],
                                                        if noSecretKey then ["-us", "-uc"] else [],
                                                        if noClean then ["-nc"] else []])
-      (result, elapsed) <- liftIO . noisier 4 $ run buildCmd
+      (result, elapsed) <- noisier 4 $ run buildCmd
       case result of
         (Right (ExitSuccess, _, _)) -> return elapsed
         result' -> fail $ "*** FAILURE: " ++ showCmd (cmdspec buildCmd) ++ " -> " ++ show result'
@@ -256,18 +258,18 @@ instance HasSubDir DebianBuildTree where
 instance HasTopDir SourceTree where
     topdir = dir'
 
-instance HasSourceTree SourceTree where
+instance HasSourceTree SourceTree IO where
     findSourceTree path =
-        doesDirectoryExist path >>= \ exists ->
+        liftIO (doesDirectoryExist path) >>= \ exists ->
         case exists of
           False -> fail $ "No such directory: " ++ path
           True -> return $ SourceTree path
     copySourceTree tree dest =
-        createDirectoryIfMissing True dest >>
+        liftIO (createDirectoryIfMissing True dest) >>
         rsyncOld [] (topdir tree) dest >>
         return (SourceTree dest)
 
-instance HasSourceTree DebianSourceTree where
+instance HasSourceTree DebianSourceTree IO where
     findSourceTree path0 =
       findSourceTree path0 >>= \ (tree :: SourceTree) ->
       parseDebianControlFromFile (path0 ++ "/debian/control") >>= either throw return >>= \ c ->
@@ -286,9 +288,9 @@ instance HasSourceTree DebianSourceTree where
                          <*> pure (control' tree)
                          <*> pure (entry' tree)
 
-instance HasSourceTree DebianBuildTree where
+instance (MonadIO m, MonadMask m) => HasSourceTree DebianBuildTree m where
     findSourceTree path =
-        do trees <- findDebianBuildTrees path
+        do trees <- liftIO $ findDebianBuildTrees path
            case nubBy eqNames trees of
              [_] -> return . head . sortBy cmpVers $ trees
              [] -> error $ "No source trees found in subdirectorys of " ++ path
@@ -299,14 +301,17 @@ instance HasSourceTree DebianBuildTree where
     copySourceTree build dest =
         copySource >>= copyTarball >>= return . moveBuild
         where
-          copySource = createDirectoryIfMissing True dest >> rsyncOld [] (topdir' build) dest
+          copySource :: m (Either SomeException ExitCode, String, String)
+          copySource = liftIO (createDirectoryIfMissing True dest) >> rsyncOld [] (topdir' build) dest
           -- copySource = DebianBuildTree <$> pure dest <*> pure (subdir' tree) <*> copySourceTree (debTree' tree) (dest </> subdir' tree)
+          copyTarball :: (Either SomeException ExitCode, String, String) -> m (Either SomeException (ExitCode, B.ByteString, B.ByteString))
           copyTarball (Right ExitSuccess, _, _) =
               do exists <- liftIO $ doesFileExist origPath
                  case exists of
                    False -> return (Right (ExitSuccess, B.empty, B.empty))
-                   True -> liftIO $ readProcessVE (proc "cp" ["-p", origPath, dest ++ "/"]) B.empty
+                   True -> IO.runVE (proc "cp" ["-p", origPath, dest ++ "/"]) B.empty
           copyTarball _result = error $ "Failed to copy source tree: " ++ topdir' build ++ " -> " ++ dest
+          moveBuild :: Either SomeException (ExitCode, B.ByteString, B.ByteString) -> DebianBuildTree
           moveBuild (Right (ExitSuccess, _, _)) = build {topdir' = dest, debTree' = moveSource (debTree' build)}
           moveBuild _result = error $ "Failed to copy Tarball: " ++ origPath ++ " -> " ++ dest ++ "/"
           moveSource source = source {tree' = SourceTree {dir' = dest </> subdir build}}
