@@ -13,7 +13,7 @@ module Debian.Repo.Release
 import Control.Applicative ((<$>), Applicative((<*>)))
 #endif
 import Control.Applicative.Error (Failing(Success, Failure))
-import Control.Exception (ErrorCall(ErrorCall), Exception(toException), SomeException, try)
+import Control.Exception (IOException, try)
 import Control.Monad.Trans (liftIO)
 import Data.List (intercalate)
 import Data.Maybe (catMaybes)
@@ -39,7 +39,7 @@ data File a = File { path :: Source, text :: Failing a }
 data Source = LocalPath FilePath | RemotePath URI
 
 readFile :: FilePath -> IO (File T.Text)
-readFile x = File <$> return (LocalPath x) <*> (try (T.readFile x) >>= return . either (\ (e :: SomeException) -> Failure [show e]) Success)
+readFile x = File <$> return (LocalPath x) <*> (try (T.readFile x) >>= return . either (\ (e :: IOException) -> Failure [show e]) Success)
 
 instance Show Source where
     show (LocalPath p) = p
@@ -137,7 +137,7 @@ getReleaseInfoRemote uri =
       getReleaseFile distName =
           do qPutStr "."
              release <- fileFromURI releaseURI
-             let control = either Left (either (Left . toException . ErrorCall . show) Right . T.parseControl (show releaseURI) . Deb.decode) release
+             let control = either Left (either (Left . userError . show) Right . T.parseControl (show releaseURI) . Deb.decode) release
              case control of
                Right (T.Control [info :: T.Paragraph' Text]) -> return $ File {path = RemotePath releaseURI, text = Success info}
                _ -> error ("Failed to get release info from dist " ++ show (relName distName) ++ ", uri " ++ show releaseURI)
