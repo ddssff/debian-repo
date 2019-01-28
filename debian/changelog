@@ -1,3 +1,9 @@
+haskell-debian-repo (5.77.3) unstable; urgency=medium
+
+  * Write repoCache file strictly.
+
+ -- David Fox <dsf@seereason.com>  Mon, 28 Jan 2019 06:11:15 -0800
+
 haskell-debian-repo (5.77.2) unstable; urgency=low
 
   * Put [trusted=yes] on local repo lines as well

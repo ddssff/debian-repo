@@ -36,6 +36,7 @@ module Debian.Repo.MonadRepos
 import Control.Applicative ((<$>))
 #endif
 import Control.Applicative.Error (maybeRead)
+import Control.DeepSeq (NFData(..))
 import Control.Exception (SomeException)
 import Control.Lens ((.=), at, Lens', makeLenses, use, view)
 import Control.Monad (unless)
@@ -235,8 +236,9 @@ saveRepoCache =
              live <- view repoMap <$> getRepos
              repoCache <- liftIO $ loadCache path
              let merged = Map.union live repoCache
-             liftIO (F.removeLink path `catch` (\e -> unless (isDoesNotExistError e) (ioError e)) >>
-                     writeFile path (show . Map.toList $ merged))
+             liftIO (do F.removeLink path `catch` (\e -> unless (isDoesNotExistError e) (ioError e))
+                        let s = show . Map.toList $ merged
+                        rnf s `seq` writeFile path s)
              return ()
           where
             -- isRemote uri = uriScheme uri /= "file:"
