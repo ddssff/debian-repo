@@ -12,19 +12,17 @@ module Debian.Releases
     , ubuntuReleases
     , ReleaseTree(..)
     , Distro(..)
-    , releaseName
-    , releaseString
+    , distroString
+    , releaseURI
     , baseRelease
     , parseReleaseTree
     , isPrivateRelease
     ) where
 
---import Control.Monad (msum)
---import Data.Char (toLower)
---import Data.Maybe (fromMaybe)
+import Control.Lens (over, Prism', prism, review)
 import Data.Set as Set (filter, fromList, Set)
--- The ReleaseName type from the debian library - just a newtyped string.
 import Debian.Release (ReleaseName(ReleaseName, relName))
+import Debian.URI (URI(..), uriPathLens)
 
 newtype Vendor = Vendor {_unVendor :: String} deriving (Eq, Ord, Show)
 
@@ -87,7 +85,16 @@ debianReleases = Set.filter ((==) debian . _vendorName) allReleases
 ubuntuReleases :: Set BaseRelease
 ubuntuReleases = Set.filter ((==) ubuntu . _vendorName) allReleases
 
-newtype Distro = Distro {_distroString :: String} deriving (Eq, Ord, Show)
+data Distro = Debian | Ubuntu deriving (Eq, Ord, Show, Bounded, Enum)
+
+distroString :: Prism' String Distro
+distroString = prism f g
+    where
+      f Debian = "debian"
+      f Ubuntu = "ubuntu"
+      g "debian" = Right Debian
+      g "ubuntu" = Right Ubuntu
+      g s = Left s
 
 -- | Interpret the meaning of the release name, e.g. xenial-seereason-private.
 data ReleaseTree
@@ -101,13 +108,13 @@ data ReleaseTree
     -- ^ A private release based on another release.
     deriving (Eq, Show)
 
-releaseName :: ReleaseTree -> ReleaseName
-releaseName = ReleaseName . releaseString
+--releaseName :: ReleaseTree -> ReleaseName
+--releaseName = ReleaseName . releaseURI
 
-releaseString :: ReleaseTree -> String
-releaseString (PrivateRelease r) = releaseString r ++ "-private"
-releaseString (ExtendedRelease r vendor) = releaseString r ++ "-" ++ _distroString vendor
-releaseString (Foundation name) = relName (_releaseName name)
+releaseURI :: ReleaseTree -> URI
+releaseURI (PrivateRelease r) = over uriPathLens (++ "-private") (releaseURI r)
+releaseURI (ExtendedRelease r vendor) = over uriPathLens (++ ("-" ++ review distroString vendor)) (releaseURI r)
+releaseURI (Foundation name) = URI "" Nothing (relName (_releaseName name)) "" ""
 
 -- baseReleaseString :: BaseRelease -> String
 -- baseReleaseString = _releaseName
@@ -159,7 +166,11 @@ parseReleaseTree (ReleaseName s0) =
                   (_, []) -> error $ "Unknown base release: " ++ show s
                   ([], _) -> error $ "Unknown base release: " ++ show s
                   (base, "private") -> PrivateRelease (parse (init base))
-                  (base, distro) -> ExtendedRelease (parse (init base)) (Distro distro)
+                  (base, "debian") -> ExtendedRelease (parse (init base)) Debian
+                  (base, "ubuntu") -> ExtendedRelease (parse (init base)) Ubuntu
+                  (base, distro) -> error $ "Expected one of " ++
+                                            show ([minBound..maxBound] :: [Distro]) ++ ": " ++
+                                            show distro
 
 spanEnd :: (a -> Bool) -> [a] -> ([a], [a])
 spanEnd p l = (\(a, b) -> (reverse b, reverse a)) $ span p (reverse l)
