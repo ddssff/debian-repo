@@ -1,5 +1,6 @@
 -- | A release is a named collection of package indexes, e.g. sid.
-{-# LANGUAGE CPP, FlexibleInstances, PackageImports, ScopedTypeVariables, StandaloneDeriving, TypeSynonymInstances #-}
+{-# LANGUAGE CPP, FlexibleInstances, PackageImports, ScopedTypeVariables, StandaloneDeriving,
+             TemplateHaskell, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.Release
     ( Release(Release, releaseName, releaseAliases, releaseArchitectures, releaseComponents)
@@ -14,6 +15,7 @@ import Control.Applicative ((<$>), Applicative((<*>)))
 #endif
 import Control.Applicative.Error (Failing(Success, Failure))
 import Control.Exception (IOException, try)
+import Control.Lens (over, view)
 import Control.Monad.Trans (liftIO)
 import Data.List (intercalate)
 import Data.Maybe (catMaybes)
@@ -25,11 +27,15 @@ import Debian.Arch (Arch(..), parseArch)
 import qualified Debian.Control.Text as T (Control'(Control), fieldValue, Paragraph, Paragraph', parseControl)
 import Debian.Repo.Prelude.Verbosity (qPutStr)
 import Debian.Release (parseReleaseName, parseSection', ReleaseName(..), releaseName', Section(..))
-import Debian.URI (dirFromURI, fileFromURI, URI(uriPath), uriToString')
+--import Debian.Releases (ReleaseURI, releaseURI)
+import Debian.Sources (VendorURI, vendorURI)
+import Debian.TH (here)
+import Debian.URI (dirFromURI, fileFromURI, URI(uriPath), uriPathLens, uriToString')
 import Debian.UTF8 as Deb (decode)
+import Language.Haskell.TH.Syntax (Loc)
 import Prelude hiding (readFile)
 import System.FilePath ((</>))
-import Text.PrettyPrint.HughesPJClass as PP (Pretty(pPrint))
+import Text.PrettyPrint.HughesPJClass as PP (Pretty(pPrint), prettyShow)
 import qualified Text.PrettyPrint.HughesPJClass as PP (text)
 import Text.Regex (mkRegex, splitRegex)
 
@@ -59,8 +65,10 @@ data Release = Release { releaseName :: ReleaseName
 
 -- | This is used to construct the top directory.  Initially I had
 -- "deb" and "deb-private", but now we are adding "deb8".
+#if 0
 class HasPoolDir a where
     poolDir :: a -> FilePath
+#endif
 
 instance Pretty Release where
     pPrint x = pPrint (releaseName x)
@@ -110,16 +118,18 @@ parseArchitectures archList =
     where
       re = mkRegex "[ ,]+"
 
--- |Get the list of releases of a remote repository.
-getReleaseInfoRemote :: URI -> IO [Release]
-getReleaseInfoRemote uri =
-    qPutStr ("(verifying " ++ uriToString' uri ++ ".") >>
-    dirFromURI distsURI >>=
-    either (error . show) (verify . filter (\x -> not (elem x [".", ".."]))) >>=
-    return . catMaybes >>= 
-    (\ result -> qPutStr ")\n" >> return result)
+-- |Get the list of releases of a remote repository given the url for
+-- one of its releases.
+getReleaseInfoRemote :: Loc -> VendorURI -> IO [Release]
+getReleaseInfoRemote loc uri = do
+  qPutStr ("(verifying " ++ uriToString' distsURI ++ ".")
+  dir <- dirFromURI loc distsURI
+  result <- catMaybes <$> either (error . show) (verify . filter (\x -> not (elem x [".", ".."]))) dir
+  qPutStr ")\n"
+  return result
     where
-      distsURI = uri {uriPath = uriPath uri </> "dists/"}
+      distsURI :: URI
+      distsURI = over uriPathLens (</> "dists") (view vendorURI uri)
       verify names =
           do let dists = map parseReleaseName names
              (releaseFiles :: [File (T.Paragraph' Text)]) <- mapM getReleaseFile dists
@@ -136,13 +146,15 @@ getReleaseInfoRemote uri =
       getReleaseFile :: ReleaseName -> IO (File (T.Paragraph' Text))
       getReleaseFile distName =
           do qPutStr "."
-             release <- fileFromURI releaseURI
-             let control = either Left (either (Left . userError . show) Right . T.parseControl (show releaseURI) . Deb.decode) release
+             release <- fileFromURI loc relURI
+             let control = either Left (either (Left . userError . show) Right . T.parseControl (show relURI) . Deb.decode) release
              case control of
-               Right (T.Control [info :: T.Paragraph' Text]) -> return $ File {path = RemotePath releaseURI, text = Success info}
-               _ -> error ("Failed to get release info from dist " ++ show (relName distName) ++ ", uri " ++ show releaseURI)
+               Right (T.Control [info :: T.Paragraph' Text]) -> return $ File {path = RemotePath relURI, text = Success info}
+               Left e -> error (prettyShow loc ++ " -> " ++ prettyShow $here ++ " - failed to get release info from dist " ++ show (relName distName) ++ ", uri " ++ show relURI ++ ", e=" ++ show e)
+               Right (T.Control []) -> error (prettyShow $here ++ " - empty Release file")
+               Right (T.Control _paras) -> error (prettyShow $here ++ " - multiple paragraphs in Release file")
           where
-            releaseURI = distURI {uriPath = uriPath distURI </> "Release"}
+            relURI = distURI {uriPath = uriPath distURI </> "Release"}
             distURI = distsURI {uriPath = uriPath distsURI </> releaseName' distName}
       uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
       uncurry3 f (a, b, c) =  f a b c

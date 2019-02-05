@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleInstances, PackageImports, StandaloneDeriving, TupleSections #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleInstances, PackageImports, StandaloneDeriving, TemplateHaskell, TupleSections #-}
 -- |Types that represent a "slice" of a repository, as defined by a
 -- list of DebSource.  This is called a slice because some sections
 -- may be omitted, and because different repositories may be combined
@@ -35,6 +35,7 @@ import Debian.Repo.Prelude (replaceFile)
 import Debian.Repo.Prelude.Verbosity (ePutStr, ePutStrLn)
 import Debian.Repo.Repo (RepoKey(Remote))
 import Debian.Sources (DebSource(..), SliceName, SourceType(..), parseSourcesList)
+import Debian.TH (here)
 import Debian.URI (toURI')
 import System.Directory (createDirectoryIfMissing, removeFile)
 import System.Exit (ExitCode)
@@ -187,5 +188,5 @@ expandPPASlices baseRepo ppaslices = mapM (expandPPASlice baseRepo) ppaslices >>
 
 expandPPASlice :: ReleaseName -> PPASlice -> IO [Slice]
 expandPPASlice baseRepo x@(PersonalPackageArchive {}) = do
-  debSources <- readFile ("/etc/apt/sources.list.d" </> ppaUser x ++ "-" ++ ppaName x ++ "-" ++ relName baseRepo ++ ".list") >>= return . parseSourcesList
+  debSources <- readFile ("/etc/apt/sources.list.d" </> ppaUser x ++ "-" ++ ppaName x ++ "-" ++ relName baseRepo ++ ".list") >>= return . parseSourcesList $here
   return $ map (\ ds -> Slice {sliceRepoKey = Remote (toURI' (sourceUri ds)), sliceSource = ds}) debSources

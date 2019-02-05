@@ -10,7 +10,7 @@ module Debian.Repo.State.Repository
     , foldRepository
     ) where
 
-import Control.Lens (view)
+import Control.Lens (review, view)
 import Control.Monad (filterM, when)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Data.Maybe (catMaybes)
@@ -21,8 +21,9 @@ import Debian.Repo.MonadRepos (MonadRepos, repoByURI, putRepo)
 import Debian.Repo.Release (getReleaseInfoRemote, parseArchitectures, Release(Release, releaseAliases, releaseArchitectures, releaseComponents, releaseName))
 import Debian.Repo.RemoteRepository (RemoteRepository, RemoteRepository(RemoteRepository))
 import Debian.Repo.Repo (RepoKey(..))
-import Debian.URI (fromURI', toURI', URI(uriPath), URI')
-import Network.URI (URI(..))
+import Debian.Sources (VendorURI, vendorURI)
+import Debian.TH (here)
+import Debian.URI (fromURI', toURI', uriPathLens, uriSchemeLens)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, getDirectoryContents)
 import System.FilePath ((</>))
 import System.IO.Unsafe (unsafeInterleaveIO)
@@ -95,18 +96,17 @@ computeLayout root =
         (False, True) -> return (Just Pool)
         _ -> return Nothing
 
-prepareRemoteRepository :: MonadRepos s m => URI -> m RemoteRepository
+prepareRemoteRepository :: MonadRepos s m => VendorURI -> m RemoteRepository
 prepareRemoteRepository uri =
-    let uri' = toURI' uri in
-    repoByURI uri' >>= maybe (loadRemoteRepository uri') return
+    repoByURI (toURI' uri) >>= maybe (loadRemoteRepository uri) return
 
 -- |To create a RemoteRepo we must query it to find out the
 -- names, sections, and supported architectures of its releases.
-loadRemoteRepository :: MonadRepos s m => URI' -> m RemoteRepository
+loadRemoteRepository :: MonadRepos s m => VendorURI -> m RemoteRepository
 loadRemoteRepository uri =
-    do releaseInfo <- liftIO . unsafeInterleaveIO . getReleaseInfoRemote . fromURI' $ uri
-       let repo = RemoteRepository uri releaseInfo
-       putRepo uri repo
+    do releaseInfo <- liftIO $ unsafeInterleaveIO $ getReleaseInfoRemote $here uri
+       let repo = RemoteRepository (toURI' uri) releaseInfo
+       putRepo (toURI' uri) repo
        return repo
 
 -- foldRepository :: forall m r a. MonadState ReposState m => (r -> m a) -> RepoKey -> m a
@@ -124,7 +124,7 @@ foldRepository f g key =
     case key of
       Local path -> readLocalRepository path Nothing >>= maybe (error $ "No repository at " ++ show path) f
       Remote uri' ->
-          let uri = fromURI' uri' in
-          case uriScheme uri of
-            "file:" -> prepareLocalRepository' (EnvPath (EnvRoot "") (uriPath uri)) Nothing >>= f
+          let uri = review vendorURI (fromURI' uri') in
+          case view (vendorURI . uriSchemeLens) uri of
+            "file:" -> prepareLocalRepository' (EnvPath (EnvRoot "") (view (vendorURI . uriPathLens) uri)) Nothing >>= f
             _ -> prepareRemoteRepository uri >>= g

@@ -18,7 +18,7 @@ import Control.Applicative (Applicative, pure, (<$>))
 import Control.DeepSeq (force)
 import Control.Exception ({-evaluate,-} SomeException)
 import Control.Lens (at, set, to, use, view)
-import Control.Monad.Catch (mask_, MonadCatch, try)
+import Control.Monad.Catch (mask_, try)
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Control.Monad.Trans.Except () -- instances
@@ -34,7 +34,7 @@ import Debian.Repo.Mount (withProcAndSys)
 import Debian.Repo.OSImage as OS (OSImage(..), osRoot, osLocalMaster, osLocalCopy)
 import Debian.Repo.OSKey (OSKey(..), HasOSKey(..))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
-import Debian.Repo.Prelude.Process (CreateProcess, run, RunOptions(..), showCommand, showCommandAndResult, putIndented)
+import Debian.Repo.Prelude.Process (CreateProcess, run, RunOptions(..), showCommandAndResult, putIndented)
 import Debian.Repo.Prelude.Verbosity (ePutStrLn)
 import Debian.Repo.Top (MonadTop)
 import Debian.Version (DebianVersion, prettyDebianVersion)
@@ -100,11 +100,11 @@ runV p input =
 runVE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadOS r s m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
 runVE p input = try $ runV p input
 
-runQ :: (Eq c, IsString a, ListLikeProcessIO a c, MonadOS r s m) => CreateProcess -> a -> m (ExitCode, a, a)
+runQ :: (ListLikeProcessIO a c, MonadOS r s m) => CreateProcess -> a -> m (ExitCode, a, a)
 runQ p input =
     run (StartMessage showCommand' <> FinishMessage showCommandAndResult) p input
 
-runQE :: (Eq c, IsString a, ListLikeProcessIO a c, MonadOS r s m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
+runQE :: (ListLikeProcessIO a c, MonadOS r s m) => CreateProcess -> a -> m (Either SomeException (ExitCode, a, a))
 runQE p input = try $ runQ p input
 
 showCommand' :: MonadOS r s m => String -> CreateProcess -> m ()
@@ -113,7 +113,7 @@ showCommand' prefix p = view osKey >>= \key -> ePutStrLn (prefix ++ showCreatePr
 -- | Run an apt-get command in a particular directory with a
 -- particular list of packages.  Note that apt-get source works for
 -- binary or source package names.
-aptGetInstall :: (MonadOS r s m, PkgName n, MonadCatch m) => [(n, Maybe DebianVersion)] -> m ()
+aptGetInstall :: (MonadOS r s m, PkgName n) => [(n, Maybe DebianVersion)] -> m ()
 aptGetInstall packages =
     do root <- view (osRoot . to _root . rootPath) <$> getOS
        withProcAndSys root $ useEnv root (return . force) $ do

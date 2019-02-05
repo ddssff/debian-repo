@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, PackageImports, StandaloneDeriving, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances, PackageImports, StandaloneDeriving, TemplateHaskell, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.Repo
     ( Repo(..)
@@ -11,7 +11,7 @@ module Debian.Repo.Repo
     ) where
 
 import Control.Exception (throw)
-import Control.Lens (view)
+import Control.Lens (review, view)
 import Data.Char (isDigit)
 import Data.Maybe (fromJust)
 import Data.Set (Set, unions)
@@ -19,6 +19,8 @@ import Data.Text (unpack)
 import Debian.Arch (Arch)
 import Debian.Repo.EnvPath (EnvPath, envPath)
 import Debian.Repo.Release (Release(releaseArchitectures))
+import Debian.Sources (VendorURI, vendorURI)
+import Debian.TH (here)
 import Debian.URI (fileFromURI, fromURI', URI')
 import qualified Debian.UTF8 as Deb (decode)
 import Network.URI (parseURI, URI(uriPath))
@@ -33,7 +35,7 @@ class (Ord t, Eq t) => Repo t where
     repoKey :: t -> RepoKey
     repositoryCompatibilityLevel :: t -> IO (Maybe Int)
     repositoryCompatibilityLevel r =
-        fileFromURI uri' >>= either throw (return . parse . unpack . Deb.decode)
+        fileFromURI $here uri' >>= either throw (return . parse . unpack . Deb.decode)
         where
           uri' = uri {uriPath = uriPath uri </> compatibilityFile}
           uri = case repoKey r of
@@ -69,12 +71,12 @@ compatibilityFile = "repository-compat"
 libraryCompatibilityLevel :: Int
 libraryCompatibilityLevel = 2
 
-repoURI :: Repo r => r -> URI
+repoURI :: Repo r => r -> VendorURI
 repoURI = repoKeyURI . repoKey
 
-repoKeyURI :: RepoKey -> URI
-repoKeyURI (Local path) = fromJust . parseURI $ "file://" ++ view envPath path
-repoKeyURI (Remote uri) = fromURI' uri
+repoKeyURI :: RepoKey -> VendorURI
+repoKeyURI (Local path) = review vendorURI . fromJust . parseURI $ "file://" ++ view envPath path
+repoKeyURI (Remote uri) = review vendorURI $ fromURI' uri
 
 repoArchList :: Repo r => r -> Set Arch
 repoArchList = unions . map releaseArchitectures . repoReleaseInfo

@@ -205,8 +205,8 @@ findLocalRelease repo releaseInfo =
                             _ <- putRelease repo rel
                             return rel
                      _ ->
-                         error $ "Invalid release file: " ++ path
-               _ -> error $ "Invalid release file: " ++ path
+                         error $ "findLocalRelease - Invalid release file: " ++ path
+               _ -> error $ "findLocalRelease - Invalid release file: " ++ path
       dist = releaseName releaseInfo
 
 {-

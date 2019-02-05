@@ -19,7 +19,7 @@ import qualified Debian.Control.Text as B (Control'(Control), ControlFunctions(l
 import Debian.Pretty (prettyShow)
 import qualified Debian.Relation.Text as B (ParseRelations(..), Relations)
 import Debian.Release (ReleaseName(..), releaseName', sectionName')
-import Debian.Releases (BaseRelease(..), baseRelease, parseReleaseTree)
+import Debian.Releases (HasBaseRelease(baseRelease, baseReleaseString), parseReleaseTree)
 import Debian.Repo.EnvPath (EnvRoot, rootPath)
 import Debian.Repo.MonadRepos (MonadRepos)
 import Debian.Repo.PackageID (makeBinaryPackageID, makeSourcePackageID)
@@ -29,10 +29,10 @@ import Debian.Repo.Release (Release(releaseName))
 import Debian.Repo.Repo (Repo(repoKey, repoReleaseInfo), RepoKey, repoKeyURI)
 import Debian.Repo.Slice (binarySlices, Slice(sliceRepoKey, sliceSource), SliceList(slices), sourceSlices)
 import Debian.Repo.State.Repository (foldRepository)
-import Debian.Sources (DebSource(sourceDist, sourceType), SourceType(Deb, DebSrc))
-import Debian.URI (URI(uriScheme), uriToString')
+import Debian.Sources (DebSource(sourceDist, sourceType), SourceType(Deb, DebSrc), vendorURI)
+import Debian.URI (uriSchemeLens, uriToString', uriAuthorityLens, uriPathLens)
 import Debian.Version (parseDebianVersion')
-import Network.URI (escapeURIString, URI(uriAuthority, uriPath), URIAuth(uriPort, uriRegName, uriUserInfo))
+import Network.URI (escapeURIString, URIAuth(uriPort, uriRegName, uriUserInfo))
 import qualified System.IO as IO (hClose, IOMode(ReadMode), openBinaryFile)
 --import System.IO.Unsafe (unsafeInterleaveIO)
 --import System.Process.Progress (qBracket, quieter)
@@ -235,9 +235,9 @@ indexPrefix repo release index =
       section = packageIndexComponent index
       uri = repoKeyURI repo
       distro = releaseName $ release
-      scheme = uriScheme uri
-      auth = uriAuthority uri
-      path = uriPath uri
+      scheme = view (vendorURI . uriSchemeLens) uri
+      auth = view (vendorURI . uriAuthorityLens) uri
+      path = view (vendorURI . uriPathLens) uri
       userpass = maybe "" uriUserInfo auth
       reg = maybeOfString $ maybe "" uriRegName auth
       port = maybe "" uriPort auth
@@ -265,7 +265,7 @@ indexPrefix repo release index =
             _ -> aptUserPrefix release user'' ++ host ++ port' ++ escape path'
       prefix "ssh" _ _ (Just host) port' path' =
           host ++ port' ++ escape path'
-      prefix _ _ _ _ _ _ = error ("invalid repo URI: " ++ (uriToString' . repoKeyURI $ repo))
+      prefix _ _ _ _ _ _ = error ("invalid repo URI: " ++ (uriToString' . view vendorURI . repoKeyURI $ repo))
       maybeOfString "" = Nothing
       maybeOfString s = Just s
       escape s = intercalate "_" (wordsBy (== '/') s)
@@ -284,8 +284,8 @@ indexPrefix repo release index =
 
 aptUserPrefix :: Release -> String -> String
 aptUserPrefix r s =
-    case _releaseName (baseRelease (parseReleaseTree (releaseName r))) of
-      ReleaseName "trusty" -> s
+    case baseReleaseString (baseRelease (parseReleaseTree (releaseName r))) of
+      "trusty" -> s
       _ -> ""
 
 (+?+) :: String -> String -> String

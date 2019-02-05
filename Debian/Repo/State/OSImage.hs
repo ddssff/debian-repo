@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, OverloadedStrings, PackageImports, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, OverloadedStrings, PackageImports, ScopedTypeVariables, TemplateHaskell #-}
 {-# OPTIONS -fno-warn-orphans #-}
 module Debian.Repo.State.OSImage
     ( buildArchOfOS
@@ -47,7 +47,8 @@ import Debian.Repo.Slice (NamedSliceList(sliceListName), Slice(sliceSource), Sli
 import Debian.Repo.State.PackageIndex (binaryPackagesFromSources, sourcePackagesFromSources)
 import Debian.Repo.State.Slice (verifySourcesList)
 import Debian.Repo.Top (toTop, distDir, MonadTop, sourcesPath, TopDir(TopDir))
-import Debian.Sources (DebSource(sourceUri), parseSourcesList, SourceOption(..), SourceOp(..))
+import Debian.Sources (DebSource(sourceUri), parseSourcesList, vendorURI)
+import Debian.TH (here)
 import Debian.URI (URI(uriScheme))
 import System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.Environment (getEnv)
@@ -167,7 +168,7 @@ prepareOS eset distro extra repo flushRoot flushDepends ifSourcesChanged include
               dist <- distDir (sliceListName base)
               liftIO $ do ePutStrLn $ "Removing and recreating build environment at " ++ ppShow (_root cleanRoot) ++ ": " ++ show e
                           -- ePutStrLn ("removeRecursiveSafely " ++ cleanRoot))
-                          removeRecursiveSafely (view (to _root . rootPath) cleanRoot)
+                          mapM_ (removeRecursiveSafely . view (to _root . rootPath)) [cleanRoot, dependRoot, buildRoot]
                           -- ePutStrLn ("createDirectoryIfMissing True " ++ show dist)
                           createDirectoryIfMissing True dist
                           -- ePutStrLn ("writeFile " ++ show sources ++ " " ++ show (show . osBaseDistro $ os))
@@ -259,7 +260,7 @@ updateOS = quieter 1 $ do
              -- text <- liftIO (try $ readFile sourcesPath')
              installed <-
                  case (errors :: [SomeException]) of
-                   [] -> verifySourcesList (Just root) (parseSourcesList (unlines sourcesText)) >>= return . Just . remoteOnly
+                   [] -> verifySourcesList (Just root) (parseSourcesList $here (unlines sourcesText)) >>= return . Just . remoteOnly
                    exns -> error $  unlines (("Failure verifying sources in " ++ show root ++ ":") : map show exns)
 {-
                  case text of
@@ -273,7 +274,7 @@ updateOS = quieter 1 $ do
                        (view osBaseDistro <$> getOS) >>= \ sources -> throw $ Changed (sliceListName sources) sourcesPath' computed installed'
                _ -> return ()
       remoteOnly :: SliceList -> SliceList
-      remoteOnly x = x {slices = filter r (slices x)} where r y = (uriScheme . sourceUri . sliceSource $ y) /= "file:"
+      remoteOnly x = x {slices = filter r (slices x)} where r y = (uriScheme . view vendorURI . sourceUri . sliceSource $ y) /= "file:"
 {-
     get >>= updateOS' >>= either throw put
     where

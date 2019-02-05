@@ -8,6 +8,7 @@ module Debian.Repo.LocalRepository
     , readLocalRepo
     , copyLocalRepo -- repoCD
     , setRepositoryCompatibility
+    , verifyReleaseURI
     , verifyUploadURI
     , uploadRemote
     , uploadLocal
@@ -18,7 +19,7 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Applicative.Error (Failing(Success, Failure))
 import Control.Exception (SomeException)
-import Control.Lens (makeLenses, view)
+import Control.Lens (makeLenses, to, view)
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (ByteString, empty)
 import Data.List (groupBy, isPrefixOf, partition, sort, sortBy)
@@ -31,6 +32,7 @@ import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(p
 import qualified Debian.Control.Text as T (fieldValue)
 import Debian.Pretty (PP(..))
 import Debian.Release (parseReleaseName, ReleaseName(..), releaseName', Section(..), sectionName', SubSection(section))
+import Debian.Releases (ReleaseURI, vendorFromReleaseURI)
 import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath, envPath, outsidePath)
 import Debian.Repo.Fingerprint (readUpstreamFingerprint)
@@ -41,7 +43,8 @@ import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (parseReleaseFile, Release)
 import Debian.Repo.Repo (compatibilityFile, libraryCompatibilityLevel, Repo(..), RepoKey(..))
 import Debian.Repo.Rsync (rsyncOld)
-import Debian.URI (URI(uriAuthority, uriPath), URIAuth(uriPort, uriRegName, uriUserInfo), uriToString')
+import Debian.Sources (VendorURI, vendorURI)
+import Debian.URI (URI(uriAuthority, uriPath), URIAuth(uriPort, uriRegName, uriUserInfo), uriPathLens, uriToString')
 import Debian.Version (parseDebianVersion', prettyDebianVersion)
 import Network.URI (URI(..))
 import System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
@@ -149,10 +152,15 @@ setRepositoryCompatibility r =
     maybeWriteFile path (show libraryCompatibilityLevel ++ "\n")
     where path = outsidePath (view repoRoot r) </> compatibilityFile
 
+verifyReleaseURI :: MonadIO m => Bool -> ReleaseURI -> m ()
+verifyReleaseURI doExport uri = do
+  qPutStrLn ("Verifying release URI: " ++ show uri)
+  verifyUploadURI doExport $ vendorFromReleaseURI uri
+
 -- |Make sure we can access the upload uri without typing a password.
-verifyUploadURI :: MonadIO m => Bool -> URI -> m ()
+verifyUploadURI :: MonadIO m => Bool -> VendorURI -> m ()
 verifyUploadURI doExport uri = do
-  qPutStrLn ("Verifying upload URI: " ++ show uri)
+  qPutStrLn ("Verifying vendor URI: " ++ show uri)
   case doExport of
     True -> export
     False -> verify >> mkdir
@@ -166,25 +174,25 @@ verifyUploadURI doExport uri = do
           do result <- liftIO $ uncurry sshVerify (uriDest uri)
              case result of
                Right () -> return ()
-               Left s -> error $ "Unable to reach " ++ uriToString' uri ++ ": " ++ s
+               Left s -> error $ "Unable to reach " ++ view (vendorURI . to uriToString') uri ++ ": " ++ s
              mkdir
       mkdir =
-          case uriAuthority uri of
+          case view (vendorURI . to uriAuthority) uri of
             Nothing -> error $ "Internal error 7"
             Just auth ->
                 do let cmd = "ssh"
                        args = [uriUserInfo auth ++ uriRegName auth ++ uriPort auth,
-                               "mkdir", "-p", uriPath uri ++ "/incoming"]
+                               "mkdir", "-p", view (vendorURI . uriPathLens) uri ++ "/incoming"]
                    (result, _, _) <- liftIO (readProcessWithExitCode cmd args "")
                    case result of
                      ExitSuccess -> return ()
                      _ -> fail $ showCommandForUser cmd args ++ " -> " ++ show result
 
-uriDest :: URI -> ([Char], Maybe Int)
+uriDest :: VendorURI -> ([Char], Maybe Int)
 uriDest uri =
     (uriUserInfo auth ++ uriRegName auth, port)
     where
-      auth = maybe (error "Internal error 8") id (uriAuthority uri)
+      auth = maybe (error "Internal error 8") id (view (vendorURI . to uriAuthority) uri)
       port =
           case uriPort auth of
             (':' : number) -> Just (read number)
@@ -194,7 +202,7 @@ uriDest uri =
 -- | Upload all the packages in a local repository to a the incoming
 -- directory of a remote repository (using dupload.)
 uploadRemote :: LocalRepository         -- ^ Local repository holding the packages.
-             -> URI                     -- ^ URI of upload repository
+             -> VendorURI               -- ^ URI of upload repository
              -> IO [Failing (ExitCode, L.ByteString, L.ByteString)]
 uploadRemote repo uri =
     do let dir = (outsidePath root)
@@ -315,20 +323,20 @@ acceptM p tag (accept, reject) =
 
 -- |Run dupload on a changes file with an optional host (--to)
 -- argument.
-dupload :: URI          -- user
+dupload :: VendorURI
         -> FilePath     -- The directory containing the .changes file
         -> String       -- The name of the .changes file to upload
         -> IO (Failing (ExitCode, L.ByteString, L.ByteString))
 dupload uri dir changesFile  =
-    case uriAuthority uri of
-      Nothing -> error ("Invalid Upload-URI: " ++ uriToString' uri)
+    case view (vendorURI . to uriAuthority) uri of
+      Nothing -> error ("Invalid Upload-URI: " ++ show uri)
       Just auth -> do
         let config = ("package config;\n" ++
                       "$cfg{'default'} = {\n" ++
                       "        fqdn => \"" ++ uriRegName auth ++ uriPort auth ++ "\",\n" ++
                       "        method => \"scpb\",\n" ++
                       "        login => \"" ++ init (uriUserInfo auth) ++ "\",\n" ++
-                      "        incoming => \"" ++ uriPath uri ++ "/incoming\",\n" ++
+                      "        incoming => \"" ++ view (vendorURI . uriPathLens) uri ++ "/incoming\",\n" ++
                       "        dinstall_runs => 1,\n" ++
                       "};\n\n" ++
                       "$preupload{'changes'} = '';\n\n" ++

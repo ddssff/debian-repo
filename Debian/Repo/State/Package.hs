@@ -47,7 +47,7 @@ import Debian.Apt.Index (Compression(..), controlFromIndex)
 import Debian.Arch (Arch(..), prettyArch)
 import Debian.Changes (ChangedFileSpec(..), ChangesFile(..), changesFileName)
 import Debian.Control (ControlFunctions(stripWS), formatControl, formatParagraph, Paragraph')
-import qualified Debian.Control.Text as B (appendFields, Control, Control'(Control), ControlFunctions(lookupP), parseControl, ControlFunctions(parseControlFromHandle), Field, Field'(Field), fieldValue, modifyField, Paragraph, raiseFields, renameField)
+import qualified Debian.Control.Text as B (appendFields, Control, Control'(Control), ControlFunctions(lookupP{-, parseControlFromHandle-}), parseControl, Field, Field'(Field), fieldValue, modifyField, Paragraph, raiseFields, renameField)
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile))
 import Debian.Pretty (PP(..), ppPrint, ppShow)
 import Debian.Relation (BinPkgName, PkgName)
@@ -66,10 +66,12 @@ import Debian.Repo.Prelude.Verbosity (ePutStrLn, qPutStr, qPutStrLn)
 import Debian.Repo.Repo (Repo, repoArchList, repoKey, repoKeyURI)
 import Debian.Repo.Release (Release(releaseAliases, releaseComponents, releaseName, releaseArchitectures))
 import Debian.Repo.State.Release (findReleases, prepareRelease, writeRelease, signRepo)
-import Debian.URI (fileFromURIStrict)
+import Debian.Sources (vendorURI)
+import Debian.TH (here)
+import Debian.URI (fileFromURIStrict, uriPathLens)
 import Debian.Version (DebianVersion, parseDebianVersion', prettyDebianVersion)
 import Debian.Version.Text ()
-import Network.URI (URI(uriPath))
+import Network.URI (URI)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getDirectoryContents, removeFile, renameFile)
 --import System.Exit (ExitCode(..))
 import System.FilePath ((</>), splitFileName)
@@ -1090,8 +1092,8 @@ getPackages_ :: MonadInstall s m => Release -> PackageIndex -> m (Either SomeExc
 getPackages_ release index = do
   repo <- view repository <$> getInstall
   let uri = repoKeyURI . repoKey $ repo
-      uri' = uri {uriPath = uriPath uri </> packageIndexPath release index}
-  liftIO $ fileFromURIStrict uri' >>= readControl uri' . either (Left . SomeException) Right
+      uri' = over uriPathLens (\path -> path </> packageIndexPath release index) (view vendorURI uri)
+  liftIO $ fileFromURIStrict $here uri' >>= readControl uri' . either (Left . SomeException) Right
     where
       readControl :: URI -> Either SomeException L.ByteString -> IO (Either SomeException [BinaryPackage])
       readControl _ (Left e) = return (Left e)

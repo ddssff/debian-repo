@@ -50,7 +50,7 @@ import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn)
 import Debian.Repo.Repo (repoKey, repoURI)
 import Debian.Repo.Rsync (rsyncOld)
 import Debian.Repo.Slice (NamedSliceList(sliceList), NamedSliceList(sliceListName), Slice(Slice, sliceRepoKey, sliceSource), SliceList(..), addAptRepository)
-import Debian.Sources (DebSource(..), DebSource(sourceDist, sourceUri), SourceOption(..), SourceType(..), SourceOp(..))
+import Debian.Sources (DebSource(..), DebSource(sourceDist, sourceUri), SourceOption(..), SourceType(..), SourceOp(..), vendorURI)
 import Debian.URI (uriToString')
 import System.Directory (createDirectoryIfMissing, doesFileExist, removeFile, renameFile)
 import System.Exit (ExitCode(ExitSuccess))
@@ -422,7 +422,7 @@ debootstrap root distro extra repo include exclude components =
       woot = view (to _root . rootPath) root
       wootNew = woot ++ ".new"
       baseDist = either id (relName . fst) . sourceDist . head . map sliceSource . slices . sliceList $ distro
-      mirror = uriToString' . sourceUri . head . map sliceSource . slices . sliceList $ distro
+      mirror = uriToString' . view vendorURI . sourceUri . head . map sliceSource . slices . sliceList $ distro
       cmd = intercalate " && "
               ["set -x",
                "rm -rf " ++ wootNew,
