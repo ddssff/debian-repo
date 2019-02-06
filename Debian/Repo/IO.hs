@@ -1,12 +1,19 @@
 -- | Ensure that any OSKey or AptKey value available outside this
 -- module corresponds to an existing entry in the corresponding
 -- Map in ReposState.
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, TemplateHaskell #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, RankNTypes, ScopedTypeVariables, TemplateHaskell #-}
+{-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
+
 module Debian.Repo.IO
     ( buildArchOfRoot
+    , HasIOException(fromIOException)
+    , liftEIO
     ) where
 
+import Control.Exception (IOException, try)
+import Control.Monad.Except (MonadError, throwError)
+import Control.Monad.Trans (liftIO, MonadIO)
 import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import System.Exit (ExitCode(ExitSuccess))
 import System.Process (readProcessWithExitCode)
@@ -24,3 +31,12 @@ buildArchOfRoot =
       parseArchOS x = ArchOS x
       parseArchCPU "any" = ArchCPUAny
       parseArchCPU x = ArchCPU x
+
+class HasIOException e where fromIOException :: IOException -> e
+instance HasIOException IOException where fromIOException = id
+
+-- | Lift an IO operation into ExceptT FileError IO
+liftEIO :: forall e m a. (MonadIO m, HasIOException e, MonadError e m) => IO a -> m a
+liftEIO action =
+    liftIO (try action) >>= either (\(e :: IOException) -> f e) return
+    where f = throwError . fromIOException

@@ -323,6 +323,9 @@ parseReleaseTree (ReleaseName s0) =
       parse ("squeeze" : more) _ = parse more (DebianRelease Squeeze)
       parse ("wheezy" : more) _ = parse more (DebianRelease Wheezy)
       parse ("jessie" : more) _ = parse more (DebianRelease Jessie)
+      parse ("stretch" : more) _ = parse more (DebianRelease Stretch)
+      parse ("buster" : more) _ = parse more (DebianRelease Buster)
+      parse ("bullseye" : more) _ = parse more (DebianRelease Bullseye)
       parse ("sid" : more) _ = parse more (DebianRelease Sid)
       parse ("experimental" : more) _ = parse more (DebianRelease Experimental)
 
