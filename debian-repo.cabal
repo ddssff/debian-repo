@@ -18,19 +18,9 @@ Data-Files:
         debian/compat debian/control debian/copyright
         debian/rules
 
-flag local-cabal-debian
-  Description: Link directly to the source of the cabal-debian library
-  Default: False
-  Manual: True
-
-flag local-debian
-  Description: Link directly to the source of the debian library
-  Default: False
-  Manual: True
-
-flag local-filemanip-extra
-  Description: Link directly to the source of the filemanip-extra library
-  Default: False
+flag local-libraries
+  Description: Link directly to the source of the cabal-debian and debian libraries
+  Default: True
   Manual: True
 
 flag no-verbosity-control
@@ -139,8 +129,6 @@ Library
         Debian.Repo.State.Slice,
         Debian.Repo.Top,
         Debian.VersionPolicy
-  Build-Depends: cabal-debian >= 4.24
-  Build-Depends: debian >= 3.92
 
   if flag(listlike)
     Build-Depends: process-listlike >= 1.0
@@ -149,13 +137,82 @@ Library
 
   Build-Depends: filemanip-extra
 
+  if !flag(local-libraries)
+    Build-Depends: cabal-debian >= 4.24, debian >= 3.92
+  else
+    Hs-Source-Dirs: ../debian-haskell,../cabal-debian/src
+    Build-Depends: ansi-wl-pprint, data-default, Diff, hsemail, HUnit, memoize, newtype-generics,
+                   optparse-applicative, QuickCheck, set-extra, th-lift, th-orphans
+    Exposed-Modules:
+        Debian.Apt.Index
+        Debian.Apt.Methods
+        Debian.Arch
+        Debian.Changes
+        Debian.Control
+        Debian.Control.Builder
+        Debian.Control.ByteString
+        Debian.Control.Common
+        Debian.Control.Policy
+        Debian.Control.String
+        Debian.Control.Text
+        Debian.Control.TextLazy
+        Debian.Loc
+        Debian.Pretty
+        Debian.Relation
+        Debian.Relation.Common
+        Debian.Relation.String
+        Debian.Relation.Text
+        Debian.Release
+        Debian.Sources
+        Debian.TH
+        Debian.Time
+        Debian.URI
+        Debian.UTF8
+        Debian.Version
+        Debian.Version.Common
+        Debian.Version.Internal
+        Debian.Version.String
+        Debian.Version.Text
+    Exposed-Modules:
+        Data.Maybe.Extended
+        Debian.Debianize
+        Debian.Debianize.BasicInfo
+        Debian.Debianize.BinaryDebDescription
+        Debian.Debianize.BuildDependencies
+        Debian.Debianize.Bundled
+        Debian.Debianize.CabalInfo
+        Debian.Debianize.Changelog
+        Debian.Debianize.CopyrightDescription
+        Debian.Debianize.DebInfo
+        Debian.Debianize.DebianName
+        Debian.Debianize.Details
+        Debian.Debianize.ExecAtoms
+        Debian.Debianize.Files
+        Debian.Debianize.Finalize
+        Debian.Debianize.Goodies
+        Debian.Debianize.InputCabal
+        Debian.Debianize.InputDebian
+        Debian.Debianize.Interspersed
+        Debian.Debianize.Monad
+        Debian.Debianize.Optparse
+        Debian.Debianize.Output
+        Debian.Debianize.Prelude
+        Debian.Debianize.SourceDebDescription
+        Debian.Debianize.VersionSplits
+        Debian.GHC
+        Debian.Orphans
+        Debian.Policy
+        Debian.Relation.ByteString
+        Distribution.Version.Invert
+
 Executable debian-versions
   Hs-Source-Dirs: demos
   Build-Depends: base, mtl, debian-repo
   Buildable: True
   Main-is: Versions.hs
   ghc-options: -O2 -threaded -Wall
-  Build-Depends: debian >= 3.92
+  if !flag(local-libraries)
+    Build-Depends: debian >= 3.92
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
@@ -164,6 +221,7 @@ Executable newdist
   Main-is: Main.hs
   ghc-options: -O2 -threaded -Wall -rtsopts
   Build-Depends: cabal-debian, lens
-  Build-Depends: debian >= 3.92
   Other-Modules:
         Config Options Version Paths_debian_repo
+  if !flag(local-libraries)
+    Build-Depends: debian >= 3.92

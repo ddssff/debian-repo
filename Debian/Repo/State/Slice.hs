@@ -21,7 +21,6 @@ import Data.List (nubBy)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Monoid ((<>))
 import Data.Text as T (pack, Text, unpack)
-import Debian.AutoBuilder.Details.Sources ({-myDownloadURI,-} myUploadURI')
 import Debian.Control (Control'(Control), ControlFunctions(parseControl), fieldValue, Paragraph')
 import Debian.Control.Text (decodeParagraph)
 import Debian.Pretty (prettyShow)
@@ -37,7 +36,7 @@ import Debian.Repo.State.Repository (readLocalRepository, prepareRemoteRepositor
 import Debian.Repo.Top (MonadTop, distDir, sourcesPath)
 import Debian.Sources (DebSource(..), SourceOption(..), SourceType(Deb, DebSrc), parseSourcesList, vendorURI)
 import Debian.TH (here)
-import Debian.URI (dirFromURI, fileFromURI, parentURI, uriPathLens, uriSchemeLens)
+import Debian.URI (dirFromURI, fileFromURI, parentURI, URIError, uriPathLens, uriSchemeLens)
 import Language.Haskell.TH.Syntax (Loc)
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath ((</>))
@@ -66,12 +65,13 @@ repoSources chroot opts reluri =
 
 repoSources' ::
     (MonadRepos s m)
-    => Maybe EnvRoot
+    => (ReleaseTree -> Either URIError ReleaseURI)
+    -> Maybe EnvRoot
     -> [SourceOption]
     -> ReleaseTree
     -> m SliceList
-repoSources' chroot opts r = do
-  case myUploadURI' $here r of
+repoSources' myUploadURI chroot opts r = do
+  case myUploadURI r of
     Right uri -> repoSources chroot opts uri
     Left e -> error ("repoSources' " ++ show e)
 
