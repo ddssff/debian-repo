@@ -33,6 +33,7 @@ module Debian.Releases
 -}
     -- * Tests
     , tests
+    , prop_release_string
     ) where
 
 import Control.Lens (makeLenses, over, Prism', prism, review, view)
@@ -44,6 +45,7 @@ import Debian.Sources (VendorURI, vendorURI)
 import Debian.URI (nullURI, parentURI, showURI, URI(..), uriPathLens)
 import System.FilePath((</>))
 import Test.HUnit
+import Test.QuickCheck (Arbitrary(arbitrary), elements, oneof)
 
 -- | A value returned by myUploadURI'
 newtype UploadURI = UploadURI {_uploadURI :: URI} deriving (Eq, Ord, Show)
@@ -211,8 +213,8 @@ baseVendorString = prism f g
 
 data ExtendedRelease = SeeReason84 | SeeReason86 deriving (Eq, Ord, Show, Enum, Bounded)
 
-extendedReleaseVendorName SeeReason84 = "seereason"
-extendedReleaseVendorName SeeReason86 = "seereason"
+extendedReleaseVendorName SeeReason84 = "seereason84"
+extendedReleaseVendorName SeeReason86 = "seereason86"
 
 -- | Interpret the meaning of the release name, e.g. xenial-seereason-private.
 data ReleaseTree
@@ -221,6 +223,19 @@ data ReleaseTree
     | DebianRelease DebianRelease
     | UbuntuRelease UbuntuRelease
     deriving (Eq, Ord, Show)
+
+-- sample (arbitrary :: Gen ReleaseTree)
+instance Arbitrary ReleaseTree where
+    arbitrary = private
+      where
+        private = oneof [ PrivateRelease <$> public, public ]
+        public = oneof [ ExtendedRelease <$> base <*> arbitrary, base ]
+        base = oneof [ DebianRelease <$> arbitrary
+                     , UbuntuRelease <$> arbitrary ]
+
+instance Arbitrary ExtendedRelease where arbitrary = elements [minBound .. maxBound]
+instance Arbitrary DebianRelease where arbitrary = elements [minBound .. maxBound]
+instance Arbitrary UbuntuRelease where arbitrary = elements [minBound .. maxBound]
 
 instance HasBaseRelease ReleaseTree where
     baseVendor (PrivateRelease r) = baseVendor r
@@ -255,6 +270,11 @@ releaseString (PrivateRelease r) = releaseString r ++ "-private"
 releaseString (ExtendedRelease r e) = releaseString r ++ "-" ++ extendedReleaseVendorName e
 releaseString (DebianRelease name) = fmap toLower $ show name
 releaseString (UbuntuRelease name) = fmap toLower $ show name
+
+-- quickCheck prop_release_string
+prop_release_string :: ReleaseTree -> Bool
+prop_release_string r =
+    parseReleaseTree (ReleaseName $ releaseString r) == r
 
 baseVendorName :: ReleaseTree -> String
 baseVendorName (PrivateRelease r) = baseVendorName r

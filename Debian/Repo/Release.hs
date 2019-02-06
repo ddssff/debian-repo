@@ -40,7 +40,7 @@ import qualified Text.PrettyPrint.HughesPJClass as PP (text)
 import Text.Regex (mkRegex, splitRegex)
 
 -- |A file whose contents have been read into memory.
-data File a = File { path :: Source, text :: Failing a }
+data File a = File { path :: Source, text :: Failing a } deriving Show
 
 data Source = LocalPath FilePath | RemotePath URI
 
