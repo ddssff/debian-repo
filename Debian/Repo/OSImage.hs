@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, OverloadedStrings, PackageImports, ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, OverloadedStrings, PackageImports,
+             ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.OSImage
     (
@@ -25,9 +26,11 @@ module Debian.Repo.OSImage
     ) where
 
 -- import Control.DeepSeq (force)
-import Control.Exception (SomeException)
+import Control.Exception (IOException, SomeException)
 import Control.Lens (makeLenses, to, view)
-import Control.Monad.Catch (try)
+import Control.Monad.Catch (MonadCatch, try, MonadMask)
+import Control.Monad.Except (catchError, ExceptT, liftEither, liftIO, MonadError, MonadIO, runExceptT, withExceptT)
+--import Control.Monad.Reader (MonadReader)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
 import Data.Data (Data)
@@ -36,22 +39,26 @@ import Data.Function (on)
 import Data.List (intercalate)
 import Data.Typeable (Typeable)
 import Debian.Arch (Arch)
+import Debian.Codename (Codename, codename, parseCodename)
+import Debian.Except (HasIOException, liftEIO)
 import Debian.Pretty (prettyShow)
 import Debian.Relation (BinPkgName(..), ParseRelations(parseRelations), Relations)
-import Debian.Release (parseReleaseName, parseSection', ReleaseName(relName))
+import Debian.Release (parseSection')
 import Debian.Repo.EnvPath (EnvPath(..), rootPath, outsidePath)
 import Debian.Repo.IO (buildArchOfRoot)
 import Debian.Repo.LocalRepository (copyLocalRepo, LocalRepository)
-import Debian.Repo.OSKey (OSKey(..))
+import Debian.Repo.OSKey ({-HasOSKey,-} OSKey(..))
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
 import Debian.Repo.Prelude (isSublistOf, replaceFile, sameInode)
-import Debian.Repo.Prelude.Process (runVE)
+import Debian.Repo.Prelude.Process (runV2)
 import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn, ePutStr, ePutStrLn)
 import Debian.Repo.Repo (repoKey, repoURI)
-import Debian.Repo.Rsync (rsyncOld)
+import Debian.Repo.Rsync (HasRsyncError(fromRsyncError), RsyncError, rsyncOld)
 import Debian.Repo.Slice (NamedSliceList(sliceList), NamedSliceList(sliceListName), Slice(Slice, sliceRepoKey, sliceSource), SliceList(..), addAptRepository)
-import Debian.Sources (DebSource(..), DebSource(sourceDist, sourceUri), SourceOption(..), SourceType(..), SourceOp(..), vendorURI)
+import Debian.Sources (DebSource(..), DebSource(sourceDist, sourceUri), SourceOption(..), SourceType(..), SourceOp(..))
+import Debian.TH (here)
 import Debian.URI (uriToString')
+import Debian.VendorURI (vendorURI)
 import System.Directory (createDirectoryIfMissing, doesFileExist, removeFile, renameFile)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>))
@@ -102,18 +109,21 @@ instance Eq OSImage where
 
 -- |Create an OS image record
 createOSImage ::
-              OSKey                     -- ^ The location where image is to be built
-           -> NamedSliceList            -- ^ The sources.list of the base distribution
-           -> [Slice]
-           -> LocalRepository           -- ^ The location of the local upload repository
-           -> IO OSImage
+    forall e m. (MonadIO m, MonadCatch m,
+                 {-HasOSKey r, MonadReader r m,-}
+                 HasRsyncError e, HasIOException e, MonadError e m)
+    => OSKey                     -- ^ The location where image is to be built
+    -> NamedSliceList            -- ^ The sources.list of the base distribution
+    -> [Slice]
+    -> LocalRepository           -- ^ The location of the local upload repository
+    -> m OSImage
 createOSImage (OSKey root) distro extra repo =
-    do copy <- copyLocalRepo (EnvPath {_envRoot = root, _envPath = "/work/localpool"}) repo
+    do copy <- action'
        -- At this point we can only support the build architecture of
        -- the underlying system.  We can support multiple
        -- distributions, but if the hardware is an amd64 the packages
        -- produced will be amd64.
-       arch <- buildArchOfRoot
+       arch <- liftEIO $here buildArchOfRoot
        let os = OS { _osRoot = OSKey root
                    , _osBaseDistro = distro
                    , _osArch = arch
@@ -123,13 +133,27 @@ createOSImage (OSKey root) distro extra repo =
                    , _osSourcePackageCache = Nothing
                    , _osBinaryPackageCache = Nothing }
        return os
+    where
+      action' :: m LocalRepository
+      action' = liftEither =<< runExceptT (withExceptT fromRsyncError action)
+      action :: forall m'. (MonadIO m', MonadCatch m') => ExceptT RsyncError m' LocalRepository
+      action = copyLocalRepo (EnvPath {_envRoot = root, _envPath = "/work/localpool"}) repo
 
 -- | Create the OSImage record for a copy of an existing OSImage at a
 -- different location.
-cloneOSImage :: OSImage -> OSKey -> IO OSImage
+cloneOSImage ::
+    forall e m. (MonadIO m, MonadCatch m,
+                 --HasOSKey r, MonadReader r m,
+                 HasRsyncError e, HasIOException e, MonadError e m)
+    => OSImage -> OSKey -> m OSImage
 cloneOSImage src dst = do
-  copy <- copyLocalRepo (EnvPath {_envRoot = _root dst, _envPath = "/work/localpool"}) (view osLocalMaster src)
+  copy <- action'
   return $ src {_osRoot = dst, _osLocalCopy = copy}
+    where
+      action' :: m LocalRepository
+      action' = liftEither =<< runExceptT (withExceptT id action)
+      action :: forall m'. (MonadIO m', MonadCatch m'{-, MonadReader r m'-}) => ExceptT e m' LocalRepository
+      action = copyLocalRepo (EnvPath {_envRoot = _root dst, _envPath = "/work/localpool"}) (view osLocalMaster src)
 
 -- | Set the location of the OSImage's root directory - where you
 -- would cd to before running chroot.
@@ -150,7 +174,7 @@ data SourcesChangedAction =
 instance Show OSImage where
     show os = intercalate " " ["OS {",
                                view (osRoot . to _root . rootPath) os,
-                               relName (sliceListName (view osBaseDistro os)),
+                               codename (sliceListName (view osBaseDistro os)),
                                show (view osArch os),
                                show (view osLocalCopy os)]
 
@@ -160,17 +184,17 @@ osFullDistro :: OSImage -> SliceList
 osFullDistro os =
     let base = view osBaseDistro os
         repo' = view osLocalCopy os
-        name = relName (sliceListName base)
+        name = codename (sliceListName base)
         localSources :: SliceList
         localSources = SliceList {slices = [Slice {sliceRepoKey = repoKey repo', sliceSource = src},
                                             Slice {sliceRepoKey = repoKey repo', sliceSource = bin}]}
-        src = DebSource Deb [SourceOption "trusted" OpSet ["yes"]] (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"]))
-        bin = DebSource DebSrc [SourceOption "trusted" OpSet ["yes"]] (repoURI repo') (Right (parseReleaseName name, [parseSection' "main"])) in
+        src = DebSource Deb [SourceOption "trusted" OpSet ["yes"]] (repoURI repo') (Right (parseCodename name, [parseSection' "main"]))
+        bin = DebSource DebSrc [SourceOption "trusted" OpSet ["yes"]] (repoURI repo') (Right (parseCodename name, [parseSection' "main"])) in
     SliceList { slices = slices (sliceList base) ++ view osExtraRepos os ++ slices localSources }
 
 data UpdateError
-    = Changed ReleaseName FilePath SliceList SliceList
-    | Missing ReleaseName FilePath
+    = Changed Codename FilePath SliceList SliceList
+    | Missing Codename FilePath
     | Flushed
 
 instance Show UpdateError where
@@ -178,11 +202,15 @@ instance Show UpdateError where
     show (Missing r p) = unwords ["Missing", show r, show p]
     show Flushed = "Flushed"
 
-syncOS' :: OSImage -> OSKey -> IO OSImage
+syncOS' ::
+    forall e m. (MonadIO m, MonadCatch m,
+                 -- HasOSKey r, MonadReader r m,
+                 HasRsyncError e, HasIOException e, MonadError e m)
+    => OSImage -> OSKey -> m OSImage
 syncOS' src dst = do
-  mkdir
-  umount
-  (_result, _, _) <- rsyncOld ["--exclude=/work/build/*"] (view (osRoot . to _root . rootPath) src) (view (to _root . rootPath) dst)
+  liftIO mkdir
+  liftIO umount
+  (_result, _, _) <- action' -- rsyncOld ["--exclude=/work/build/*"] (view (osRoot . to _root . rootPath) src) (view (to _root . rootPath) dst)
   cloneOSImage src dst
     where
       mkdir = createDirectoryIfMissing True (view (to _root . rootPath) dst ++ "/work")
@@ -193,15 +221,22 @@ syncOS' src dst = do
                [] -> return ()
                failed -> fail $ "umount failure(s): " ++ show failed
 
+      action' :: m (Either IOException ExitCode, String, String)
+      action' = liftEither =<< runExceptT (withExceptT fromRsyncError action)
+      action :: forall m'. (MonadIO m', MonadCatch m'{-, MonadReader r m'-}) => ExceptT RsyncError m' (Either IOException ExitCode, String, String)
+      action = rsyncOld ["--exclude=/work/build/*"] (view (osRoot . to _root . rootPath) src) (view (to _root . rootPath) dst)
+
 -- | FIXME - we should notice the locale problem and run this.
-localeGen :: OSImage -> String -> IO ()
+localeGen ::
+    forall e m. (MonadIO m, MonadMask m, MonadError e m, Show e)
+    => OSImage -> String -> m ()
 localeGen os locale =
     do let root = view osRoot os
        qPutStr ("Generating locale " ++  locale ++ " (in " ++ stripDist (view (to _root . rootPath) root) ++ ")...")
-       chunks <- useEnv (view (to _root . rootPath) root) return (runVE (shell cmd) B.empty)
-       case chunks of
-         (Right (ExitSuccess, _, _)) -> qPutStrLn "done"
-         e -> error $ "Failed to generate locale " ++ view (to _root . rootPath) root ++ ": " ++ cmd ++ " -> " ++ show e
+       useEnv (view (to _root . rootPath) root) return (runV2 $here (shell cmd) B.empty >>= \chunks -> case chunks of
+                                                                                                  (ExitSuccess, _, _) -> qPutStrLn "done"
+                                                                                                  e -> error $ "Failed to generate locale " ++ view (to _root . rootPath) root ++ ": " ++ cmd ++ " -> " ++ show e)
+         `catchError` (\(e :: e) -> error $ "Failed to generate locale " ++ view (to _root . rootPath) root ++ ": " ++ cmd ++ " -> " ++ show e)
     where
       cmd = "locale-gen " ++ locale
 
@@ -351,35 +386,38 @@ stripDist path = maybe path (\ n -> drop (n + 7) path) (isSublistOf "/dists/" pa
 -- forceList :: [a] -> IO [a]
 -- forceList output = evaluate (length output) >> return output
 
-pbuilder :: FilePath
-         -> OSKey
-         -> NamedSliceList
-         -> [Slice]
-         -> LocalRepository
-         -> IO OSImage
+pbuilder ::
+    forall e m. (MonadIO m, MonadCatch m, {-, HasOSKey r, MonadReader r m-}
+                 HasRsyncError e, HasIOException e, MonadError e m, Show e)
+    => FilePath
+    -> OSKey
+    -> NamedSliceList
+    -> [Slice]
+    -> LocalRepository
+    -> m OSImage
 pbuilder top root distro extra repo =
       -- We can't create the environment if the sources.list has any
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
       -- then add them back in.
-    do ePutStrLn ("Creating clean build environment (" ++ relName (sliceListName distro) ++ ")")
+    do ePutStrLn ("Creating clean build environment (" ++ codename (sliceListName distro) ++ ")")
        ePutStrLn ("# " ++ cmd top)
-       let codefn (Right (ExitSuccess, _, _)) = return ()
+       let codefn (ExitSuccess, _, _) = return ()
            codefn failure = error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show failure)
-       runVE (shell (cmd top)) B.empty >>= codefn
+       (runV2 $here (shell (cmd top)) B.empty >>= codefn) `catchError` (\(e :: e) -> error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show e))
        ePutStrLn "done."
        os <- createOSImage root distro extra repo -- arch?  copy?
        let sourcesPath' = view (to _root . rootPath) root ++ "/etc/apt/sources.list"
        -- Rewrite the sources.list with the local pool added.
            sources = prettyShow $ osFullDistro os
-       replaceFile sourcesPath' sources
-       _ <- useEnv (view (to _root . rootPath) root) return $ mapM addAptRepository extra
+       liftIO $ replaceFile sourcesPath' sources
+       _ <- liftIO $ useEnv (view (to _root . rootPath) root) return $ mapM addAptRepository extra
        return os
     where
       cmd x =
           intercalate " " $ [ "pbuilder"
                             , "--create"
-                            , "--distribution", (relName . sliceListName $ distro)
+                            , "--distribution", (codename . sliceListName $ distro)
                             , "--basetgz", x </> "pbuilderBase"
                             , "--buildplace", view (to _root . rootPath) root
                             , "--preserve-buildplace"
@@ -388,17 +426,20 @@ pbuilder top root distro extra repo =
 -- Create a new clean build environment in root.clean
 -- FIXME: create an ".incomplete" flag and remove it when build-env succeeds
 debootstrap
-    :: OSKey
+    :: forall e m. (MonadIO m, MonadCatch m,
+                    --HasOSKey r, MonadReader r m,
+                    HasRsyncError e, HasIOException e, MonadError e m, Show e)
+    => OSKey
     -> NamedSliceList
     -> [Slice]
     -> LocalRepository
     -> [BinPkgName]
     -> [BinPkgName]
     -> [String]
-    -> IO OSImage
+    -> m OSImage
 debootstrap root distro extra repo include exclude components =
     do
-      ePutStr (unlines [ "Creating clean build environment (" ++ relName (sliceListName distro) ++ ")"
+      ePutStr (unlines [ "Creating clean build environment (" ++ codename (sliceListName distro) ++ ")"
                        , "  root: " ++ show (_root root)
                        , "  baseDist: " ++ show baseDist
                        , "  mirror: " ++ show mirror ])
@@ -406,22 +447,22 @@ debootstrap root distro extra repo include exclude components =
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
       -- then add them back in.
-      runVE (shell cmd) B.empty >>= codefn
+      (runV2 $here (shell cmd) B.empty >>= codefn) `catchError` (\(e :: e) -> error ("Could not create build environment:\n " ++ cmd ++ " -> " ++ show e))
       ePutStrLn "done."
       os <- createOSImage root distro extra repo -- arch?  copy?
       let sourcesPath' = view (to _root . rootPath) root ++ "/etc/apt/sources.list"
       -- Rewrite the sources.list with the local pool added.
           sources = prettyShow $ osFullDistro os
-      replaceFile sourcesPath' sources
-      _ <- useEnv (view (to _root . rootPath) root) return $ mapM addAptRepository extra
+      liftIO $ replaceFile sourcesPath' sources
+      _ <- liftIO $ useEnv (view (to _root . rootPath) root) return $ mapM addAptRepository extra
       return os
     where
-      codefn (Right (ExitSuccess, _, _)) = return ()
+      codefn (ExitSuccess, _, _) = return ()
       codefn e = error ("Could not create build environment:\n " ++ cmd ++ " -> " ++ show e)
 
       woot = view (to _root . rootPath) root
       wootNew = woot ++ ".new"
-      baseDist = either id (relName . fst) . sourceDist . head . map sliceSource . slices . sliceList $ distro
+      baseDist = either id (codename . fst) . sourceDist . head . map sliceSource . slices . sliceList $ distro
       mirror = uriToString' . view vendorURI . sourceUri . head . map sliceSource . slices . sliceList $ distro
       cmd = intercalate " && "
               ["set -x",

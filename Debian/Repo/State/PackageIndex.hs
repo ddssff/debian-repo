@@ -14,11 +14,12 @@ import Data.List as List (map, partition)
 import Data.Maybe (catMaybes)
 import qualified Data.Text as T (Text, unpack)
 import Debian.Arch (Arch, Arch(..), prettyArch)
+import Debian.Codename (Codename, codename)
 import Debian.Control (ControlFunctions(stripWS), formatParagraph)
 import qualified Debian.Control.Text as B (Control'(Control), ControlFunctions(lookupP), ControlFunctions(parseControlFromHandle), Field, Field'(Field), fieldValue, Paragraph)
 import Debian.Pretty (prettyShow)
 import qualified Debian.Relation.Text as B (ParseRelations(..), Relations)
-import Debian.Release (ReleaseName(..), releaseName', sectionName')
+import Debian.Release (sectionName')
 import Debian.Releases (HasBaseRelease(baseRelease, baseReleaseString), parseReleaseTree)
 import Debian.Repo.EnvPath (EnvRoot, rootPath)
 import Debian.Repo.MonadRepos (MonadRepos)
@@ -29,8 +30,9 @@ import Debian.Repo.Release (Release(releaseName))
 import Debian.Repo.Repo (Repo(repoKey, repoReleaseInfo), RepoKey, repoKeyURI)
 import Debian.Repo.Slice (binarySlices, Slice(sliceRepoKey, sliceSource), SliceList(slices), sourceSlices)
 import Debian.Repo.State.Repository (foldRepository)
-import Debian.Sources (DebSource(sourceDist, sourceType), SourceType(Deb, DebSrc), vendorURI)
+import Debian.Sources (DebSource(sourceDist, sourceType), SourceType(Deb, DebSrc))
 import Debian.URI (uriSchemeLens, uriToString', uriAuthorityLens, uriPathLens)
+import Debian.VendorURI (vendorURI)
 import Debian.Version (parseDebianVersion')
 import Network.URI (escapeURIString, URIAuth(uriPort, uriRegName, uriUserInfo))
 import qualified System.IO as IO (hClose, IOMode(ReadMode), openBinaryFile)
@@ -39,7 +41,7 @@ import qualified System.IO as IO (hClose, IOMode(ReadMode), openBinaryFile)
 
 -- |Return a list of the index files that contain the packages of a
 -- slice.
-sliceIndexes :: MonadRepos s m => Arch -> Slice -> m [(RepoKey, Release, PackageIndex)]
+sliceIndexes :: (MonadIO m, MonadRepos s m) => Arch -> Slice -> m [(RepoKey, Release, PackageIndex)]
 sliceIndexes arch slice =
     foldRepository f f (sliceRepoKey slice)
     where
@@ -57,17 +59,17 @@ sliceIndexes arch slice =
       findReleaseInfo repo release =
           case filter ((==) release . releaseName) (repoReleaseInfo repo) of
             [x] -> x
-            [] -> error $ ("sliceIndexes: Invalid release name: " ++ releaseName' release ++
+            [] -> error $ ("sliceIndexes: Invalid release name: " ++ codename release ++
                            "\n  You may need to remove ~/.autobuilder/repoCache." ++
                            "\n  Available: " ++ (show . map releaseName . repoReleaseInfo $ repo)) ++
                            "\n repoKey: " ++ show (repoKey repo) ++
                            "\n repoReleaseInfo: " ++ show (repoReleaseInfo repo) ++
                            "\n slice: " ++ show slice
-            xs -> error $ "Internal error 5 - multiple releases named " ++ releaseName' release ++ "\n" ++ show xs
+            xs -> error $ "Internal error 5 - multiple releases named " ++ codename release ++ "\n" ++ show xs
 
 data UpdateError
-    = Changed ReleaseName FilePath SliceList SliceList
-    | Missing ReleaseName FilePath
+    = Changed Codename FilePath SliceList SliceList
+    | Missing Codename FilePath
     | Flushed
 
 instance Show UpdateError where
@@ -76,7 +78,7 @@ instance Show UpdateError where
     show Flushed = "Flushed"
 
 sourcePackagesFromSources ::
-    MonadRepos s m
+    (MonadIO m, MonadRepos s m)
     => EnvRoot
     -> Arch
     -> SliceList
@@ -96,7 +98,7 @@ uncurry3 f (a, b, c) = f a b c
 
 -- FIXME: assuming the index is part of the cache
 sourcePackagesOfIndex ::
-    MonadRepos s m
+    (MonadIO m)
     => EnvRoot
     -> Arch
     -> RepoKey
@@ -170,13 +172,13 @@ parseSourceParagraph p =
                   , homepage = fmap stripWS $ B.fieldValue "Homepage" p })
       _x -> Left ["parseSourceParagraph - One or more required fields (Package, Maintainer, Standards-Version) missing: " ++ show p]
 
-binaryPackagesFromSources :: MonadRepos s m => EnvRoot -> Arch -> SliceList -> m [BinaryPackage]
+binaryPackagesFromSources :: (MonadIO m, MonadRepos s m) => EnvRoot -> Arch -> SliceList -> m [BinaryPackage]
 binaryPackagesFromSources root arch sources = do
   indexes <- mapM (sliceIndexes arch) (slices . binarySlices $ sources) >>= return . concat
   concat <$> (mapM (\ (repo, rel, index) -> either (const []) id <$> (binaryPackagesOfIndex root arch repo rel index)) indexes)
 
 -- FIXME: assuming the index is part of the cache
-binaryPackagesOfIndex :: MonadRepos s m => EnvRoot -> Arch -> RepoKey -> Release -> PackageIndex -> m (Either IOError [BinaryPackage])
+binaryPackagesOfIndex :: (MonadIO m) => EnvRoot -> Arch -> RepoKey -> Release -> PackageIndex -> m (Either IOError [BinaryPackage])
 binaryPackagesOfIndex root arch repo release index =
     -- quieter 2 $ qBracket ($(symbol 'binaryPackagesOfIndex) ++ ": " ++ path) $
     either Left ((\paras -> Right (List.map (toBinaryPackage release index) paras))) <$> (liftIO (readParagraphs path))
@@ -230,7 +232,7 @@ indexCacheFile arch repo release index =
 indexPrefix :: RepoKey -> Release -> PackageIndex -> FilePath
 indexPrefix repo release index =
     (escapeURIString (/= '@') ("/var/lib/apt/lists/" ++ uriText +?+ "dists_") ++
-     releaseName' distro ++ "_" ++ (sectionName' $ section))
+     codename distro ++ "_" ++ (sectionName' $ section))
     where
       section = packageIndexComponent index
       uri = repoKeyURI repo
@@ -248,7 +250,7 @@ indexPrefix repo release index =
       -- If user is given and password is not, the user name is
       -- added to the file name.  Otherwise it is not.  Really.
       prefix "http:" (Just user'') Nothing (Just host) port' path' =
-          case relName (releaseName release) of
+          case codename (releaseName release) of
             "artful-seereason-private" -> host ++ port' ++ escape path'
             "xenial-seereason-private" -> host ++ port' ++ escape path'
             _ -> aptUserPrefix release user'' ++ host ++ port' ++ escape path'
@@ -259,7 +261,7 @@ indexPrefix repo release index =
       prefix "file:" Nothing Nothing Nothing "" path' =
           escape path'
       prefix "ssh:" (Just user'') Nothing (Just host) port' path' =
-          case relName (releaseName release) of
+          case codename (releaseName release) of
             "artful-seereason-private" -> host ++ port' ++ escape path'
             "xenial-seereason-private" -> host ++ port' ++ escape path'
             _ -> aptUserPrefix release user'' ++ host ++ port' ++ escape path'

@@ -20,7 +20,7 @@ Data-Files:
 
 flag local-libraries
   Description: Link directly to the source of the cabal-debian and debian libraries
-  Default: True
+  Default: False
   Manual: True
 
 flag no-verbosity-control
@@ -90,6 +90,7 @@ Library
         Debian.Repo.AptImage,
         Debian.Repo.AptKey,
         Debian.Repo.Changes,
+        Debian.Repo.DebError
         Debian.Repo.Dependencies,
         Debian.Repo.EnvPath,
         Debian.Repo.Fingerprint,
@@ -128,6 +129,7 @@ Library
         Debian.Repo.State.Repository,
         Debian.Repo.State.Slice,
         Debian.Repo.Top,
+        Debian.Repo.URI,
         Debian.VersionPolicy
 
   if flag(listlike)
@@ -142,12 +144,13 @@ Library
   else
     Hs-Source-Dirs: ../debian-haskell,../cabal-debian/src
     Build-Depends: ansi-wl-pprint, data-default, Diff, hsemail, HUnit, memoize, newtype-generics,
-                   optparse-applicative, QuickCheck, set-extra, th-lift, th-orphans
+                   optparse-applicative, QuickCheck, set-extra, th-lift, th-orphans, taggy
     Exposed-Modules:
         Debian.Apt.Index
         Debian.Apt.Methods
         Debian.Arch
         Debian.Changes
+        Debian.Codename
         Debian.Control
         Debian.Control.Builder
         Debian.Control.ByteString
@@ -156,9 +159,11 @@ Library
         Debian.Control.String
         Debian.Control.Text
         Debian.Control.TextLazy
+        Debian.Except
         Debian.Loc
         Debian.Pretty
         Debian.Relation
+        Debian.Relation.ByteString
         Debian.Relation.Common
         Debian.Relation.String
         Debian.Relation.Text
@@ -168,6 +173,7 @@ Library
         Debian.Time
         Debian.URI
         Debian.UTF8
+        Debian.VendorURI
         Debian.Version
         Debian.Version.Common
         Debian.Version.Internal
@@ -202,7 +208,6 @@ Library
         Debian.GHC
         Debian.Orphans
         Debian.Policy
-        Debian.Relation.ByteString
         Distribution.Version.Invert
 
 Executable debian-versions

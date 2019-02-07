@@ -37,7 +37,7 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Applicative.Error (maybeRead)
 import Control.DeepSeq (NFData(..))
-import Control.Exception (SomeException)
+import Control.Exception (IOException)
 import Control.Lens ((.=), at, Lens', makeLenses, use, view)
 import Control.Monad (unless)
 import Control.Monad.Catch (bracket, catch, MonadCatch, MonadMask)
@@ -47,14 +47,16 @@ import Control.Monad.State (MonadIO(..), MonadState, StateT(runStateT))
 --import Control.Monad.Trans (lift)
 import Data.Map as Map (empty, fromList, insert, lookup, Map, toList, union)
 import Data.Maybe (fromJust, fromMaybe)
-import Debian.Release (ReleaseName)
+import Debian.Codename (Codename)
+import Debian.Except (HasIOException, MonadError)
 import Debian.Repo.AptKey (AptKey(AptKey), HasAptKey(aptKey), MonadApt)
 import Debian.Repo.EnvPath (EnvRoot)
 import Debian.Repo.OSImage (OSImage(..), osRoot, syncOS')
-import Debian.Repo.OSKey (OSKey(..))
+import Debian.Repo.OSKey ({-HasOSKey,-} OSKey(..))
 import Debian.Repo.MonadApt (AptImage, aptImageRoot)
 import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (Release(releaseName))
+import Debian.Repo.Rsync (HasRsyncError)
 import Debian.Repo.RemoteRepository (RemoteRepository)
 import Debian.Repo.Repo (Repo, repoKey, RepoKey(..))
 import Debian.Repo.Top (HasTop, MonadTop, sub)
@@ -64,7 +66,7 @@ import System.IO (hPutStrLn, stderr)
 import System.IO.Error (isDoesNotExistError)
 import qualified System.Posix.Files as F (removeLink)
 
-data ReleaseKey = ReleaseKey RepoKey ReleaseName deriving (Eq, Ord, Show)
+data ReleaseKey = ReleaseKey RepoKey Codename deriving (Eq, Ord, Show)
 
 -- | This represents the state of the IO system.
 data ReposState
@@ -89,15 +91,15 @@ initState = ReposState
 
 class HasReposState s where reposState :: Lens' s ReposState
 instance HasReposState ReposState where reposState = id
-type MonadRepos s m = (HasReposState s, MonadState s m, MonadIO m, MonadCatch m, MonadMask m)
+type MonadRepos s m = (HasReposState s, MonadState s m)
 
-getRepos :: MonadRepos s m => m ReposState
+getRepos :: (HasReposState s, MonadState s m) => m ReposState
 getRepos = use reposState
 
-putRepos :: MonadRepos s m => ReposState -> m ()
+putRepos :: (HasReposState s, MonadState s m) => ReposState -> m ()
 putRepos x = reposState .= x
 
-modifyRepos :: MonadRepos s m => (ReposState -> ReposState) -> m ()
+modifyRepos :: (HasReposState s, MonadState s m) => (ReposState -> ReposState) -> m ()
 modifyRepos f = getRepos >>= putRepos . f
 
 type MonadReposCached r s m = (MonadRepos s m, MonadTop r m)
@@ -134,7 +136,11 @@ type ReposCachedT r m = ReaderT r (StateT ReposState m)
 
 -- | To run a DebT we bracket an action with commands to load and save
 -- the repository list.
-runReposCachedT :: (MonadIO m, MonadMask m, HasTop r) => r -> ReposCachedT r m a -> m a
+runReposCachedT ::
+    (MonadError e m, MonadIO m, MonadMask m, HasTop r)
+    => r
+    -> ReposCachedT r m a
+    -> m a
 runReposCachedT top action = do
   qPutStrLn "Running MonadReposCached..."
   r <- runReposT $ runReaderT (bracket loadRepoCache (\ r -> saveRepoCache >> return r) (\ () -> action)) top
@@ -149,7 +155,9 @@ instance (MonadCatch m, MonadMask m, MonadIO m, MonadFail m, Functor m) => Monad
     putRepos = lift . put
 #endif
 
-putOSImage :: MonadRepos s m => OSImage -> m ()
+putOSImage ::
+    (HasReposState s, MonadState s m)
+    => OSImage -> m ()
 putOSImage repo = modifyRepos (\s -> s {_osImageMap = Map.insert (view osRoot repo) repo (view osImageMap s)})
 --putOSImage repo = modifyRepos (\s -> set osImageMap (Map.insert (view osRoot repo) repo (view osImageMap s)) s)
 
@@ -181,7 +189,7 @@ getAptKey :: MonadRepos s m => EnvRoot -> m (Maybe AptKey)
 getAptKey root = fmap (AptKey . view aptImageRoot) <$> (getApt root)
 #endif
 
-findRelease :: (Repo r, MonadRepos s m) => r -> ReleaseName -> m (Maybe Release)
+findRelease :: (Repo r, MonadRepos s m) => r -> Codename -> m (Maybe Release)
 findRelease repo dist = (Map.lookup (ReleaseKey (repoKey repo) dist) . view releaseMap) <$> getRepos
 
 releaseByKey :: MonadRepos s m => ReleaseKey -> m Release
@@ -210,10 +218,10 @@ evalMonadApt task key = do
 -- downloading information from the remote repositories.  These values may
 -- go out of date, as when a new release is added to a repository.  When this
 -- happens some ugly errors will occur and the cache will have to be flushed.
-loadRepoCache :: MonadReposCached r s m => m ()
+loadRepoCache :: (MonadIO m, MonadReposCached r s m) => m ()
 loadRepoCache =
     do dir <- sub "repoCache"
-       mp <- liftIO (loadRepoCache' dir `catch` (\ (e :: SomeException) -> qPutStrLn (show e) >> return Map.empty))
+       mp <- liftIO (loadRepoCache' dir `catch` (\(e :: IOException) -> qPutStrLn (show e) >> return Map.empty))
        modifyRepos (\ s -> s {_repoMap = mp})
     where
       loadRepoCache' :: FilePath -> IO (Map URI' RemoteRepository)
@@ -230,7 +238,7 @@ loadRepoCache =
                    return (fromList pairs)
 
 -- | Write the repo cache map into a file.
-saveRepoCache :: MonadReposCached r s m => m ()
+saveRepoCache :: (MonadIO m, MonadReposCached r s m) => m ()
 saveRepoCache =
           do path <- sub "repoCache"
              live <- view repoMap <$> getRepos
@@ -245,12 +253,17 @@ saveRepoCache =
             -- isRemote (uri, _) = uriScheme uri /= "file:"
             loadCache :: FilePath -> IO (Map.Map URI' RemoteRepository)
             loadCache path =
-                readFile path `catch` (\ (_ :: SomeException) -> return "[]") >>=
+                readFile path `catch` (\ (_ :: IOException) -> return "[]") >>=
                 return . Map.fromList . fromMaybe [] . maybeRead
 
-syncOS :: (MonadTop r m, MonadRepos s m) => OSImage -> OSKey -> m OSImage
+syncOS ::
+    forall e s m. (MonadIO m, MonadCatch m,
+                   --MonadTop r m, HasOSKey r, {-MonadReader r m,-}
+                   HasReposState s, MonadState s m,
+                   HasIOException e, HasRsyncError e, MonadError e m)
+    => OSImage -> OSKey -> m OSImage
 syncOS srcOS dstRoot = do
-  dstOS <- liftIO $ syncOS' srcOS dstRoot
+  dstOS <- syncOS' srcOS dstRoot
   putOSImage dstOS
   dstOS' <- use (reposState . osImageMap . at dstRoot)
   maybe (error ("syncOS failed for " ++ show dstRoot)) return dstOS'

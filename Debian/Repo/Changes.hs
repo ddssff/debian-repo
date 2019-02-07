@@ -2,7 +2,7 @@
 -- describing the result of a package build.  Not to be confused
 -- with a debian/changelog file.  After it is uploaded it goes into
 -- the @installed/@ subdirectory of the repository.
-{-# LANGUAGE CPP, PackageImports, OverloadedStrings #-}
+{-# LANGUAGE CPP, PackageImports, OverloadedStrings, TemplateHaskell #-}
 {-# OPTIONS -fno-warn-name-shadowing -fno-warn-missing-signatures #-}
 module Debian.Repo.Changes
     ( findChangesFiles
@@ -25,9 +25,10 @@ import Data.Monoid (mconcat)
 import Data.Text (pack, Text, unpack)
 import Debian.Arch (Arch, parseArch, prettyArch)
 import Debian.Changes (ChangedFileSpec(..), ChangesFile(..), changesFileName, parseChanges)
+import Debian.Codename (parseCodename)
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile), fieldValue, modifyField, Paragraph'(..))
 import Debian.Pretty (ppShow, prettyShow)
-import Debian.Release (parseReleaseName, parseSection)
+import Debian.Release (parseSection)
 import Debian.Repo.Prelude (replaceFile)
 import Debian.URI ()
 import Debian.Version (DebianVersion, parseDebianVersion', prettyDebianVersion)
@@ -64,7 +65,7 @@ loadChangesFile dir file =
                           do return . Just $ Changes { changeDir = dir
                                                      , changePackage = name
                                                      , changeVersion = ver
-                                                     , changeRelease = parseReleaseName (unpack release)
+                                                     , changeRelease = parseCodename (unpack release)
                                                      , changeArch = arch
                                                      , changeInfo = changes'
                                                      , changeEntry = entry

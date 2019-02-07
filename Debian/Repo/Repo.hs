@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, PackageImports, StandaloneDeriving, TemplateHaskell, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, PackageImports, StandaloneDeriving, TemplateHaskell, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.Repo
     ( Repo(..)
@@ -10,19 +10,21 @@ module Debian.Repo.Repo
     , compatibilityFile
     ) where
 
-import Control.Exception (throw)
+import Control.Exception (IOException)
 import Control.Lens (review, view)
 import Data.Char (isDigit)
 import Data.Maybe (fromJust)
 import Data.Set (Set, unions)
 import Data.Text (unpack)
 import Debian.Arch (Arch)
+import Debian.Except (MonadIO, MonadError)
 import Debian.Repo.EnvPath (EnvPath, envPath)
 import Debian.Repo.Release (Release(releaseArchitectures))
-import Debian.Sources (VendorURI, vendorURI)
+import Debian.Repo.URI (fileFromURI)
 import Debian.TH (here)
-import Debian.URI (fileFromURI, fromURI', URI')
+import Debian.URI (fromURI', URI')
 import qualified Debian.UTF8 as Deb (decode)
+import Debian.VendorURI (VendorURI, vendorURI)
 import Network.URI (parseURI, URI(uriPath))
 import System.FilePath ((</>))
 
@@ -33,9 +35,9 @@ data RepoKey
 
 class (Ord t, Eq t) => Repo t where
     repoKey :: t -> RepoKey
-    repositoryCompatibilityLevel :: t -> IO (Maybe Int)
+    repositoryCompatibilityLevel :: (MonadIO m, MonadError IOException m) => t -> m (Maybe Int)
     repositoryCompatibilityLevel r =
-        fileFromURI $here uri' >>= either throw (return . parse . unpack . Deb.decode)
+        (parse . unpack . Deb.decode) <$> fileFromURI $here Nothing uri'
         where
           uri' = uri {uriPath = uriPath uri </> compatibilityFile}
           uri = case repoKey r of

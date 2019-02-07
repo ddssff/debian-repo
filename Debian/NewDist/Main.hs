@@ -1,19 +1,22 @@
-{-# LANGUAGE OverloadedStrings, TupleSections #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TemplateHaskell, TupleSections #-}
 {-# OPTIONS_GHC -Wall #-}
 -- | Replacement for debpool.
 module Main where
 
 import Control.Lens (view)
 import Control.Monad (when)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Except (liftIO, MonadIO, MonadError, runExceptT)
 import Data.Maybe (catMaybes)
 import Data.Set (Set, fromList)
 import Data.Text (pack)
 import Debian.Arch (Arch(Binary, Source), ArchCPU(..), ArchOS(..), prettyArch)
 import Debian.Changes (ChangesFile(..))
+import Debian.Codename (Codename, codename, parseCodename)
+import Debian.Except (HasIOException)
 import Debian.Pretty (prettyShow)
 import Debian.Relation (BinPkgName)
-import Debian.Release (ReleaseName(ReleaseName), releaseName', parseReleaseName, Section, parseSection')
+import Debian.Release (Section, parseSection')
+import Debian.Repo.DebError (DebError)
 import Debian.Repo.EnvPath (EnvPath(EnvPath), EnvRoot(EnvRoot), envPath, outsidePath)
 import Debian.Repo.MonadRepos (MonadRepos, runReposT)
 import Debian.Repo.LocalRepository (LocalRepository, Layout, repoRoot, setRepositoryCompatibility)
@@ -27,6 +30,7 @@ import Debian.Repo.Release (Release(..), parseArchitectures, parseComponents, re
 import Debian.Repo.State.Package (scanIncoming, deleteSourcePackages, deleteTrumped, deleteBinaryOrphans, deleteGarbage, InstallResult(Ok), explainError, resultToProblems, showErrors, MonadInstall, evalInstall)
 import Debian.Repo.State.Release (findReleases, prepareRelease, writeRelease, signRepo, mergeReleases)
 import Debian.Repo.State.Repository (readLocalRepository, prepareLocalRepository)
+import Debian.URI (HasParseError)
 import Debian.Version (parseDebianVersion', prettyDebianVersion)
 import Prelude hiding (putStr, putStrLn, putChar)
 import System.Console.GetOpt (ArgOrder(Permute), getOpt, usageInfo)
@@ -54,13 +58,17 @@ main =
        let lockPath = rootParam flags </> "newdist.lock"
        liftIO $ createDirectoryIfMissing True (rootParam flags)
        case printVersion flags of
-         False -> withLock lockPath (runReposT (runFlags flags))
+         False -> do
+           r <- withLock lockPath (runExceptT (runReposT (runFlags flags)))
+           case r of
+             Left (e :: DebError) -> putStrLn (show e)
+             Right () -> return ()
          True -> IO.putStrLn myVersion >> exitWith ExitSuccess
 
 -- dry :: Params -> IO () -> IO ()
 -- dry params action = if dryRun params then return () else action
 
-runFlags :: MonadRepos s m => Params -> m ()
+runFlags :: (MonadIO m, Show e, HasIOException e, HasParseError e, MonadError e m, MonadRepos s m) => Params -> m ()
 runFlags flags =
     do createReleases flags
        repo <- readLocalRepository (root flags) (Just . layout $ flags) >>= maybe (error $ "Invalid repository location: " ++ show (outsidePath (root flags))) return
@@ -85,13 +93,13 @@ runFlags flags =
       email :: LocalRepository -> (ChangesFile, InstallResult) -> (String, [String])
       email repo (changesFile, Ok) =
           let subject = ("newdist: " ++ changePackage changesFile ++ "-" ++ show (prettyDebianVersion (changeVersion changesFile)) ++
-                         " now available in " ++ releaseName' (changeRelease changesFile) ++
+                         " now available in " ++ codename (changeRelease changesFile) ++
                          " (" ++ show (prettyArch (changeArch changesFile)) ++")")
               body = ("Repository " ++ view envPath (view repoRoot repo)) : [] : (lines $ prettyShow $ changeInfo changesFile) in
           (subject, body)
       email _repo (changesFile, e) =
           let subject = ("newdist failure: " ++ changePackage changesFile ++ "-" ++ show (prettyDebianVersion (changeVersion changesFile)) ++
-                         " failed to install in " ++ releaseName' (changeRelease changesFile))
+                         " failed to install in " ++ codename (changeRelease changesFile))
               body = concat (map (lines . explainError) (resultToProblems e)) in
           (subject, body)
       keyname =
@@ -106,9 +114,9 @@ runFlags flags =
 
 -- | Make sure the debian releases which are referenced by the command
 -- line flags exist.
-createReleases :: MonadRepos s m => Params -> m ()
+createReleases :: (MonadIO m, MonadRepos s m) => Params -> m ()
 createReleases flags =
-    do let defaultReleases = map (\ name -> Release { releaseName = ReleaseName name
+    do let defaultReleases = map (\ name -> Release { releaseName = parseCodename name
                                                     , releaseAliases = []
                                                     , releaseArchitectures = archSet flags
                                                     , releaseComponents = defaultComponents }) (releases flags)
@@ -118,20 +126,20 @@ createReleases flags =
                  _ -> prepareLocalRepository (root flags) (Just . layout $ flags) defaultReleases
        rels <- findReleases repo
        -- This might already be done
-       mapM_ (createRelease repo (archSet flags)) (map parseReleaseName . releases $ flags)
+       mapM_ (createRelease repo (archSet flags)) (map parseCodename . releases $ flags)
        mapM_ (createAlias repo) (aliases flags)
        mapM_ (createSectionOfRelease repo rels) (sections flags)
     where
       createSectionOfRelease repo rels arg =
           case break (== ',') arg of
             (rel, ',' : sectName) ->
-                case filter (\ release -> releaseName release == parseReleaseName rel) rels of
+                case filter (\ release -> releaseName release == parseCodename rel) rels of
                   [release] -> createSection repo release (parseSection' sectName)
                   [] -> error $ "createReleases: Invalid release name: " ++ rel
                   _ -> error "Internal error 1"
             _ ->
                 error $ "Invalid argument to --create-section: " ++ arg
-      createSection :: MonadRepos s m => LocalRepository -> Release -> Section -> m Release
+      createSection :: (MonadIO m, MonadRepos s m) => LocalRepository -> Release -> Section -> m Release
       createSection repo release section' =
           case filter ((==) section') (releaseComponents release) of
             [] -> prepareRelease repo (releaseName release) (releaseAliases release)
@@ -150,7 +158,7 @@ defaultArchitectures = fromList [Binary (ArchOS "linux") (ArchCPU "i386"), Binar
 defaultComponents :: [Section]
 defaultComponents = parseComponents "main"
 
-createRelease :: MonadRepos s m => LocalRepository -> Set Arch -> ReleaseName -> m Release
+createRelease :: (MonadIO m, MonadRepos s m) => LocalRepository -> Set Arch -> Codename -> m Release
 createRelease repo archList' name =
     do rels <- findReleases repo
        case filter (\ release -> elem name (releaseName release : releaseAliases release)) rels of
@@ -158,16 +166,16 @@ createRelease repo archList' name =
          [release] -> return release
          _ -> error "Internal error 2"
 
-createAlias :: MonadRepos s m => LocalRepository -> String -> m Release
+createAlias :: (MonadIO m, MonadRepos s m) => LocalRepository -> String -> m Release
 createAlias repo arg =
     case break (== '=') arg of
       (rel, ('=' : alias)) ->
           do rels <- findReleases repo
-             case filter ((==) (parseReleaseName rel) . releaseName) rels of
+             case filter ((==) (parseCodename rel) . releaseName) rels of
                [] -> error $ "Attempt to create alias in non-existant release: " ++ rel
                [release] ->
-                   case elem (parseReleaseName alias) (releaseAliases release) of
-                     False -> prepareRelease repo (parseReleaseName rel) (releaseAliases release ++ [parseReleaseName alias])
+                   case elem (parseCodename alias) (releaseAliases release) of
+                     False -> prepareRelease repo (parseCodename rel) (releaseAliases release ++ [parseCodename alias])
                                (releaseComponents release) (releaseArchitectures release)
                      True -> return release
                _ -> error $ "Internal error 3"
@@ -183,14 +191,14 @@ exitOnError _ = return ()
 -- |Return the list of releases in the repository at root, creating
 -- the ones in the dists list with the given components and
 -- architectures.
-getReleases :: MonadRepos s m => EnvPath -> Maybe Layout -> [ReleaseName] -> [Section] -> Set Arch -> m Release
+getReleases :: (MonadIO m, MonadRepos s m) => EnvPath -> Maybe Layout -> [Codename] -> [Section] -> Set Arch -> m Release
 getReleases root' layout' dists section' archSet' =
     do repo <- readLocalRepository root' layout' >>= maybe (error $ "Invalid repository location: " ++ show (outsidePath root')) return
        existingReleases <- findReleases repo
        requiredReleases <- mapM (\ dist -> prepareRelease repo dist [] section' archSet') dists
        return $ mergeReleases repo (existingReleases ++ requiredReleases)
 
-deletePackages :: MonadInstall s m => Bool -> [Release] -> Params -> Maybe PGPKey -> m [Release]
+deletePackages :: (MonadIO m, Show e, HasIOException e, HasParseError e, MonadError e m, MonadInstall s m) => Bool -> [Release] -> Params -> Maybe PGPKey -> m [Release]
 deletePackages dry rels flags keyname =
     deleteSourcePackages dry keyname toRemove
     where
@@ -205,11 +213,11 @@ deletePackages dry rels flags keyname =
                       (\ release -> (release,
                                      PackageIndex (parseSection' component) Source,
                                      makeBinaryPackageID name (parseDebianVersion' ver)))
-                      (findReleaseByName (parseReleaseName dist))
+                      (findReleaseByName (parseCodename dist))
             x -> error ("Invalid remove spec: " ++ show x)
-      findReleaseByName :: ReleaseName -> Maybe Release
+      findReleaseByName :: Codename -> Maybe Release
       findReleaseByName dist =
           case filter (\ rel -> releaseName rel == dist) rels of
             [] -> Nothing
             [release] -> (Just release)
-            _ -> error ("Multiple releases with name " ++ releaseName' dist)
+            _ -> error ("Multiple releases with name " ++ codename dist)

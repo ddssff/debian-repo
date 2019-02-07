@@ -1,37 +1,43 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, ScopedTypeVariables, TemplateHaskell, TypeFamilies #-}
 module Debian.Repo.Rsync
     ( RsyncError(..)
+    , HasRsyncError(fromRsyncError)
     , rsync
     , rsyncOld
+    , rsyncOld'
     ) where
 
-import Control.Exception (Exception, SomeException, throw, toException, try)
-import Control.Monad.Trans (MonadIO, liftIO)
+import Control.Exception (Exception, IOException)
+import Control.Monad.Catch (MonadCatch)
+import Control.Monad.Except (ExceptT, liftEither, MonadError, MonadIO, runExceptT, throwError, withExceptT)
+import Control.Monad.Reader (MonadReader)
 import Data.ByteString.Lazy (ByteString)
-#if !MIN_VERSION_base(4,8,0)
-import Data.Monoid (mempty)
-#endif
+import Data.Function (on)
 import Data.Typeable (Typeable)
-import Debian.Repo.Prelude.Process (runV)
+import Debian.Except (HasIOException(fromIOException))
+--import Debian.Repo.OSKey (HasOSKey)
+import Debian.Repo.Prelude.Process (runV2)
+import Debian.TH (here)
+import Language.Haskell.TH.Syntax (Loc)
 import System.Exit (ExitCode(..))
 import System.FilePath (dropTrailingPathSeparator)
 import System.Process (CreateProcess, proc)
--- import System.Process.ListLike (readCreateProcess)
 
 -- | Function that invokes rsync(1) with arguments insuring that copy
 -- will become an exact copy of orig.
-rsync :: [String] -- Additional rsync arguments
+rsync :: forall e r m. (e ~ RsyncError, MonadReader r m, MonadError e m, MonadIO m, MonadCatch m)
+      => [String] -- Additional rsync arguments
       -> FilePath -- Original directory
       -> FilePath -- Copy (desitination) directory
-      -> IO ()
+      -> m ()
 rsync extra orig copy = do
   let p = proc "rsync" (["-aHxSpDt", "--delete"] ++ extra ++
                         [dropTrailingPathSeparator orig ++ "/",
                          dropTrailingPathSeparator copy])
-  result <- try $ runV p mempty :: IO (Either RsyncError (ExitCode, ByteString, ByteString))
+  result <- {-wrapIO-} (runV2 $here p mempty :: m (ExitCode, ByteString, ByteString))
   case result of
-    Right (code, _out, _err) -> maybe (return ()) (throw . toException) (buildRsyncError p code)
-    Left e -> throw e
+    (code, _out, _err) -> maybe (return ()) (throwError . fromRsyncError) (buildRsyncError p code)
+    -- Left e -> throwError $ wrapIOException e
 
 -- | Map the result code of a chunk list.
 instance Exception RsyncError
@@ -57,8 +63,12 @@ data RsyncError
     | TheMaxDeleteLimitStoppedDeletions
     | TimeoutInDataSendReceive
     | TimeoutWaitingForDaemonConnection
+    | RsyncIOException Loc IOException
     | RsyncUnexpected Int
-    deriving (Typeable, Show)
+    deriving (Typeable, Show, Eq, Ord)
+
+instance Ord IOException where
+    compare = compare `on` show
 
 -- | Extract an rsync error constructor
 buildRsyncError :: CreateProcess -> ExitCode -> Maybe RsyncError
@@ -95,11 +105,48 @@ rsyncErrorInfo 30 = (TimeoutInDataSendReceive, "rsync: Timeout in data send/rece
 rsyncErrorInfo 35 = (TimeoutWaitingForDaemonConnection, "rsync: Timeout waiting for daemon connection")
 rsyncErrorInfo n = (RsyncUnexpected n, "Unexpected rsync error: " ++ show n)
 
+class HasRsyncError e where fromRsyncError :: RsyncError -> e
+instance HasRsyncError RsyncError where fromRsyncError = id
+
+instance HasIOException RsyncError where fromIOException loc = RsyncIOException loc
+--instance HasWrappedIOException RsyncError where wrapIOException = RsyncIOException $here
+
 -- | For backwards compatibility
+#if 0
 rsyncOld :: forall m. MonadIO m =>
             [String] -- Additional rsync arguments
          -> FilePath -- Original directory
          -> FilePath -- Copy (desitination) directory
-         -> m (Either SomeException ExitCode, String, String)
+         -> m (Either IOException ExitCode, String, String)
 rsyncOld extra orig copy =
-    liftIO $ try (rsync extra orig copy) >>= return . either (\ (e :: SomeException) -> (Left e, mempty, mempty)) (\ () -> (Right ExitSuccess, mempty, mempty))
+    (over _1 Right <$> rsync extra orig copy) `catchError` (\(RsyncIOException e :: RsyncError) -> (Left e, mempty, mempty))
+    -- rsync extra orig copy >>= return . either (\ (e :: IOException) -> (Left e, mempty, mempty)) (\ () -> (Right ExitSuccess, mempty, mempty))
+#else
+rsyncOld :: forall e m. (MonadIO m, MonadCatch m, HasRsyncError e, MonadError e m)
+      => [String] -- Additional rsync arguments
+      -> FilePath -- Original directory
+      -> FilePath -- Copy (desitination) directory
+      -> m (Either IOException ExitCode, String, String)
+rsyncOld extra orig copy = do
+  let p = proc "rsync" (["-aHxSpDt", "--delete"] ++ extra ++
+                        [dropTrailingPathSeparator orig ++ "/",
+                         dropTrailingPathSeparator copy])
+  result <- {-wrapIO-} (runV2 $here p mempty :: m (ExitCode, String, String))
+  case result of
+    (code, out, err) -> maybe (return (Right code, out, err)) (throwError . fromRsyncError) (buildRsyncError p code)
+    -- Left e -> throwError $ wrapIOException e
+#endif
+
+rsyncOld' ::
+    forall e m. (MonadIO m, MonadCatch m, HasRsyncError e, MonadError e m)
+    => [String] -- Additional rsync arguments
+    -> FilePath -- Original directory
+    -> FilePath -- Copy (desitination) directory
+    -> m (Either IOException ExitCode, String, String)
+rsyncOld' extra orig copy =
+    action'
+    where
+      action' :: m (Either IOException ExitCode, String, String)
+      action' = liftEither =<< runExceptT (withExceptT fromRsyncError action)
+      action :: forall m'. (MonadIO m', MonadCatch m'{-, MonadReader r m'-}) => ExceptT RsyncError m' (Either IOException ExitCode, String, String)
+      action = rsyncOld extra orig copy

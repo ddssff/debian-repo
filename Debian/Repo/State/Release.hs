@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, OverloadedStrings, TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts, OverloadedStrings, RankNTypes, TemplateHaskell #-}
 {-# OPTIONS -fno-warn-name-shadowing #-}
 module Debian.Repo.State.Release
     ( flushLocalRepository
@@ -22,9 +22,10 @@ import Data.Set (Set, toList, unions)
 import Data.Text as T (intercalate, pack, Text)
 import Data.Time (getCurrentTime)
 import Debian.Arch (Arch(..), prettyArch)
+import Debian.Codename (Codename, codename)
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile), Field'(Field), fieldValue, Paragraph'(..))
 import Debian.Pretty (ppShow, prettyShow)
-import Debian.Release (ReleaseName, releaseName', Section, sectionName')
+import Debian.Release (Section, sectionName')
 import Debian.Repo.EnvPath (outsidePath)
 import Debian.Repo.MonadRepos (MonadRepos, findRelease, putRelease)
 import qualified Debian.Repo.Prelude.GPGSign as EG (cd, PGPKey, pgpSignFiles)
@@ -34,6 +35,7 @@ import qualified Debian.Repo.Prelude.Time as ET (formatDebianDate)
 import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (parseArchitectures, parseComponents, Release(..))
 import Debian.Repo.State.Repository (repairLocalRepository)
+import Debian.TH (here)
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath ((</>))
 import qualified System.FilePath.Extra2 as EF (maybeWriteFile, prepareSymbolicLink, writeAndZipFile)
@@ -43,7 +45,7 @@ import System.Unix.Directory (removeRecursiveSafely)
 
 -- | Remove all the packages from the repository and then re-create
 -- the empty releases.
-flushLocalRepository :: MonadRepos s m => LocalRepository -> m LocalRepository
+flushLocalRepository :: (MonadIO m, MonadRepos s m) => LocalRepository -> m LocalRepository
 flushLocalRepository r =
     do liftIO $ removeRecursiveSafely (outsidePath (view repoRoot r))
        r' <- repairLocalRepository r
@@ -54,22 +56,22 @@ flushLocalRepository r =
 
 -- The return value might not be the same as the input due to cached
 -- values in the monad.
-prepareRelease' :: MonadRepos s m => LocalRepository -> Release -> m Release
+prepareRelease' :: (MonadIO m, MonadRepos s m) => LocalRepository -> Release -> m Release
 prepareRelease' repo rel = prepareRelease repo (releaseName rel) (releaseAliases rel) (releaseComponents rel) (releaseArchitectures rel)
 
 -- | Find or create a (local) release.
-prepareRelease :: MonadRepos s m => LocalRepository -> ReleaseName -> [ReleaseName] -> [Section] -> Set Arch -> m Release
-prepareRelease repo dist aliases sections archSet =
-    -- vPutStrLn 0 ("prepareRelease " ++ name ++ ": " ++ show repo ++ " sections " ++ show sections) >>
+prepareRelease :: forall s m. (MonadIO m, MonadRepos s m) => LocalRepository -> Codename -> [Codename] -> [Section] -> Set Arch -> m Release
+prepareRelease repo dist aliases sections archSet = do
+    qPutStrLn ("prepareRelease repo=" ++ show repo ++ " dist=" ++ show dist ++ " aliases=" ++ show aliases ++ " sections " ++ show sections)
     findRelease repo dist >>= maybe prepare (const prepare) -- return -- JAS - otherwise --create-section does not do anything
     where
-      prepare :: MonadRepos s m => m Release
       prepare =
           do -- FIXME: errors get discarded in the mapM calls here
              let release = Release { releaseName = dist
                                    , releaseAliases = aliases
                                    , releaseComponents = sections
                                    , releaseArchitectures = archSet }
+             qPutStrLn (prettyShow $here <> " - release=" <> show release)
              -- vPutStrLn 0 ("packageIndexList: " ++ show (packageIndexList release))
              _ <- mapM (initIndex (outsidePath root) release) (packageIndexes release)
              mapM_ (initAlias (outsidePath root) dist) aliases
@@ -86,7 +88,7 @@ prepareRelease repo dist aliases sections archSet =
              liftIO $ setFileMode dir 0o040755
              ensureIndex (dir </> name)
       initAlias root' dist alias =
-          liftIO $ EF.prepareSymbolicLink (releaseName' dist) (root' </> "dists" </> releaseName' alias)
+          liftIO $ EF.prepareSymbolicLink (codename dist) (root' </> "dists" </> codename alias)
       root = view repoRoot repo
 
 -- | Make sure an index file exists.
@@ -124,7 +126,7 @@ writeRelease repo release =
       writeIndex root release index =
           do let para =
                      S.Paragraph
-                          [S.Field ("Archive", pack . releaseName' . releaseName $ release),
+                          [S.Field ("Archive", pack . codename . releaseName $ release),
                            S.Field ("Component", pack $ sectionName' (packageIndexComponent index)),
                            S.Field ("Architecture", pack $ show (prettyArch (packageIndexArch index))),
                            S.Field ("Origin", " SeeReason Partners LLC"),
@@ -146,8 +148,8 @@ writeRelease repo release =
              timestamp <- liftIO (getCurrentTime >>= return . ET.formatDebianDate)
              let para = S.Paragraph [S.Field ("Origin", " SeeReason Partners"),
                                      S.Field ("Label", " SeeReason"),
-                                     S.Field ("Suite", " " <> (pack . releaseName' . releaseName $ release)),
-                                     S.Field ("Codename", " " <> (pack . releaseName' . releaseName $ release)),
+                                     S.Field ("Suite", " " <> (pack . codename . releaseName $ release)),
+                                     S.Field ("Codename", " " <> (pack . codename . releaseName $ release)),
                                      S.Field ("Date", " " <> pack timestamp),
                                      S.Field ("Architectures", " " <> (T.intercalate " " . map (pack . ppShow) . toList . releaseArchitectures $ release)),
                                      S.Field ("Components", " " <> (T.intercalate " " . map (pack . sectionName') . releaseComponents $ release)),
@@ -155,7 +157,7 @@ writeRelease repo release =
                                      S.Field ("MD5Sum", "\n" <> pack md5sums),
                                      S.Field ("SHA1", "\n" <> pack sha1sums),
                                      S.Field ("SHA256", "\n" <> pack sha256sums)] :: S.Paragraph' Text
-             let path = "dists" </> (releaseName' . releaseName $ release) </> "Release"
+             let path = "dists" </> (codename . releaseName $ release) </> "Release"
              liftIO $ EF.maybeWriteFile (root </> path) (prettyShow para)
              return path
       indexPaths release index | packageIndexArch index == Source =
@@ -182,16 +184,15 @@ mergeReleases _repo releases =
       architectures = unions . map releaseArchitectures $ releases
 
 -- | Find all the releases in a repository.
-findReleases :: MonadRepos s m => LocalRepository -> m [Release]
+findReleases :: (MonadIO m, MonadRepos s m) => LocalRepository -> m [Release]
 findReleases repo = mapM (findLocalRelease repo) (view repoReleaseInfoLocal repo)
 
-findLocalRelease :: MonadRepos s m => LocalRepository -> Release -> m Release
+findLocalRelease :: forall s m. (MonadIO m, MonadRepos s m) => LocalRepository -> Release -> m Release
 findLocalRelease repo releaseInfo =
     findRelease repo dist >>= maybe readRelease return
     where
-      readRelease :: MonadRepos s m => m Release
       readRelease =
-          do let path = (outsidePath (view repoRoot repo) </> "dists" </> releaseName' dist </> "Release")
+          do let path = (outsidePath (view repoRoot repo) </> "dists" </> codename dist </> "Release")
              info <- liftIO $ S.parseControlFromFile path
              case info of
                Right (S.Control (paragraph : _)) ->

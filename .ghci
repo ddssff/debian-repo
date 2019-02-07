@@ -1,0 +1,6 @@
+:set -i.:../debian-haskell
+:set -XTemplateHaskell
+:m +Control.Lens
+:m +Data.Maybe
+:m +Network.URI
+:set prompt "λ> "

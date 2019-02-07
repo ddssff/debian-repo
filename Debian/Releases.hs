@@ -40,9 +40,9 @@ import Control.Lens (makeLenses, over, Prism', prism, review, view)
 import Data.Char (toLower)
 import Data.List (groupBy)
 import Data.Set as Set (fromList, map, Set)
-import Debian.Release (ReleaseName(ReleaseName))
-import Debian.Sources (VendorURI, vendorURI)
+import Debian.Codename (Codename, codename, parseCodename)
 import Debian.URI (nullURI, parentURI, showURI, URI(..), uriPathLens)
+import Debian.VendorURI (VendorURI, vendorURI)
 import System.FilePath((</>))
 import Test.HUnit
 import Test.QuickCheck (Arbitrary(arbitrary), elements, oneof)
@@ -156,49 +156,49 @@ instance HasBaseRelease UbuntuRelease where
 
 #if 0
 data BaseRelease =
-    BaseRelease {_vendor :: BaseVendor, _releaseName :: ReleaseName}
+    BaseRelease {_vendor :: BaseVendor, _releaseName :: Codename}
     deriving (Eq, Ord, Show)
 
 baseReleaseList :: [BaseRelease]
 baseReleaseList =
     -- Oldest first
-    [ BaseRelease Debian (ReleaseName "sarge") -- 2005/6
-    , BaseRelease Debian (ReleaseName "etch") -- 2007/4
-    , BaseRelease Debian (ReleaseName "lenny") -- 2009/2
-    , BaseRelease Debian (ReleaseName "squeeze") -- 2011/2
-    , BaseRelease Debian (ReleaseName "wheezy") -- 2013/5
-    , BaseRelease Debian (ReleaseName "jessie") -- 2015/04
-    , BaseRelease Debian (ReleaseName "stretch")
-    , BaseRelease Debian (ReleaseName "buster")
-    , BaseRelease Debian (ReleaseName "bullseye")
-    , BaseRelease Debian (ReleaseName "sid") -- always current
-    , BaseRelease Debian (ReleaseName "experimental") -- always current (but actually not a base release,
+    [ BaseRelease Debian (Codename "sarge") -- 2005/6
+    , BaseRelease Debian (Codename "etch") -- 2007/4
+    , BaseRelease Debian (Codename "lenny") -- 2009/2
+    , BaseRelease Debian (Codename "squeeze") -- 2011/2
+    , BaseRelease Debian (Codename "wheezy") -- 2013/5
+    , BaseRelease Debian (Codename "jessie") -- 2015/04
+    , BaseRelease Debian (Codename "stretch")
+    , BaseRelease Debian (Codename "buster")
+    , BaseRelease Debian (Codename "bullseye")
+    , BaseRelease Debian (Codename "sid") -- always current
+    , BaseRelease Debian (Codename "experimental") -- always current (but actually not a base release,
                                           -- not complete.  Is experimental an add-on to sid?)
     -- Ubuntu releases
-    , BaseRelease Ubuntu (ReleaseName "dapper") -- 2006/10
-    , BaseRelease Ubuntu (ReleaseName "edgy") -- 2007/4
-    , BaseRelease Ubuntu (ReleaseName "feisty") -- 2007/10
-    , BaseRelease Ubuntu (ReleaseName "hardy") -- 2008/4
-    , BaseRelease Ubuntu (ReleaseName "intrepid") -- 2008/10
-    , BaseRelease Ubuntu (ReleaseName "jaunty") -- 2009/4
-    , BaseRelease Ubuntu (ReleaseName "karmic") -- 2009/10
-    , BaseRelease Ubuntu (ReleaseName "lucid") -- 2010/4
-    , BaseRelease Ubuntu (ReleaseName "maverick") -- 2010/10
-    , BaseRelease Ubuntu (ReleaseName "natty") -- 2011/4
-    , BaseRelease Ubuntu (ReleaseName "oneiric") -- 2011/10
-    , BaseRelease Ubuntu (ReleaseName "precise") -- 2012/4
-    , BaseRelease Ubuntu (ReleaseName "quantal") -- 2012/10
-    , BaseRelease Ubuntu (ReleaseName "raring") -- 2013/4
-    , BaseRelease Ubuntu (ReleaseName "saucy") -- 2013/10
-    , BaseRelease Ubuntu (ReleaseName "trusty") -- 2014/4
-    , BaseRelease Ubuntu (ReleaseName "utopic") -- 2014/10
-    , BaseRelease Ubuntu (ReleaseName "vivid") -- 2015/04
-    , BaseRelease Ubuntu (ReleaseName "wily") -- 2015/10
-    , BaseRelease Ubuntu (ReleaseName "xenial") -- 2016/04
-    , BaseRelease Ubuntu (ReleaseName "yakkety") -- 2016/10
-    , BaseRelease Ubuntu (ReleaseName "zesty") -- 2017/04
-    , BaseRelease Ubuntu (ReleaseName "artful") -- 2017/10
-    , BaseRelease Ubuntu (ReleaseName "bionic") -- 2018/04
+    , BaseRelease Ubuntu (Codename "dapper") -- 2006/10
+    , BaseRelease Ubuntu (Codename "edgy") -- 2007/4
+    , BaseRelease Ubuntu (Codename "feisty") -- 2007/10
+    , BaseRelease Ubuntu (Codename "hardy") -- 2008/4
+    , BaseRelease Ubuntu (Codename "intrepid") -- 2008/10
+    , BaseRelease Ubuntu (Codename "jaunty") -- 2009/4
+    , BaseRelease Ubuntu (Codename "karmic") -- 2009/10
+    , BaseRelease Ubuntu (Codename "lucid") -- 2010/4
+    , BaseRelease Ubuntu (Codename "maverick") -- 2010/10
+    , BaseRelease Ubuntu (Codename "natty") -- 2011/4
+    , BaseRelease Ubuntu (Codename "oneiric") -- 2011/10
+    , BaseRelease Ubuntu (Codename "precise") -- 2012/4
+    , BaseRelease Ubuntu (Codename "quantal") -- 2012/10
+    , BaseRelease Ubuntu (Codename "raring") -- 2013/4
+    , BaseRelease Ubuntu (Codename "saucy") -- 2013/10
+    , BaseRelease Ubuntu (Codename "trusty") -- 2014/4
+    , BaseRelease Ubuntu (Codename "utopic") -- 2014/10
+    , BaseRelease Ubuntu (Codename "vivid") -- 2015/04
+    , BaseRelease Ubuntu (Codename "wily") -- 2015/10
+    , BaseRelease Ubuntu (Codename "xenial") -- 2016/04
+    , BaseRelease Ubuntu (Codename "yakkety") -- 2016/10
+    , BaseRelease Ubuntu (Codename "zesty") -- 2017/04
+    , BaseRelease Ubuntu (Codename "artful") -- 2017/10
+    , BaseRelease Ubuntu (Codename "bionic") -- 2018/04
     ]
 #endif
 
@@ -213,6 +213,7 @@ baseVendorString = prism f g
 
 data ExtendedRelease = SeeReason84 | SeeReason86 deriving (Eq, Ord, Show, Enum, Bounded)
 
+extendedReleaseVendorName :: ExtendedRelease -> String
 extendedReleaseVendorName SeeReason84 = "seereason84"
 extendedReleaseVendorName SeeReason86 = "seereason86"
 
@@ -274,7 +275,7 @@ releaseString (UbuntuRelease name) = fmap toLower $ show name
 -- quickCheck prop_release_string
 prop_release_string :: ReleaseTree -> Bool
 prop_release_string r =
-    parseReleaseTree (ReleaseName $ releaseString r) == r
+    parseReleaseTree (parseCodename (releaseString r)) == r
 
 baseVendorName :: ReleaseTree -> String
 baseVendorName (PrivateRelease r) = baseVendorName r
@@ -317,11 +318,11 @@ tests =
 -- baseReleaseString :: BaseRelease -> String
 -- baseReleaseString = _releaseName
 
-parseReleaseTree :: ReleaseName -> ReleaseTree
-parseReleaseTree (ReleaseName s0) =
+parseReleaseTree :: Codename -> ReleaseTree
+parseReleaseTree c =
     parse xs0 (UbuntuRelease Bionic)
     where
-      xs0 = reverse (Prelude.filter (/= "-") (groupBy (\a b -> (a /= '-') && (b /= '-')) s0))
+      xs0 = reverse (Prelude.filter (/= "-") (groupBy (\a b -> (a /= '-') && (b /= '-')) (codename c)))
       parse :: [String] -> ReleaseTree -> ReleaseTree
       parse [] r = r
       parse ("private" : more) r = PrivateRelease (parse more r)

@@ -33,16 +33,18 @@ import Data.Monoid ((<>))
 import Data.Set as Set (map, filter, toList, unions)
 import Data.Text (Text)
 import Debian.Arch (Arch(..), ArchOS(..), ArchCPU(..), prettyArch)
+import Debian.Codename (codename)
 import qualified Debian.Control.Text as T
 import Debian.Relation (BinPkgName(..), SrcPkgName(..))
 import qualified Debian.Relation as B (Relations)
 import Debian.Pretty (PP(..), ppPrint)
-import Debian.Release (releaseName', Section(..), sectionName')
+import Debian.Release (Section(..), sectionName')
 import Debian.Repo.PackageID (PackageID(packageName, packageVersion), prettyPackageID)
 import Debian.Repo.Release (Release(..))
 import System.FilePath ((</>))
 import System.Posix.Types (FileOffset)
-import Text.PrettyPrint.HughesPJClass (Doc, Pretty(pPrint), text)
+import Text.PrettyPrint.HughesPJClass (Doc, text)
+import Distribution.Pretty (Pretty(pretty))
 
 -- | A package index is identified by Section (e.g. main, contrib,
 -- non-free) and architecture (e.g. source, i386, amd64.)
@@ -52,18 +54,18 @@ data PackageIndex
                    } deriving (Eq, Ord, Show)
 
 instance Pretty (PP PackageIndex) where
-    pPrint (PP x) = ppPrint (packageIndexComponent x) <> text "_" <> ppPrint (packageIndexArch x)
+    pretty (PP x) = ppPrint (packageIndexComponent x) <> text "_" <> ppPrint (packageIndexArch x)
 
 instance Pretty (PP Section) where
-    pPrint (PP (Section x)) = text x
+    pretty (PP (Section x)) = text x
 
 instance Pretty (PP Arch) where
-    pPrint (PP Source) = text "source"
-    pPrint (PP All) = text "all"
-    pPrint (PP (Binary ArchOSAny ArchCPUAny)) = text "any"
-    pPrint (PP (Binary (ArchOS os) ArchCPUAny)) = ppPrint os
-    pPrint (PP (Binary ArchOSAny (ArchCPU cpu))) = ppPrint cpu
-    pPrint (PP (Binary (ArchOS os) (ArchCPU cpu))) = ppPrint (os <> "-" <> cpu)
+    pretty (PP Source) = text "source"
+    pretty (PP All) = text "all"
+    pretty (PP (Binary ArchOSAny ArchCPUAny)) = text "any"
+    pretty (PP (Binary (ArchOS os) ArchCPUAny)) = ppPrint os
+    pretty (PP (Binary ArchOSAny (ArchCPU cpu))) = ppPrint cpu
+    pretty (PP (Binary (ArchOS os) (ArchCPU cpu))) = ppPrint (os <> "-" <> cpu)
 
 {-
 instance PackageVersion BinaryPackage where
@@ -155,7 +157,7 @@ packageIndexDir release index =
             "binary-" ++ show (prettyArch (packageIndexArch index)))
 
 releaseDir :: Release -> String
-releaseDir release = "dists" </> (releaseName' . releaseName $ release)
+releaseDir release = "dists" </> (codename . releaseName $ release)
 
 packageIndexPaths :: Release -> [FilePath]
 packageIndexPaths release = List.map (packageIndexPath release) . packageIndexes $ release

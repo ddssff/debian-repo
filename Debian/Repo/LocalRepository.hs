@@ -18,8 +18,11 @@ module Debian.Repo.LocalRepository
 import Control.Applicative ((<$>))
 #endif
 import Control.Applicative.Error (Failing(Success, Failure))
-import Control.Exception (SomeException)
+import Control.Exception (IOException)
 import Control.Lens (makeLenses, to, view)
+import Control.Monad.Catch (MonadCatch)
+import Control.Monad.Except (catchError, ExceptT, liftEither, MonadError, runExceptT, withExceptT)
+--import Control.Monad.Reader (MonadReader)
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString.Lazy as L (ByteString, empty)
 import Data.List (groupBy, isPrefixOf, partition, sort, sortBy)
@@ -28,23 +31,27 @@ import qualified Data.Set as Set (fromList, member)
 import Data.Text as T (unpack)
 import Debian.Arch (parseArch)
 import Debian.Changes (ChangedFileSpec(changedFileName, changedFileSection), ChangesFile(changeDir, changeFiles, changeInfo, changePackage, changeRelease, changeVersion))
+import Debian.Codename (Codename, codename, parseCodename)
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile), fieldValue)
 import qualified Debian.Control.Text as T (fieldValue)
+import Debian.Except (HasIOException, liftEIO)
 import Debian.Pretty (PP(..))
-import Debian.Release (parseReleaseName, ReleaseName(..), releaseName', Section(..), sectionName', SubSection(section))
+import Debian.Release (Section(..), sectionName', SubSection(section))
 import Debian.Releases (ReleaseURI, vendorFromReleaseURI)
 import Debian.Repo.Changes (changeKey, changePath, findChangesFiles)
 import Debian.Repo.EnvPath (EnvPath, envPath, outsidePath)
 import Debian.Repo.Fingerprint (readUpstreamFingerprint)
+--import Debian.Repo.OSKey (HasOSKey)
 import Debian.Repo.Prelude (cond, maybeWriteFile, partitionM, replaceFile)
-import Debian.Repo.Prelude.Process (runVE)
+import Debian.Repo.Prelude.Process (runV2)
 import Debian.Repo.Prelude.SSH (sshVerify)
 import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (parseReleaseFile, Release)
 import Debian.Repo.Repo (compatibilityFile, libraryCompatibilityLevel, Repo(..), RepoKey(..))
-import Debian.Repo.Rsync (rsyncOld)
-import Debian.Sources (VendorURI, vendorURI)
+import Debian.Repo.Rsync (HasRsyncError(fromRsyncError), RsyncError, rsyncOld)
+import Debian.TH (here)
 import Debian.URI (URI(uriAuthority, uriPath), URIAuth(uriPort, uriRegName, uriUserInfo), uriPathLens, uriToString')
+import Debian.VendorURI (VendorURI, vendorURI)
 import Debian.Version (parseDebianVersion', prettyDebianVersion)
 import Network.URI (URI(..))
 import System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
@@ -54,7 +61,8 @@ import qualified System.Posix.Files as F (createLink, getSymbolicLinkStatus, isS
 import System.Process (readProcessWithExitCode, CreateProcess(cwd, cmdspec), showCommandForUser, proc)
 import System.Process.ListLike (showCmdSpecForUser)
 import Text.Regex (matchRegex, mkRegex)
-import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text)
+import Text.PrettyPrint.HughesPJClass (text)
+import Distribution.Pretty (Pretty(pretty))
 
 data LocalRepository
     = LocalRepository
@@ -70,7 +78,7 @@ data Layout = Flat | Pool deriving (Eq, Ord, Read, Show, Bounded, Enum)
 $(makeLenses ''LocalRepository)
 
 instance Pretty (PP LocalRepository) where
-    pPrint (PP (LocalRepository root _ _)) =
+    pretty (PP (LocalRepository root _ _)) =
         text $ show $ URI { uriScheme = "file:"
                           , uriAuthority = Nothing
                           , uriPath = view envPath root
@@ -119,12 +127,12 @@ readLocalRepo root layout =
                                               , _repoReleaseInfoLocal = releaseInfo }
     where
       fstEq (a, _) (b, _) = a == b
-      checkAliases :: ([(String, String)], [(String, String)]) -> (ReleaseName, [ReleaseName])
-      checkAliases ([(realName, _)], aliases) = (parseReleaseName realName, map (parseReleaseName . snd) aliases)
+      checkAliases :: ([(String, String)], [(String, String)]) -> (Codename, [Codename])
+      checkAliases ([(realName, _)], aliases) = (parseCodename realName, map (parseCodename . snd) aliases)
       checkAliases _ = error "Symbolic link points to itself!"
-      getReleaseInfo :: (ReleaseName, [ReleaseName]) -> IO Release
+      getReleaseInfo :: (Codename, [Codename]) -> IO Release
       getReleaseInfo (dist, aliases) = parseReleaseFile (releasePath dist) dist aliases
-      releasePath dist = distDir </> releaseName' dist </> "Release"
+      releasePath dist = distDir </> codename dist </> "Release"
       distDir = outsidePath root </> "dists"
 
 isSymLink :: FilePath -> IO Bool
@@ -135,16 +143,24 @@ isSymLink path = F.getSymbolicLinkStatus path >>= return . F.isSymbolicLink
 -- repoCD :: EnvPath -> LocalRepository -> LocalRepository
 -- repoCD path repo = repo { repoRoot_ = path }
 
-copyLocalRepo :: MonadIO m => EnvPath -> LocalRepository -> m LocalRepository
+copyLocalRepo ::
+    forall e m. (MonadIO m, MonadCatch m,
+                 --HasOSKey r, MonadReader r m,
+                 HasRsyncError e, HasIOException e, MonadError e m)
+    => EnvPath -> LocalRepository -> m LocalRepository
 copyLocalRepo dest repo =
-    do liftIO $ createDirectoryIfMissing True (outsidePath dest)
-       (result :: (Either SomeException ExitCode, String, String)) <- rsyncOld [] (outsidePath (view repoRoot repo)) (outsidePath dest)
+    do liftEIO $here $ createDirectoryIfMissing True (outsidePath dest)
+       (result :: (Either IOException ExitCode, String, String)) <- action'
        case result of
          (Right ExitSuccess, _, _) -> return $ repo {_repoRoot = dest}
          code -> error $ "*** FAILURE syncing local repository " ++ src ++ " -> " ++ dst ++ ": " ++ show code
     where
       src = outsidePath (view repoRoot repo)
       dst = outsidePath dest
+      action' :: m (Either IOException ExitCode, String, String)
+      action' = liftEither =<< runExceptT (withExceptT fromRsyncError action)
+      action :: forall m'. (MonadIO m', MonadCatch m') => ExceptT RsyncError m' (Either IOException ExitCode, String, String)
+      action = rsyncOld [] (outsidePath (view repoRoot repo)) (outsidePath dest)
 
 -- | Create or update the compatibility level file for a repository.
 setRepositoryCompatibility :: LocalRepository -> IO ()
@@ -201,23 +217,27 @@ uriDest uri =
 
 -- | Upload all the packages in a local repository to a the incoming
 -- directory of a remote repository (using dupload.)
-uploadRemote :: LocalRepository         -- ^ Local repository holding the packages.
+uploadRemote ::
+    forall e m. (MonadIO m, MonadCatch m,
+                 --HasOSKey r, MonadReader r m,
+                 HasIOException e, Show e, MonadError e m)
+             => LocalRepository         -- ^ Local repository holding the packages.
              -> VendorURI               -- ^ URI of upload repository
-             -> IO [Failing (ExitCode, L.ByteString, L.ByteString)]
+             -> m [Failing (ExitCode, L.ByteString, L.ByteString)]
 uploadRemote repo uri =
     do let dir = (outsidePath root)
-       changesFiles <- findChangesFiles (outsidePath root)
+       changesFiles <- liftIO $ findChangesFiles (outsidePath root)
        let changesFileGroups = map (sortBy compareVersions) . groupByNameAndDist $ changesFiles
        let newestChangesFiles = catMaybes (map listToMaybe changesFileGroups)
        -- hPutStrLn stderr $ "Newest: " ++ show newestChangesFiles
        uploaded <- (Set.fromList .
                     map (\ [_, name', version, arch] -> (name', parseDebianVersion' version, parseArch arch)) .
                     catMaybes .
-                    map (matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.upload$"))) <$> getDirectoryContents dir
+                    map (matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.upload$"))) <$> (liftEIO $here (getDirectoryContents dir) :: m [FilePath] {-(MonadError WrappedIOException m' => m' [FilePath])-})
        let (readyChangesFiles, _uploadedChangesFiles) = partition (\ f -> not . Set.member (changeKey f) $ uploaded) newestChangesFiles
        -- hPutStrLn stderr $ "Uploaded: " ++ show uploadedChangesFiles
        -- hPutStrLn stderr $ "Ready: " ++ show readyChangesFiles
-       validChangesFiles <- mapM validRevision' readyChangesFiles
+       validChangesFiles <- mapM (liftEIO $here . validRevision') readyChangesFiles
        -- hPutStrLn stderr $ "Valid: " ++ show validChangesFiles
        mapM dupload' validChangesFiles
     where
@@ -254,8 +274,9 @@ uploadRemote repo uri =
             EQ -> compare (changeRelease a) (changeRelease b)
             x -> x
       --showReject (changes, tag) = Debian.Repo.Changes.name changes ++ ": " ++ tag
+      dupload' :: Failing ChangesFile -> m (Failing (ExitCode, L.ByteString, L.ByteString))
       dupload' (Failure x) = return (Failure x)
-      dupload' (Success c) = liftIO (dupload uri (outsidePath root) (changePath c))
+      dupload' (Success c) = dupload uri (outsidePath root) (changePath c)
 
 validRevision' :: ChangesFile -> IO (Failing ChangesFile)
 validRevision' c = validRevision
@@ -323,10 +344,11 @@ acceptM p tag (accept, reject) =
 
 -- |Run dupload on a changes file with an optional host (--to)
 -- argument.
-dupload :: VendorURI
+dupload :: (MonadIO m, MonadCatch m, Show e, MonadError e m)
+        => VendorURI
         -> FilePath     -- The directory containing the .changes file
         -> String       -- The name of the .changes file to upload
-        -> IO (Failing (ExitCode, L.ByteString, L.ByteString))
+        -> m (Failing (ExitCode, L.ByteString, L.ByteString))
 dupload uri dir changesFile  =
     case view (vendorURI . to uriAuthority) uri of
       Nothing -> error ("Invalid Upload-URI: " ++ show uri)
@@ -341,18 +363,17 @@ dupload uri dir changesFile  =
                       "};\n\n" ++
                       "$preupload{'changes'} = '';\n\n" ++
                       "1;\n")
-        replaceFile (dir ++ "/dupload.conf") config
+        liftIO $ replaceFile (dir ++ "/dupload.conf") config
         let cmd = (proc "dupload" ["--to", "default", "-c", (dir ++ "/dupload.conf"), changesFile]) {cwd = Just dir}
         qPutStrLn ("Uploading " ++ show changesFile)
-        chunks <- runVE cmd L.empty
-        case chunks of
-          (Right output@(ExitSuccess, _, _)) ->
-              return $ Success output
-          e ->
-              do let message = "dupload in " ++ dir ++ " failed: " ++ showCmdSpecForUser (cmdspec cmd) ++ " -> " ++
-                               {- either (\ (e :: SomeException) -> show e) (\ (chunks, _elapsed) -> show (collectProcessOutput chunks)) -} show e
-                 qPutStrLn message
-                 return $ Failure [message]
+        (runV2 $here cmd L.empty >>= \output -> case output of
+                                           (ExitSuccess, _, _) -> return $ Success output
+                                           _ -> return $ Failure [show output])
+          `catchError` (\(e :: e) -> do
+                          let message = "dupload in " ++ dir ++ " failed: " ++ showCmdSpecForUser (cmdspec cmd) ++ " -> " ++
+                                        {- either (\ (e :: SomeException) -> show e) (\ (chunks, _elapsed) -> show (collectProcessOutput chunks)) -} show e
+                          qPutStrLn message
+                          return $ Failure [message])
 
 #if 0
 ignore :: forall a. IO (Either String (ExitCode, L.ByteString, L.ByteString)) -> a -> IO (Either String (ExitCode, L.ByteString, L.ByteString))

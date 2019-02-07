@@ -1,30 +1,41 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE RankNTypes, ScopedTypeVariables, TemplateHaskell, TupleSections, TypeFamilies #-}
 -- |Print the available version numbers of a package.
 module Main where
 
-import Control.Monad.State (StateT)
-import Control.Monad.Trans (MonadIO(liftIO))
+import Control.Monad.Except (MonadError, runExceptT)
+import Control.Monad.Trans (MonadIO)
 import Data.Maybe (fromJust)
 import Debian.Arch (Arch(Binary), ArchCPU(..), ArchOS(..))
-import Debian.Repo.MonadRepos (ReposState, runReposT, putRelease)
+import Debian.Repo.LocalRepository (LocalRepository)
+import Debian.Repo.MonadRepos (MonadRepos, runReposT, putRelease)
+import Debian.Except (liftEIO)
+import Debian.Repo.RemoteRepository (RemoteRepository)
 import Debian.Repo.Repo (RepoKey(Remote), repoReleaseInfo)
 import Debian.Repo.State.Repository (foldRepository)
+import Debian.Repo.DebError (DebError)
+import Debian.TH (here)
 import Debian.URI (readURI')
 
 main :: IO ()
-main = runReposT main'
+main = do
+  r <- runExceptT (runReposT main')
+  case r of
+    Left (e :: DebError) -> putStrLn ("Versions - exception " ++ show e) >> return ()
+    Right () -> return ()
 
-main' :: StateT ReposState IO ()
+main' :: forall s e m. (MonadIO m, e ~ DebError, MonadError e m, MonadRepos s m) => m ()
 main' =
     foldRepository f g (Remote (fromJust (readURI' uri)))
     where
+      f :: LocalRepository -> m ()
       f repo =
           do releases <- mapM (putRelease repo) (repoReleaseInfo repo)
-             liftIO (putStrLn ("\n" ++ show releases))
+             liftEIO $here (putStrLn ("\n" ++ show releases))
+      g :: RemoteRepository -> m ()
       g repo =
           do releases <- mapM (putRelease repo) (repoReleaseInfo repo)
-             liftIO (putStrLn ("\n" ++ show releases))
+             liftEIO $here (putStrLn ("\n" ++ show releases))
 {-
     do repo <- prepareRepository (Remote (fromJust (readURI' uri)))
        releases <- mapM (insertRelease repo) (repoReleaseInfo repo)

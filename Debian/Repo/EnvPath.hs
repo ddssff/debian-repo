@@ -10,7 +10,8 @@ module Debian.Repo.EnvPath
 
 import Control.Lens (makeLenses, over)
 import Debian.Pretty (PP(PP))
-import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text)
+import Text.PrettyPrint.HughesPJClass (text)
+import Distribution.Pretty (Pretty(pretty))
 
 -- |The root directory of an OS image.
 data EnvRoot = EnvRoot { _rootPath :: FilePath } deriving (Ord, Eq, Read, Show)
@@ -33,4 +34,4 @@ rootEnvPath :: FilePath -> EnvPath
 rootEnvPath s = EnvPath { _envRoot = EnvRoot "", _envPath = s }
 
 instance Pretty (PP EnvRoot) where
-    pPrint (PP x) = text (_rootPath x)
+    pretty (PP x) = text (_rootPath x)

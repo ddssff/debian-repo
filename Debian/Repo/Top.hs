@@ -19,7 +19,7 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Lens (_1, Getter, view)
 import Control.Monad.Reader (MonadReader)
-import Debian.Release (ReleaseName(relName))
+import Debian.Codename (Codename, codename)
 import System.FilePath ((</>), isRelative)
 
 newtype TopDir = TopDir FilePath
@@ -40,9 +40,9 @@ dists = sub "dists"
 
 -- | The directory in a repository where the package index files for a
 -- particular dist or release is stored.  (Wait, that's not right.)
-distDir :: MonadTop r m => ReleaseName -> m FilePath
-distDir rel = (</> relName rel) <$> dists
+distDir :: MonadTop r m => Codename -> m FilePath
+distDir c = (</> codename c) <$> dists
 
 -- | The path of the text file containing the sources.list (aka SliceList)
-sourcesPath :: MonadTop r m => ReleaseName -> m FilePath
+sourcesPath :: MonadTop r m => Codename -> m FilePath
 sourcesPath rel = (</> "sources") <$> distDir rel

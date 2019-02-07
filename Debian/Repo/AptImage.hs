@@ -13,7 +13,9 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Category ((.))
 import Control.Lens (view)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Catch (MonadCatch)
+import Control.Monad.Except (MonadError)
+import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString as B
 import Data.Data (Data)
 import Data.Typeable (Typeable)
@@ -26,6 +28,7 @@ import Debian.Repo.MonadApt (aptImageRoot, aptImageSources)
 import Debian.Repo.MonadRepos (getApt, MonadRepos)
 import Debian.Repo.Slice (NamedSliceList(sliceListName))
 import Debian.Repo.Top (distDir, MonadTop)
+import Debian.TH (here)
 import Debian.Version (DebianVersion, prettyDebianVersion)
 import Prelude hiding ((.))
 import System.Directory (createDirectoryIfMissing)
@@ -69,20 +72,20 @@ data SourcesChangedAction =
 -- | Run an apt-get command in a particular directory with a
 -- particular list of packages.  Note that apt-get source works for
 -- binary or source package names.
-aptGetSource :: (MonadRepos s m, MonadApt r m, PkgName n) => FilePath -> [(n, Maybe DebianVersion)] -> m ()
+aptGetSource :: (MonadIO m, MonadCatch m, MonadRepos s m, MonadApt r m, PkgName n, MonadError e m) => FilePath -> [(n, Maybe DebianVersion)] -> m ()
 aptGetSource dir packages =
     do args <- aptOpts
        let p = (proc "apt-get" (args ++ ["source"] ++ map formatPackage packages)) {cwd = Just dir}
-       liftIO (createDirectoryIfMissing True dir) >> runV p B.empty >> return ()
+       liftIO (createDirectoryIfMissing True dir) >> runV $here p B.empty >> return ()
     where
       formatPackage (name, Nothing) = ppShow name
       formatPackage (name, Just version) = ppShow name ++ "=" ++ show (prettyDebianVersion version)
 
-aptGetUpdate :: (MonadRepos s m, MonadApt r m) => m ()
+aptGetUpdate :: (MonadIO m, MonadCatch m, MonadRepos s m, MonadApt r m, MonadError e m) => m ()
 aptGetUpdate =
     do args <- aptOpts
        let p = (proc "apt-get" (args ++ ["update"]))
-       _ <- runQE p B.empty
+       _ <- runQE $here p B.empty
        return ()
 
 aptOpts :: (MonadRepos s m, MonadApt r m) => m [String]

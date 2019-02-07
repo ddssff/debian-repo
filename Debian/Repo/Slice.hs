@@ -22,6 +22,7 @@ module Debian.Repo.Slice
     ) where
 
 import Control.Exception (Exception)
+import Control.Lens (view)
 import Data.Data (Data)
 import Data.List (intersperse)
 #if !MIN_VERSION_base(4,8,0)
@@ -30,13 +31,14 @@ import Data.Monoid (mempty)
 import Data.Text (Text)
 import Data.Text.IO as Text (putStr, hPutStr)
 import Data.Typeable (Typeable)
-import Debian.Release (ReleaseName(relName))
+import Debian.Codename (Codename, codename)
 import Debian.Repo.Prelude (replaceFile)
 import Debian.Repo.Prelude.Verbosity (ePutStr, ePutStrLn)
 import Debian.Repo.Repo (RepoKey(Remote))
-import Debian.Sources (DebSource(..), SliceName, SourceType(..), parseSourcesList)
+import Debian.Sources (DebSource(..), SourceType(..), parseSourcesList)
 import Debian.TH (here)
 import Debian.URI (toURI')
+import Debian.VendorURI (vendorURI)
 import System.Directory (createDirectoryIfMissing, removeFile)
 import System.Exit (ExitCode)
 import System.FilePath ((</>))
@@ -45,31 +47,32 @@ import System.Process (proc)
 import System.Process.ListLike (readCreateProcess, Chunk(..), collectOutput)
 import System.Process.Text ()
 import System.Unix.Directory (removeRecursiveSafely)
-import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), hcat, text, prettyShow)
+import Text.PrettyPrint.HughesPJClass (hcat, text)
+import Distribution.Pretty
 
 data Slice = Slice {sliceRepoKey :: RepoKey, sliceSource :: DebSource} deriving (Eq, Ord, Show)
 
 instance Pretty Slice where
-    pPrint x@(Slice {}) = pPrint $ sliceSource $ x
+    pretty x@(Slice {}) = pretty $ sliceSource $ x
 
 data PPASlice = PersonalPackageArchive {ppaUser :: String, ppaName :: String} deriving (Eq, Ord, Show)
 
 instance Pretty PPASlice where
-    pPrint x@(PersonalPackageArchive {}) = text ("ppa:" ++ ppaUser x </> ppaName x)
+    pretty x@(PersonalPackageArchive {}) = text ("ppa:" ++ ppaUser x </> ppaName x)
 
 -- | Each line of the sources.list represents a slice of a repository
 data SliceList = SliceList {slices :: [Slice]} deriving (Eq, Ord, Show)
 
 data NamedSliceList
     = NamedSliceList { sliceList :: SliceList
-                     , sliceListName :: SliceName
+                     , sliceListName :: Codename
                      } deriving (Eq, Ord, Show)
 
 instance Pretty SliceList where
-    pPrint = hcat . intersperse (text "\n") . map pPrint . slices
+    pretty = hcat . intersperse (text "\n") . map pretty . slices
 
 instance Pretty NamedSliceList where
-    pPrint = pPrint . sliceList
+    pretty = pretty . sliceList
 
 sourceSlices :: SliceList -> SliceList
 sourceSlices = SliceList . filter ((== DebSrc) . sourceType . sliceSource) . slices
@@ -80,7 +83,7 @@ binarySlices = SliceList . filter ((== Deb) . sourceType . sliceSource) . slices
 inexactPathSlices :: SliceList -> SliceList
 inexactPathSlices = SliceList . filter (either (const False) (const True) . sourceDist . sliceSource) . slices
 
-releaseSlices :: ReleaseName -> SliceList -> SliceList
+releaseSlices :: Codename -> SliceList -> SliceList
 releaseSlices release list =
     SliceList . filter (isRelease . sourceDist . sliceSource) $ (slices list)
     where isRelease = either (const False) (\ (x, _) -> x == release)
@@ -115,8 +118,8 @@ readRelease uri name =
 -}
 
 data UpdateError
-    = Changed ReleaseName FilePath SliceList SliceList
-    | Missing ReleaseName FilePath
+    = Changed Codename FilePath SliceList SliceList
+    | Missing Codename FilePath
     | Flushed
     deriving Typeable
 
@@ -135,7 +138,7 @@ data SourcesChangedAction =
 
 doSourcesChangedAction :: FilePath -> FilePath -> NamedSliceList -> SliceList -> SourcesChangedAction -> IO ()
 doSourcesChangedAction dir sources baseSources fileSources SourcesChangedError = do
-  ePutStrLn ("The sources.list in the existing '" ++ (relName . sliceListName $ baseSources) ++ "' in " ++ dir ++
+  ePutStrLn ("The sources.list in the existing '" ++ (codename . sliceListName $ baseSources) ++ "' in " ++ dir ++
              " apt-get environment doesn't match the parameters passed to the autobuilder" ++ ":\n\n" ++
              sources ++ ":\n\n" ++
              prettyShow fileSources ++
@@ -186,7 +189,7 @@ expandPPASlices :: String -> [PPASlice] -> IO [Slice]
 expandPPASlices baseRepo ppaslices = mapM (expandPPASlice baseRepo) ppaslices >>= return . concat
 -}
 
-expandPPASlice :: ReleaseName -> PPASlice -> IO [Slice]
+expandPPASlice :: Codename -> PPASlice -> IO [Slice]
 expandPPASlice baseRepo x@(PersonalPackageArchive {}) = do
-  debSources <- readFile ("/etc/apt/sources.list.d" </> ppaUser x ++ "-" ++ ppaName x ++ "-" ++ relName baseRepo ++ ".list") >>= return . parseSourcesList $here
-  return $ map (\ ds -> Slice {sliceRepoKey = Remote (toURI' (sourceUri ds)), sliceSource = ds}) debSources
+  debSources <- readFile ("/etc/apt/sources.list.d" </> ppaUser x ++ "-" ++ ppaName x ++ "-" ++ codename baseRepo ++ ".list") >>= return . parseSourcesList $here
+  return $ map (\ ds -> Slice {sliceRepoKey = Remote (toURI' (view vendorURI (sourceUri ds))), sliceSource = ds}) debSources

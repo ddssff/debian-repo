@@ -16,8 +16,8 @@ import Control.Category ((.))
 import Control.Lens (makeLenses, view)
 import Control.Monad.Trans (liftIO, MonadIO)
 import Debian.Arch (Arch)
+import Debian.Codename (Codename, codename)
 import Debian.Pretty (prettyShow)
-import Debian.Release (ReleaseName(relName))
 import Debian.Repo.EnvPath (EnvRoot(EnvRoot), rootPath)
 import Debian.Repo.IO (buildArchOfRoot)
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage)
@@ -39,7 +39,7 @@ data AptImage =
 $(makeLenses ''AptImage)
 
 instance Show AptImage where
-    show apt = "AptImage " ++ relName (sliceListName (view aptImageSources apt))
+    show apt = "AptImage " ++ codename (sliceListName (view aptImageSources apt))
 
 instance Ord AptImage where
     compare a b = compare (sliceListName . view aptImageSources $ a) (sliceListName . view aptImageSources $ b)
@@ -73,5 +73,5 @@ createAptImage sources = do
     replaceFile (view rootPath root ++ "/etc/apt/sources.list") sourceListText
     return apt
 
-cacheRootDir :: MonadTop r m => ReleaseName -> m EnvRoot
-cacheRootDir release = EnvRoot . (</> relName release </> "aptEnv") <$> dists
+cacheRootDir :: MonadTop r m => Codename -> m EnvRoot
+cacheRootDir release = EnvRoot . (</> codename release </> "aptEnv") <$> dists

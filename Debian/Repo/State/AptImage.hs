@@ -13,6 +13,7 @@ import Control.Applicative ((<$>))
 import Control.Exception (SomeException)
 import Control.Lens (at, set, use, view)
 import Control.Monad.Catch (MonadCatch, catch)
+import Control.Monad.Except (MonadError)
 import Control.Monad.Reader (ask, ReaderT, runReaderT)
 --import Control.Monad.State (StateT)
 import Control.Monad.Trans (MonadIO(..))
@@ -52,11 +53,16 @@ instance MonadRepos s m => MonadRepos (StateT AptImage m) where
     putRepos = lift . putRepos
 #endif
 
-withAptImage :: (MonadRepos s m, MonadTop r m) => SourcesChangedAction -> NamedSliceList -> ReaderT (r, AptKey) m a -> m a
+withAptImage ::
+    (MonadIO m, MonadCatch m, MonadRepos s m, MonadTop r m, MonadError e m)
+    => SourcesChangedAction
+    -> NamedSliceList
+    -> ReaderT (r, AptKey) m a
+    -> m a
 withAptImage sourcesChangedAction sources action = prepareAptImage sourcesChangedAction sources >>= evalMonadApt action
 
 -- |Create a skeletal enviroment sufficient to run apt-get.
-prepareAptImage :: forall r s m. (MonadTop r m, MonadRepos s m) =>
+prepareAptImage :: forall r s e m. (MonadIO m, MonadCatch m, MonadTop r m, MonadRepos s m, MonadError e m) =>
                  SourcesChangedAction   -- What to do if environment already exists and sources.list is different
               -> NamedSliceList         -- The sources.list
               -> m AptKey               -- The resulting environment
@@ -68,7 +74,7 @@ prepareAptImage sourcesChangedAction sources = do
     Just _ -> return key
 
 -- | Create a new AptImage and insert it into the ReposState.
-prepareAptImage' :: forall r s m. (MonadCatch m, MonadTop r m, MonadRepos s m) => SourcesChangedAction -> NamedSliceList -> m AptKey
+prepareAptImage' :: forall r s e m. (MonadIO m, MonadCatch m, MonadTop r m, MonadRepos s m, MonadError e m) => SourcesChangedAction -> NamedSliceList -> m AptKey
 prepareAptImage' sourcesChangedAction sources = do
   key <- {-getAptKey =<<-} AptKey <$> cacheRootDir (sliceListName sources)
   mimg <- use (reposState . aptImageMap . at key)
@@ -99,7 +105,7 @@ evalMonadApt task key = do
 -- updateAptEnv :: (MonadRepos s m, MonadApt m) => m ()
 -- updateAptEnv = aptGetUpdate
 
-aptSourcePackages :: (MonadRepos s m, MonadApt r m) => m [SourcePackage]
+aptSourcePackages :: (MonadIO m, MonadRepos s m, MonadApt r m) => m [SourcePackage]
 aptSourcePackages = do
   mpkgs <- view aptSourcePackageCache <$> getApt
   maybe aptSourcePackages' return mpkgs
@@ -113,7 +119,7 @@ aptSourcePackages = do
         modifyApt (set aptSourcePackageCache (Just pkgs))
         return pkgs
 
-aptBinaryPackages :: (MonadRepos s m, MonadApt r m) => m [BinaryPackage]
+aptBinaryPackages :: (MonadIO m, MonadRepos s m, MonadApt r m) => m [BinaryPackage]
 aptBinaryPackages = do
   mpkgs <- view aptBinaryPackageCache <$> getApt
   maybe aptBinaryPackages' return mpkgs
@@ -128,7 +134,7 @@ aptBinaryPackages = do
         return pkgs
 
 -- |Retrieve a source package via apt-get.
-prepareSource :: (MonadRepos s m, MonadApt r m, MonadTop r m) =>
+prepareSource :: (MonadIO m, MonadCatch m, MonadRepos s m, MonadApt r m, MonadTop r m, MonadError e m) =>
                  SrcPkgName                     -- The name of the package
               -> Maybe DebianVersion            -- The desired version, if Nothing get newest
               -> m DebianBuildTree              -- The resulting source tree
@@ -161,7 +167,7 @@ prepareSource package version =
                   _ -> fail $ "apt-get source failed (2): trees=" ++ show (map (dir' . tree' . debTree') trees)
 
 -- | Find the most recent version of a source package.
-latestVersion :: (MonadRepos s m, MonadApt r m) => SrcPkgName -> Maybe DebianVersion -> m (Maybe DebianVersion)
+latestVersion :: (MonadIO m, MonadRepos s m, MonadApt r m) => SrcPkgName -> Maybe DebianVersion -> m (Maybe DebianVersion)
 latestVersion package exact = do
   pkgs <- aptSourcePackages
   let versions = map (packageVersion . sourcePackageID) $ filter ((== package) . packageName . sourcePackageID) $ pkgs

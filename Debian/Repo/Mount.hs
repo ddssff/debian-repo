@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, GeneralizedNewtypeDeriving, ScopedTypeVariables, TemplateHaskell #-}
 -- |functions for mounting, umounting, parsing \/proc\/mounts, etc
 module Debian.Repo.Mount
     ( umountBelow       -- FilePath -> IO [(FilePath, (String, String, ExitCode))]
@@ -13,8 +13,10 @@ module Debian.Repo.Mount
 -- Standard GHC modules
 
 import Control.Monad
+import Control.Monad.Except (MonadError)
 --import Data.ByteString.Lazy.Char8 (empty)
 import Data.List
+import Debian.Except (HasIOException, liftEIO)
 import System.Directory
 --import System.Exit
 import System.IO (readFile, hPutStrLn, stderr)
@@ -27,7 +29,9 @@ import Control.Monad.Catch (bracket, MonadMask)
 import Control.Monad.Trans (liftIO, MonadIO)
 -- import Control.Monad.Trans.Except ({- ExceptT instances -})
 import Data.ByteString.Lazy as L (ByteString, empty)
+import Debian.TH (here)
 import GHC.IO.Exception (IOErrorType(OtherError))
+import Language.Haskell.TH.Syntax (Loc)
 import System.Directory (createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitFailure, ExitSuccess))
 import System.FilePath ((</>))
@@ -85,9 +89,11 @@ umountBelow lazy belowPath =
       fixNotMounted x = x
 
 -- |umountSucceeded - predicated suitable for filtering results of 'umountBelow'
+#if 0
 umountSucceeded :: (FilePath, (String, String, ExitCode)) -> Bool
 umountSucceeded (_, (_,_,ExitSuccess)) = True
 umountSucceeded _ = False
+#endif
 
 -- |'unescape' - unescape function for strings in \/proc\/mounts
 unescape :: String -> String
@@ -98,6 +104,7 @@ unescape ('\\':'0':'1':'2':rest) = '\n' : (unescape rest)
 unescape ('\\':'1':'3':'4':rest) = '\\' : (unescape rest)
 unescape (c:rest) = c : (unescape rest)
 
+#if 0
 -- |'escape' - \/proc\/mount style string escaper
 escape :: String -> String
 escape [] = []
@@ -106,7 +113,7 @@ escape ('\t':rest) = ('\\':'0':'1':'1':escape rest)
 escape ('\n':rest) = ('\\':'0':'1':'2':escape rest)
 escape ('\\':rest) = ('\\':'1':'3':'4':escape rest)
 escape (c:rest)    = c : (escape rest)
-
+#endif
 
 -- |'umount' - run umount with the specified args
 -- NOTE: this function uses exec, so you do /not/ need to shell-escape
@@ -145,37 +152,41 @@ readProcess p input = do
 
 -- | Do an IO task with a file system remounted using mount --bind.
 -- This was written to set up a build environment.
-withMount :: (MonadIO m, MonadMask m) => FilePath -> FilePath -> m a -> m a
-withMount directory mountpoint task =
+withMount ::
+    (MonadIO m, HasIOException e, MonadError e m, MonadMask m)
+    => Loc -> FilePath -> FilePath -> m a -> m a
+withMount loc directory mountpoint task =
     bracket pre (\ _ -> post) (\ _ -> task)
     where
       mount = proc "mount" ["--bind", directory, mountpoint]
-      umount = proc "umount" [mountpoint]
+      umount' = proc "umount" [mountpoint]
       umountLazy = proc "umount" ["-l", mountpoint]
 
-      pre = liftIO $ do -- hPutStrLn stderr $ "mounting /proc at " ++ show mountpoint
-                        createDirectoryIfMissing True mountpoint
-                        readProcess mount L.empty
+      pre = liftEIO loc $ do
+              -- hPutStrLn stderr $ "mounting /proc at " ++ show mountpoint
+              createDirectoryIfMissing True mountpoint
+              readProcess mount L.empty
 
-      post = liftIO $ do -- hPutStrLn stderr $ "unmounting /proc at " ++ show mountpoint
-                         readProcess umount L.empty
-                           `catch` (\ (e :: IOError) ->
-                                        do hPutStrLn stderr ("Exception unmounting " ++ mountpoint ++ ", trying -l: " ++ show e)
-                                           readProcess umountLazy L.empty)
+      post = liftEIO loc $ do
+               -- hPutStrLn stderr $ "unmounting /proc at " ++ show mountpoint
+               readProcess umount' L.empty
+                 `catch` (\ (e :: IOError) -> do
+                            hPutStrLn stderr ("Exception unmounting " ++ mountpoint ++ ", trying -l: " ++ show e)
+                            readProcess umountLazy L.empty)
 
 -- | Mount /proc and /sys in the specified build root and execute a
 -- task.  Typically, the task would start with a chroot into the build
 -- root.  If the build root given is "/" it is assumed that the file
 -- systems are already mounted, no mounting or unmounting is done.
-withProcAndSys :: (MonadIO m, MonadMask m) => FilePath -> m a -> m a
-withProcAndSys "/" task = task
-withProcAndSys root task = do
+withProcAndSys :: (MonadIO m, HasIOException e, MonadError e m, MonadMask m) => Loc -> FilePath -> m a -> m a
+withProcAndSys _ "/" task = task
+withProcAndSys loc root task = do
   exists <- liftIO $ doesDirectoryExist root
   case exists of
-    True -> withMount "/proc" (root </> "proc") $ withMount "/sys" (root </> "sys") $ task
-    False -> liftIO $ ioError $ mkIOError doesNotExistErrorType "chroot directory does not exist" Nothing (Just root)
+    True -> withMount loc "/proc" (root </> "proc") $ withMount loc "/sys" (root </> "sys") $ task
+    False -> liftEIO loc $ ioError $ mkIOError doesNotExistErrorType "chroot directory does not exist" Nothing (Just root)
 
 -- | Do an IO task with /tmp remounted.  This could be used
 -- to share /tmp with a build root.
-withTmp :: (MonadIO m, MonadMask m) => FilePath -> m a -> m a
-withTmp root task = withMount "/tmp" (root </> "tmp") task
+withTmp :: (HasIOException e, MonadError e m, MonadIO m, MonadMask m) => FilePath -> m a -> m a
+withTmp root task = withMount $here "/tmp" (root </> "tmp") task
