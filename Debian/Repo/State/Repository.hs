@@ -111,7 +111,7 @@ prepareRemoteRepository uri =
 -- names, sections, and supported architectures of its releases.
 loadRemoteRepository :: (MonadIO m, MonadRepos s m) => VendorURI -> m RemoteRepository
 loadRemoteRepository uri =
-    do releaseInfo <- liftIO $ unsafeInterleaveIO $ getReleaseInfoRemote $here uri
+    do releaseInfo <- liftIO $ unsafeInterleaveIO $ getReleaseInfoRemote [$here] uri
        let repo = RemoteRepository (toURI' (view vendorURI uri)) releaseInfo
        putRepo (toURI' (view vendorURI uri)) repo
        return repo

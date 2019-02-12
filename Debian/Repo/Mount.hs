@@ -154,20 +154,20 @@ readProcess p input = do
 -- This was written to set up a build environment.
 withMount ::
     (MonadIO m, HasIOException e, MonadError e m, MonadMask m)
-    => Loc -> FilePath -> FilePath -> m a -> m a
-withMount loc directory mountpoint task =
+    => [Loc] -> FilePath -> FilePath -> m a -> m a
+withMount locs directory mountpoint task =
     bracket pre (\ _ -> post) (\ _ -> task)
     where
       mount = proc "mount" ["--bind", directory, mountpoint]
       umount' = proc "umount" [mountpoint]
       umountLazy = proc "umount" ["-l", mountpoint]
 
-      pre = liftEIO loc $ do
+      pre = liftEIO ($here : locs) $ do
               -- hPutStrLn stderr $ "mounting /proc at " ++ show mountpoint
               createDirectoryIfMissing True mountpoint
               readProcess mount L.empty
 
-      post = liftEIO loc $ do
+      post = liftEIO ($here : locs) $ do
                -- hPutStrLn stderr $ "unmounting /proc at " ++ show mountpoint
                readProcess umount' L.empty
                  `catch` (\ (e :: IOError) -> do
@@ -178,15 +178,15 @@ withMount loc directory mountpoint task =
 -- task.  Typically, the task would start with a chroot into the build
 -- root.  If the build root given is "/" it is assumed that the file
 -- systems are already mounted, no mounting or unmounting is done.
-withProcAndSys :: (MonadIO m, HasIOException e, MonadError e m, MonadMask m) => Loc -> FilePath -> m a -> m a
+withProcAndSys :: (MonadIO m, HasIOException e, MonadError e m, MonadMask m) => [Loc] -> FilePath -> m a -> m a
 withProcAndSys _ "/" task = task
-withProcAndSys loc root task = do
+withProcAndSys locs root task = do
   exists <- liftIO $ doesDirectoryExist root
   case exists of
-    True -> withMount loc "/proc" (root </> "proc") $ withMount loc "/sys" (root </> "sys") $ task
-    False -> liftEIO loc $ ioError $ mkIOError doesNotExistErrorType "chroot directory does not exist" Nothing (Just root)
+    True -> withMount ($here : locs) "/proc" (root </> "proc") $ withMount ($here : locs) "/sys" (root </> "sys") $ task
+    False -> liftEIO ($here : locs) $ ioError $ mkIOError doesNotExistErrorType "chroot directory does not exist" Nothing (Just root)
 
 -- | Do an IO task with /tmp remounted.  This could be used
 -- to share /tmp with a build root.
 withTmp :: (HasIOException e, MonadError e m, MonadIO m, MonadMask m) => FilePath -> m a -> m a
-withTmp root task = withMount $here "/tmp" (root </> "tmp") task
+withTmp root task = withMount [$here] "/tmp" (root </> "tmp") task

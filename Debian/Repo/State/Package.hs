@@ -1096,7 +1096,7 @@ getPackages_ release index =
   (do repo <- view repository <$> getInstall
       let repoURI = repoKeyURI . repoKey $ repo
           packageIndexURI = over uriPathLens (\path -> path </> packageIndexPath release index) (view vendorURI repoURI)
-      fileFromURIStrict $here Nothing packageIndexURI >>= readControl packageIndexURI) `catchError` (\e -> return $ Left e)
+      fileFromURIStrict [$here] Nothing packageIndexURI >>= readControl packageIndexURI) `catchError` (\e -> return $ Left e)
     where
       readControl :: URI -> L.ByteString -> m (Either e [BinaryPackage])
       readControl uri s =

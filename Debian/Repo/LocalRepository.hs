@@ -149,7 +149,7 @@ copyLocalRepo ::
                  HasRsyncError e, HasIOException e, MonadError e m)
     => EnvPath -> LocalRepository -> m LocalRepository
 copyLocalRepo dest repo =
-    do liftEIO $here $ createDirectoryIfMissing True (outsidePath dest)
+    do liftEIO [$here] $ createDirectoryIfMissing True (outsidePath dest)
        (result :: (Either IOException ExitCode, String, String)) <- action'
        case result of
          (Right ExitSuccess, _, _) -> return $ repo {_repoRoot = dest}
@@ -233,11 +233,11 @@ uploadRemote repo uri =
        uploaded <- (Set.fromList .
                     map (\ [_, name', version, arch] -> (name', parseDebianVersion' version, parseArch arch)) .
                     catMaybes .
-                    map (matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.upload$"))) <$> (liftEIO $here (getDirectoryContents dir) :: m [FilePath] {-(MonadError WrappedIOException m' => m' [FilePath])-})
+                    map (matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.upload$"))) <$> (liftEIO [$here] (getDirectoryContents dir) :: m [FilePath] {-(MonadError WrappedIOException m' => m' [FilePath])-})
        let (readyChangesFiles, _uploadedChangesFiles) = partition (\ f -> not . Set.member (changeKey f) $ uploaded) newestChangesFiles
        -- hPutStrLn stderr $ "Uploaded: " ++ show uploadedChangesFiles
        -- hPutStrLn stderr $ "Ready: " ++ show readyChangesFiles
-       validChangesFiles <- mapM (liftEIO $here . validRevision') readyChangesFiles
+       validChangesFiles <- mapM (liftEIO [$here] . validRevision') readyChangesFiles
        -- hPutStrLn stderr $ "Valid: " ++ show validChangesFiles
        mapM dupload' validChangesFiles
     where
@@ -366,7 +366,7 @@ dupload uri dir changesFile  =
         liftIO $ replaceFile (dir ++ "/dupload.conf") config
         let cmd = (proc "dupload" ["--to", "default", "-c", (dir ++ "/dupload.conf"), changesFile]) {cwd = Just dir}
         qPutStrLn ("Uploading " ++ show changesFile)
-        (runV2 $here cmd L.empty >>= \output -> case output of
+        (runV2 [$here] cmd L.empty >>= \output -> case output of
                                            (ExitSuccess, _, _) -> return $ Success output
                                            _ -> return $ Failure [show output])
           `catchError` (\(e :: e) -> do

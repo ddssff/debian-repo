@@ -10,7 +10,7 @@ import Language.Haskell.TH.Syntax (Loc)
 import Text.Parsec (ParseError)
 
 data DebError
-    = IOException Loc IOException
+    = IOException [Loc] IOException
     | URIError URIError
     | ParseError ParseError
     | RsyncError RsyncError

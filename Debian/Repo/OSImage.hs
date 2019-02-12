@@ -123,7 +123,7 @@ createOSImage (OSKey root) distro extra repo =
        -- the underlying system.  We can support multiple
        -- distributions, but if the hardware is an amd64 the packages
        -- produced will be amd64.
-       arch <- liftEIO $here buildArchOfRoot
+       arch <- liftEIO [$here] buildArchOfRoot
        let os = OS { _osRoot = OSKey root
                    , _osBaseDistro = distro
                    , _osArch = arch
@@ -233,7 +233,7 @@ localeGen ::
 localeGen os locale =
     do let root = view osRoot os
        qPutStr ("Generating locale " ++  locale ++ " (in " ++ stripDist (view (to _root . rootPath) root) ++ ")...")
-       useEnv (view (to _root . rootPath) root) return (runV2 $here (shell cmd) B.empty >>= \chunks -> case chunks of
+       useEnv (view (to _root . rootPath) root) return (runV2 [$here] (shell cmd) B.empty >>= \chunks -> case chunks of
                                                                                                   (ExitSuccess, _, _) -> qPutStrLn "done"
                                                                                                   e -> error $ "Failed to generate locale " ++ view (to _root . rootPath) root ++ ": " ++ cmd ++ " -> " ++ show e)
          `catchError` (\(e :: e) -> error $ "Failed to generate locale " ++ view (to _root . rootPath) root ++ ": " ++ cmd ++ " -> " ++ show e)
@@ -404,7 +404,7 @@ pbuilder top root distro extra repo =
        ePutStrLn ("# " ++ cmd top)
        let codefn (ExitSuccess, _, _) = return ()
            codefn failure = error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show failure)
-       (runV2 $here (shell (cmd top)) B.empty >>= codefn) `catchError` (\(e :: e) -> error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show e))
+       (runV2 [$here] (shell (cmd top)) B.empty >>= codefn) `catchError` (\(e :: e) -> error ("Could not create build environment:\n " ++ cmd top ++ " -> " ++ show e))
        ePutStrLn "done."
        os <- createOSImage root distro extra repo -- arch?  copy?
        let sourcesPath' = view (to _root . rootPath) root ++ "/etc/apt/sources.list"
@@ -447,7 +447,7 @@ debootstrap root distro extra repo include exclude components =
       -- file:// URIs because they can't yet be visible inside the
       -- environment.  So we grep them out, create the environment, and
       -- then add them back in.
-      (runV2 $here (shell cmd) B.empty >>= codefn) `catchError` (\(e :: e) -> error ("Could not create build environment:\n " ++ cmd ++ " -> " ++ show e))
+      (runV2 [$here] (shell cmd) B.empty >>= codefn) `catchError` (\(e :: e) -> error ("Could not create build environment:\n " ++ cmd ++ " -> " ++ show e))
       ePutStrLn "done."
       os <- createOSImage root distro extra repo -- arch?  copy?
       let sourcesPath' = view (to _root . rootPath) root ++ "/etc/apt/sources.list"

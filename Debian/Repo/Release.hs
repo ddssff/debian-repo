@@ -123,11 +123,11 @@ parseArchitectures archList =
 
 -- |Get the list of releases of a remote repository given the url for
 -- one of its releases.
-getReleaseInfoRemote :: forall e m. (MonadIO m, HasIOException e, MonadError e m) => Loc -> VendorURI -> m [Release]
-getReleaseInfoRemote loc uri = do
-  qPutStr (prettyShow loc <> " (verifying remote vendorURI " ++ show uri ++ " .")
-  (dir :: [FilePath]) <- liftEIO loc $ dirFromURI loc (distsURI uri)
-  qPutStrLn (prettyShow $here <> " - dir=" ++ show dir)
+getReleaseInfoRemote :: forall e m. (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> VendorURI -> m [Release]
+getReleaseInfoRemote locs uri = do
+  qPutStr (prettyShow ($here : locs) <> " (verifying remote vendorURI " ++ show uri ++ " .")
+  (dir :: [FilePath]) <- liftEIO ($here : locs) $ dirFromURI ($here : locs) (distsURI uri)
+  qPutStrLn (prettyShow ($here : locs) <> " - dir=" ++ show dir)
   (result :: [Release]) <- catMaybes <$> (verify . fmap parseCodename . filter (\x -> not (elem x [".", ".."]))) dir
   -- qPutStrLn (prettyShow $here <> " - result=" ++ show result)
   qPutStr (")\n code names: " <> show (fmap (codename . releaseName) result) <> "\n")
@@ -157,19 +157,19 @@ getReleaseInfoRemote loc uri = do
       getSuite :: File (T.Paragraph' Text) -> m Text
       getSuite (File {text = Success releaseFile}) =
           case T.fieldValue (releaseNameField releaseFile) releaseFile of
-            Nothing -> throwError (fromIOException $here (userError "no release name field"))
+            Nothing -> throwError (fromIOException ($here : locs) (userError "no release name field"))
             Just x -> return x
-      getSuite (File {text = Failure msgs}) = throwError (fromIOException $here (userError (intercalate "\n" msgs)))
+      getSuite (File {text = Failure msgs}) = throwError (fromIOException ($here : locs) (userError (intercalate "\n" msgs)))
       getReleaseFile :: Codename -> m (File (T.Paragraph' Text))
       getReleaseFile dist =
           do qPutStr "."
-             release <- fileFromURI loc Nothing relURI :: m L.ByteString
+             release <- fileFromURI ($here : locs) Nothing relURI :: m L.ByteString
              let control = (either (Left . userError . show) Right . T.parseControl (show relURI) . Deb.decode) release
              case control of
                Right (T.Control [info :: T.Paragraph' Text]) -> do
                  return $ File {path = RemotePath relURI, text = Success info}
                Left e -> error (intercalate "\n  "
-                                  [ prettyShow loc <> " -> " <> prettyShow $here <> " - failed to get release info from dist "
+                                  [ prettyShow ($here : locs) <> " - failed to get release info from dist "
                                   , "e=" ++ show (show e)
                                   , "codename=" <> show (codename dist)
                                   , "relURI=" <> show relURI

@@ -34,7 +34,7 @@ rsync extra orig copy = do
   let p = proc "rsync" (["-aHxSpDt", "--delete"] ++ extra ++
                         [dropTrailingPathSeparator orig ++ "/",
                          dropTrailingPathSeparator copy])
-  result <- {-wrapIO-} (runV2 $here p mempty :: m (ExitCode, ByteString, ByteString))
+  result <- {-wrapIO-} (runV2 [$here] p mempty :: m (ExitCode, ByteString, ByteString))
   case result of
     (code, _out, _err) -> maybe (return ()) (throwError . fromRsyncError) (buildRsyncError p code)
     -- Left e -> throwError $ wrapIOException e
@@ -63,7 +63,7 @@ data RsyncError
     | TheMaxDeleteLimitStoppedDeletions
     | TimeoutInDataSendReceive
     | TimeoutWaitingForDaemonConnection
-    | RsyncIOException Loc IOException
+    | RsyncIOException [Loc] IOException
     | RsyncUnexpected Int
     deriving (Typeable, Show, Eq, Ord)
 
@@ -108,7 +108,7 @@ rsyncErrorInfo n = (RsyncUnexpected n, "Unexpected rsync error: " ++ show n)
 class HasRsyncError e where fromRsyncError :: RsyncError -> e
 instance HasRsyncError RsyncError where fromRsyncError = id
 
-instance HasIOException RsyncError where fromIOException loc = RsyncIOException loc
+instance HasIOException RsyncError where fromIOException locs = RsyncIOException locs
 --instance HasWrappedIOException RsyncError where wrapIOException = RsyncIOException $here
 
 -- | For backwards compatibility
@@ -131,7 +131,7 @@ rsyncOld extra orig copy = do
   let p = proc "rsync" (["-aHxSpDt", "--delete"] ++ extra ++
                         [dropTrailingPathSeparator orig ++ "/",
                          dropTrailingPathSeparator copy])
-  result <- {-wrapIO-} (runV2 $here p mempty :: m (ExitCode, String, String))
+  result <- {-wrapIO-} (runV2 [$here] p mempty :: m (ExitCode, String, String))
   case result of
     (code, out, err) -> maybe (return (Right code, out, err)) (throwError . fromRsyncError) (buildRsyncError p code)
     -- Left e -> throwError $ wrapIOException e

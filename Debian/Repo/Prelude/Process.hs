@@ -20,11 +20,12 @@ module Debian.Repo.Prelude.Process
     -- * Refugees
     , runV2, runVE2, runQ2, runQE2
     , run2
+    , runV3, runQE3
     ) where
 
 import Control.Arrow (second)
-import Control.Exception (evaluate, Exception, throw)
---import Control.Lens (view)
+import Control.Exception (evaluate, Exception, IOException, throw)
+import Control.Lens (view)
 import Control.Monad.Catch (catch, MonadCatch, try)
 import Control.Monad.Except (MonadError, throwError)
 --import Control.Monad.Reader (MonadReader)
@@ -39,7 +40,7 @@ import Data.Text.Encoding (decodeUtf8)
 import Data.Time (diffUTCTime, getCurrentTime, NominalDiffTime)
 import Data.Typeable (typeOf)
 import Debian.Except (HasIOException(fromIOException), liftEIO, withException)
---import Debian.Repo.OSKey (HasOSKey(osKey))
+import Debian.Repo.AptKey (MonadApt, aptKey)
 import Debian.Repo.Prelude.Verbosity (ePutStrLn)
 import Debian.TH (here)
 import Distribution.Pretty (prettyShow)
@@ -98,7 +99,7 @@ run ::
     -> m (ExitCode, a, a)
 run opts p input = do
   start " -> " p
-  (result :: (ExitCode, a, a)) <- liftEIO $here (readCreateProcessLazy p input) >>= overOutput >>= return . collectOutput
+  (result :: (ExitCode, a, a)) <- liftEIO [$here] (readCreateProcessLazy p input) >>= overOutput >>= return . collectOutput
   finish " <- " p result
   return result
     where
@@ -140,19 +141,19 @@ runQE p i = try $ runQ p i
 
 run' ::
     (MonadIO m, HasIOException e, MonadError e m)
-    => Loc
+    => [Loc]
     -> CreateProcess
     -> m L.ByteString
-run' loc cp = do
-  (code, out, err) <- liftEIO $here $ readCreateProcessWithExitCode cp L.empty
+run' locs cp = do
+  (code, out, err) <- liftEIO ($here : locs) $ readCreateProcessWithExitCode cp L.empty
   case code of
     ExitSuccess -> return out
-    ExitFailure _ -> throwError $ fromIOException loc $ userError $ unlines $
+    ExitFailure _ -> throwError $ fromIOException locs $ userError $ unlines $
                                        [ show code
                                        , " command: " ++ showCreateProcessForUser cp
                                        , " stderr: " ++ unpack (decodeUtf8 (L.toStrict err))
                                        , " stdout: " ++ unpack (decodeUtf8 (L.toStrict out))
-                                       , " location: " ++ prettyShow loc ]
+                                       , " stack: " ++ prettyShow locs ]
 
 -- | Pure function to indent the text of a chunk list.
 indentChunks :: forall a c. (ListLikeProcessIO a c, Eq c, IsString a) => String -> String -> [Chunk a] -> [Chunk a]
@@ -239,44 +240,44 @@ modifyProcessEnv pairs p = do
 
 runV2 ::
     (MonadIO m, MonadCatch m, Eq c, IsString a, ListLikeProcessIO a c, MonadError e m)
-    => Loc -> CreateProcess -> a -> m (ExitCode, a, a)
-runV2 loc p input =
-    run2 loc (StartMessage (showCommand' loc) <> OverOutput putIndented <> FinishMessage showCommandAndResult) p input
+    => [Loc] -> CreateProcess -> a -> m (ExitCode, a, a)
+runV2 locs p input =
+    run2 locs (StartMessage (showCommand' locs) <> OverOutput putIndented <> FinishMessage showCommandAndResult) p input
 
 runVE2 ::
     forall a c e m. (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m, MonadCatch m, MonadError e m, Exception e)
-    => Loc -> CreateProcess -> a -> m (Either e (ExitCode, a, a))
-runVE2 loc p input = do
-    try (runV2 loc p input)
+    => [Loc] -> CreateProcess -> a -> m (Either e (ExitCode, a, a))
+runVE2 locs p input = do
+    try (runV2 locs p input)
 
 runQ2 ::
     (MonadIO m, MonadCatch m, ListLikeProcessIO a c, MonadError e m)
-    => Loc -> CreateProcess -> a -> m (ExitCode, a, a)
-runQ2 loc p input =
-    run2 loc (StartMessage (showCommand' loc) <> FinishMessage showCommandAndResult) p input
+    => [Loc] -> CreateProcess -> a -> m (ExitCode, a, a)
+runQ2 locs p input =
+    run2 locs (StartMessage (showCommand' locs) <> FinishMessage showCommandAndResult) p input
 
 runQE2 ::
     (ListLikeProcessIO a c, MonadIO m, MonadCatch m, MonadError e m, Exception e)
-    => Loc -> CreateProcess -> a -> m (Either e (ExitCode, a, a))
-runQE2 loc p input =
-    try (runQ2 loc p input)
+    => [Loc] -> CreateProcess -> a -> m (Either e (ExitCode, a, a))
+runQE2 locs p input =
+    try (runQ2 locs p input)
 
-showCommand' :: (MonadIO m{-, HasOSKey r, MonadReader r m-}) => Loc -> String -> CreateProcess -> m ()
-showCommand' loc prefix p = do
+showCommand' :: (MonadIO m{-, HasOSKey r, MonadReader r m-}) => [Loc] -> String -> CreateProcess -> m ()
+showCommand' locs prefix p = do
   -- key <- view osKey
-  ePutStrLn (prefix ++ showCreateProcessForUser p ++ " (" ++ {-"in " ++ show key ++ ", " ++-} "called from " ++ prettyShow loc ++ ")")
+  ePutStrLn (prefix ++ showCreateProcessForUser p ++ " (" ++ {-"in " ++ show key ++ ", " ++-} "called from " ++ prettyShow ($here : locs) ++ ")")
 
 run2 ::
     forall a c e m. (MonadError e m, ListLikeProcessIO a c, MonadIO m, MonadCatch m)
-    => Loc
+    => [Loc]
     -> RunOptions a m
     -> CreateProcess
     -> a
     -> m (ExitCode, a, a)
-run2 loc opts p input = do
+run2 locs opts p input = do
   start " -> " p
   (result :: (ExitCode, a, a)) <- catch (liftIO (readCreateProcessLazy p input) >>= overOutput >>= return . collectOutput)
-                                        (\se -> withException (\e -> liftIO (hPutStrLn stderr ("(at " ++ prettyShow loc ++ ": " ++ show e ++ ") :: " ++ show (typeOf e)))) se >> throw se)
+                                        (\se -> withException (\e -> liftIO (hPutStrLn stderr ("(at " ++ prettyShow ($here : locs) ++ ": " ++ show e ++ ") :: " ++ show (typeOf e)))) se >> throw se)
   finish " <- " p result
   liftIO $ evaluate result
     where
@@ -290,22 +291,29 @@ run2 loc opts p input = do
       overOutput :: [Chunk a] -> m [Chunk a]
       overOutput = foldr (\o f -> case o of (OverOutput f') -> f'; _ -> f) return opts'
 
-{-
-run2 ::
-    (MonadIO m, HasIOException e, MonadError e m, Show a)
-    => Loc
-    -> RunOptions a m
-    -> CreateProcess
-    -> a
-    -> m (ExitCode, a, a)
-run2 loc opts cp input = do
-  (code, out, err) <- liftEIO $here $ readCreateProcessWithExitCode cp input
-  case code of
-    ExitSuccess -> return (code, out, err)
-    ExitFailure _ -> throwError $ fromIOException loc $ userError $ unlines $
-                                       [ show code
-                                       , " command: " ++ showCreateProcessForUser cp
-                                       , " stderr: " ++ show err
-                                       , " stdout: " ++ show out
-                                       , " location: " ++ show loc ]
--}
+-- stray copies of the stuff above that I moved here, with MonadApt constraints
+
+runV3 ::
+    (Eq c, IsString a, ListLikeProcessIO a c, MonadApt r m, MonadError e m, MonadIO m, MonadCatch m)
+    => [Loc] -> CreateProcess -> a -> m (ExitCode, a, a)
+runV3 locs p input =
+    run2 locs (StartMessage showCommand3' <> OverOutput putIndented <> FinishMessage showCommandAndResult) p input
+
+runVE3 ::
+    (Eq c, IsString a, ListLikeProcessIO a c, MonadApt r m, MonadError e m, MonadIO m, MonadCatch m)
+    => [Loc] -> CreateProcess -> a -> m (Either IOException (ExitCode, a, a))
+runVE3 locs p input = try $ runV3 locs p input
+
+runQ3 ::
+    (ListLikeProcessIO a c, MonadApt r m, MonadError e m, MonadIO m, MonadCatch m)
+    => [Loc] -> CreateProcess -> a -> m (ExitCode, a, a)
+runQ3 locs p input =
+    run2 locs (StartMessage showCommand3' <> FinishMessage showCommandAndResult) p input
+
+runQE3 ::
+    (ListLikeProcessIO a c, MonadApt r m, MonadError e m, MonadIO m, MonadCatch m)
+    => [Loc] -> CreateProcess -> a -> m (Either IOException (ExitCode, a, a))
+runQE3 locs p input = try $ runQ3 locs p input
+
+showCommand3' :: (MonadApt r m, MonadIO m) => String -> CreateProcess -> m ()
+showCommand3' prefix p = view aptKey >>= \key -> ePutStrLn (prefix ++ showCreateProcessForUser p ++ " (in " ++ show key ++ ")")

@@ -191,5 +191,5 @@ expandPPASlices baseRepo ppaslices = mapM (expandPPASlice baseRepo) ppaslices >>
 
 expandPPASlice :: Codename -> PPASlice -> IO [Slice]
 expandPPASlice baseRepo x@(PersonalPackageArchive {}) = do
-  debSources <- readFile ("/etc/apt/sources.list.d" </> ppaUser x ++ "-" ++ ppaName x ++ "-" ++ codename baseRepo ++ ".list") >>= return . parseSourcesList $here
+  debSources <- readFile ("/etc/apt/sources.list.d" </> ppaUser x ++ "-" ++ ppaName x ++ "-" ++ codename baseRepo ++ ".list") >>= return . parseSourcesList [$here]
   return $ map (\ ds -> Slice {sliceRepoKey = Remote (toURI' (view vendorURI (sourceUri ds))), sliceSource = ds}) debSources

@@ -50,14 +50,14 @@ import Text.Regex (mkRegex, splitRegex)
 -- the repository.
 repoSources ::
     (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m)
-    => Loc -> Maybe EnvRoot -> [SourceOption] -> VendorURI -> m SliceList
-repoSources loc chroot opts venuri =
+    => [Loc] -> Maybe EnvRoot -> [SourceOption] -> VendorURI -> m SliceList
+repoSources locs chroot opts venuri =
     do let distsuri :: DistsURI
            distsuri = review distsURI (over uriPathLens (</> "dists") (view vendorURI venuri))
        -- review distsURI $ parentURI $ view releaseURI reluri
-       dirs <- liftIO $ uriSubdirs $here chroot distsuri
+       dirs <- liftIO $ uriSubdirs ($here : locs) chroot distsuri
        let reluris = fmap (\dir -> review releaseURI (over uriPathLens (</> (unpack dir <> "/")) (view distsURI distsuri))) dirs
-       releaseFiles <- catMaybes <$> mapM (readRelease loc chroot) reluris
+       releaseFiles <- catMaybes <$> mapM (readRelease ($here : locs) chroot) reluris
        let codenames = map (maybe Nothing (zap (flip elem dirs))) . map (fieldValue "Codename") $ releaseFiles
            sections = map (maybe Nothing (Just . map parseSection' . splitRegex (mkRegex "[ \t,]+") . unpack) . fieldValue "Components") $ releaseFiles
            result = concat $ map sources . nubBy (\ (a, _) (b, _) -> a == b) . zip codenames $ sections
@@ -71,9 +71,9 @@ repoSources loc chroot opts venuri =
       -- Compute the list of sections for each dist on a remote server.
       zap p x = if p x then Just x else Nothing
 
-releaseSources :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => Loc -> Maybe EnvRoot -> [SourceOption] -> ReleaseURI -> m SliceList
-releaseSources loc chroot opts reluri =
-    do mreleaseFile <- readRelease loc chroot reluri
+releaseSources :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => [Loc] -> Maybe EnvRoot -> [SourceOption] -> ReleaseURI -> m SliceList
+releaseSources locs chroot opts reluri =
+    do mreleaseFile <- readRelease ($here : locs) chroot reluri
        case mreleaseFile of
          Nothing -> error ("releaseSources - no Release file at " ++ show reluri)
          Just releaseFile -> do
@@ -92,25 +92,25 @@ releaseSources loc chroot opts reluri =
 
 repoSources' ::
     (MonadIO m, MonadRepos s m, Show e, HasIOException e, MonadError e m)
-    => Loc
+    => [Loc]
     -> (ReleaseTree -> Either e ReleaseURI)
     -> Maybe EnvRoot
     -> [SourceOption]
     -> ReleaseTree
     -> m SliceList
-repoSources' loc myUploadURI chroot opts r = do
+repoSources' locs myUploadURI chroot opts r = do
   case myUploadURI r of
-    Right uri -> releaseSources loc chroot opts uri
+    Right uri -> releaseSources ($here : locs) chroot opts uri
     Left e -> error ("repoSources' " ++ show e)
 
 -- |Return the list of releases in a repository, which is the
 -- list of directories in the dists subdirectory.  Currently
 -- this is only known to work with Apache.  Note that some of
 -- the returned directories may be symlinks.
-uriSubdirs :: (HasIOException e, MonadError e m, MonadIO m) => Loc -> Maybe EnvRoot -> DistsURI -> m [Text]
-uriSubdirs loc root uri = do
-  -- liftIO (putStrLn (prettyShow loc "- uriSubdirs root=" ++ show root ++ " uri=" ++ showURI (view distsURI uri)))
-  map pack <$> liftEIO $here (dirFromURI loc (view distsURI uri'))
+uriSubdirs :: (HasIOException e, MonadError e m, MonadIO m) => [Loc] -> Maybe EnvRoot -> DistsURI -> m [Text]
+uriSubdirs locs root uri = do
+  -- liftIO (putStrLn (prettyShow locs "- uriSubdirs root=" ++ show root ++ " uri=" ++ showURI (view distsURI uri)))
+  map pack <$> liftEIO ($here : locs) (dirFromURI ($here : locs) (view distsURI uri'))
     where
       uri' = case view (distsURI . uriSchemeLens) uri of
                "file:" -> over (distsURI . uriPathLens) (maybe "" (view rootPath) root ++) uri
@@ -118,13 +118,13 @@ uriSubdirs loc root uri = do
 
 readRelease ::
     (HasIOException e, MonadIO m, MonadError e m)
-    => Loc
+    => [Loc]
     -> Maybe EnvRoot
     -> ReleaseURI
     -- -> Text -- always "Release"
     -> m (Maybe (Paragraph' Text))
-readRelease loc chroot uri =
-    do output <- fileFromURI loc chroot uri'
+readRelease locs chroot uri =
+    do output <- fileFromURI ($here : locs) chroot uri'
        case output of
          s -> case parseControl (show uri') (B.concat . L.toChunks $ s) of
                 Right (Control [paragraph]) -> return (Just (decodeParagraph paragraph))
@@ -172,7 +172,7 @@ updateCacheSources sourcesChangedAction baseSources = do
   distExists <- liftIO $ doesFileExist sources
   case distExists of
     True -> do
-      fileSources <- liftIO (readFile sources) >>= verifySourcesList Nothing . parseSourcesList $here
+      fileSources <- liftIO (readFile sources) >>= verifySourcesList Nothing . parseSourcesList [$here]
       when (fileSources /= sliceList baseSources)
            (qPutStrLn ($(symbol 'updateCacheSources) ++ " for " <> show rel) >>
             liftIO (doSourcesChangedAction dir sources baseSources fileSources sourcesChangedAction))

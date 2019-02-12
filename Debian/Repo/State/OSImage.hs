@@ -263,7 +263,7 @@ updateOS = quieter 1 $ do
              -- text <- liftIO (try $ readFile sourcesPath')
              installed <-
                  case (errors :: [IOException]) of
-                   [] -> verifySourcesList (Just root) (parseSourcesList $here (unlines sourcesText)) >>= return . Just . remoteOnly
+                   [] -> verifySourcesList (Just root) (parseSourcesList [$here] (unlines sourcesText)) >>= return . Just . remoteOnly
                    exns -> error $  unlines (("Failure verifying sources in " ++ show root ++ ":") : map show exns)
 {-
                  case text of
@@ -337,5 +337,5 @@ prepareDevs root = do
                      let cmd = "mknod " ++ path ++ " " ++ typ ++ " " ++ show major ++ " " ++ show minor ++ " 2> /dev/null"
                      exists <- doesFileExist path
                      case exists of
-                       False -> try (runV2 $here (shell cmd) L.empty)
+                       False -> try (runV2 [$here] (shell cmd) L.empty)
                        True -> return $ Right (ExitSuccess, mempty, mempty)

@@ -64,7 +64,7 @@ getOS ::
 getOS = do
   key <- view osKey
   repo <- use (reposState . osImageMap . at key)
-  maybe (throwError (fromIOException $here (userError "getOS"))) return repo
+  maybe (throwError (fromIOException [$here] (userError "getOS"))) return repo
 
 putOS :: (HasReposState s, MonadState s m) => OSImage -> m ()
 putOS = putOSImage
@@ -82,11 +82,11 @@ useOS ::
                        HasIOException e, MonadError e m,
                        HasOSKey r, MonadReader r m,
                        HasReposState s, MonadState s m)
-    => Loc -> m a -> m a
-useOS loc action =
+    => [Loc] -> m a -> m a
+useOS locs action =
   do root <- view (osRoot . to _root . rootPath) <$> getOS
-     result <- try (withProcAndSys $here root (useEnv root (liftIO . evaluate) action))
-     either (throwError . fromIOException loc) return result
+     result <- try (withProcAndSys [$here] root (useEnv root (liftIO . evaluate) action))
+     either (throwError . fromIOException ($here : locs)) return result
 
 -- useEnv :: (MonadIO m, MonadMask m) => FilePath -> (a -> m a) -> m a -> m a
 
@@ -132,7 +132,7 @@ updateLists = do
         output <- cmd
         case output of
           (ExitSuccess, _, _) -> return output
-          _ -> throwError (fromIOException $here (userError (show output)))
+          _ -> throwError (fromIOException [$here] (userError (show output)))
       -- Like ecode but discard the output
       ecode_ :: ExceptT e m (ExitCode, ByteString, ByteString) -> ExceptT e m ()
       ecode_ = void . ecode
@@ -140,15 +140,15 @@ updateLists = do
       update :: ExceptT e m (ExitCode, ByteString, ByteString)
       update = do
         -- root <- view (osRoot . to _root . rootPath) <$> getOS
-        output <- useOS $here (runV2 $here (proc "apt-get" ["update"]) L.empty)
-        --qPutStrLn (prettyShow $here <> " - output: " ++ show output)
+        output <- useOS [$here] (runV2 [$here] (proc "apt-get" ["update"]) L.empty)
+        --qPutStrLn (prettyShow [$here] <> " - output: " ++ show output)
         return output
       aptinstall :: ExceptT e m (ExitCode, ByteString, ByteString)
-      aptinstall = useOS $here (runV2 $here (proc "apt-get" ["-f", "--yes", "install"]) L.empty)
+      aptinstall = useOS [$here] (runV2 [$here] (proc "apt-get" ["-f", "--yes", "install"]) L.empty)
       configure :: ExceptT e m (ExitCode, ByteString, ByteString)
-      configure = useOS $here (runV2 $here (proc "dpkg" ["--configure", "-a"]) L.empty)
+      configure = useOS [$here] (runV2 [$here] (proc "dpkg" ["--configure", "-a"]) L.empty)
       upgrade :: ExceptT e m (ExitCode, ByteString, ByteString)
-      upgrade = useOS $here (runV2 $here (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
+      upgrade = useOS [$here] (runV2 [$here] (proc "apt-get" ["-f", "-y", "--force-yes", "dist-upgrade"]) L.empty)
 
 -- | Run an apt-get command in a particular directory with a
 -- particular list of packages.  Note that apt-get source works for
@@ -156,8 +156,8 @@ updateLists = do
 aptGetInstall :: (MonadIO m, MonadMask m, MonadOS r s m, PkgName n, HasIOException e, MonadError e m) => [(n, Maybe DebianVersion)] -> m ()
 aptGetInstall packages =
     do root <- view (osRoot . to _root . rootPath) <$> getOS
-       withProcAndSys $here root $ useEnv root (return . force) $ do
-         _ <- runV2 $here p L.empty
+       withProcAndSys [$here] root $ useEnv root (return . force) $ do
+         _ <- runV2 [$here] p L.empty
          return ()
     where
       p = proc "apt-get" args'
@@ -200,7 +200,7 @@ osFlushPackageCache = modifyOS (\ os -> os {_osSourcePackageCache = Nothing, _os
 --   liftIO $ GHC.ghcNewestAvailableVersion root
 
 buildEssential :: (MonadIO m, MonadOS r s m, HasIOException e, MonadError e m) => m Relations
-buildEssential = getOS >>= liftEIO $here . OS.buildEssential
+buildEssential = getOS >>= liftEIO [$here] . OS.buildEssential
 
 syncOS :: (MonadIO m, MonadCatch m, HasIOException e, HasRsyncError e, MonadError e m, HasOSKey r, MonadTop r m, HasReposState s, MonadState s m) => OSKey -> m ()
 syncOS dstRoot =

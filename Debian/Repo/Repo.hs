@@ -37,7 +37,7 @@ class (Ord t, Eq t) => Repo t where
     repoKey :: t -> RepoKey
     repositoryCompatibilityLevel :: (MonadIO m, MonadError IOException m) => t -> m (Maybe Int)
     repositoryCompatibilityLevel r =
-        (parse . unpack . Deb.decode) <$> fileFromURI $here Nothing uri'
+        (parse . unpack . Deb.decode) <$> fileFromURI [$here] Nothing uri'
         where
           uri' = uri {uriPath = uriPath uri </> compatibilityFile}
           uri = case repoKey r of

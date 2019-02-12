@@ -144,7 +144,7 @@ buildDebs noClean setEnv buildTree decision =
           run cmd =
              do cmd' <- modifyProcessEnv (("LOGNAME", Just "root") : setEnv) cmd
                 let cmd'' = cmd' {cwd = dropPrefix root path}
-                timeTask $ useEnv root return $ runVE2 $here cmd'' ("" :: String)
+                timeTask $ useEnv root return $ runVE2 [$here] cmd'' ("" :: String)
       _ <- run (proc "chmod" ["ugo+x", "debian/rules"])
       let buildCmd = proc "dpkg-buildpackage" (concat [["-sa"],
                                                        case decision of Arch _ -> ["-B"]; _ -> [],
@@ -330,7 +330,7 @@ instance (MonadIO m, MonadMask m, HasRsyncError e, MonadError e m) => HasSourceT
               do exists <- liftIO $ doesFileExist origPath
                  case exists of
                    False -> return (Right (ExitSuccess, B.empty, B.empty))
-                   True -> try (runV2 $here (proc "cp" ["-p", origPath, dest ++ "/"]) B.empty)
+                   True -> try (runV2 [$here] (proc "cp" ["-p", origPath, dest ++ "/"]) B.empty)
           copyTarball _result = error $ "Failed to copy source tree: " ++ topdir' build ++ " -> " ++ dest
           moveBuild :: Either IOException (ExitCode, B.ByteString, B.ByteString) -> DebianBuildTree
           moveBuild (Right (ExitSuccess, _, _)) = build {topdir' = dest, debTree' = moveSource (debTree' build)}

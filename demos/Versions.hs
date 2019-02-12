@@ -31,11 +31,11 @@ main' =
       f :: LocalRepository -> m ()
       f repo =
           do releases <- mapM (putRelease repo) (repoReleaseInfo repo)
-             liftEIO $here (putStrLn ("\n" ++ show releases))
+             liftEIO [$here] (putStrLn ("\n" ++ show releases))
       g :: RemoteRepository -> m ()
       g repo =
           do releases <- mapM (putRelease repo) (repoReleaseInfo repo)
-             liftEIO $here (putStrLn ("\n" ++ show releases))
+             liftEIO [$here] (putStrLn ("\n" ++ show releases))
 {-
     do repo <- prepareRepository (Remote (fromJust (readURI' uri)))
        releases <- mapM (insertRelease repo) (repoReleaseInfo repo)
