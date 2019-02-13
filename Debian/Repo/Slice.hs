@@ -54,7 +54,7 @@ import Distribution.Pretty
 data Slice = Slice {sliceRepoKey :: RepoKey, sliceSource :: DebSource} deriving (Eq, Ord, Show)
 
 instance Pretty Slice where
-    pretty x@(Slice {sliceRepoKey = Local (EnvPath {_envRoot = EnvRoot root})}) = pretty $ over (sourceUri . vendorURI . uriPathLens) (root ++) (sliceSource x)
+    --pretty x@(Slice {sliceRepoKey = Local (EnvPath {_envRoot = EnvRoot root})}) = pretty $ over (sourceUri . vendorURI . uriPathLens) (root ++) (sliceSource x)
     pretty x@(Slice {}) = pretty $ sliceSource $ x
 
 data PPASlice = PersonalPackageArchive {ppaUser :: String, ppaName :: String} deriving (Eq, Ord, Show)

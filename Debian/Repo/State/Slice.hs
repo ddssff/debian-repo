@@ -51,19 +51,14 @@ import Text.Regex (mkRegex, splitRegex)
 repoSources ::
     (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m)
     => [Loc] -> [SourceOption] -> EnvPath -> m SliceList
-repoSources locs opts venpath {-chroot venuri-} =
-    do qPutStrLn ("repoSources - venpath=" <> show venpath <> " at " <> prettyShow ($here : locs))
-{-
-       let distsuri :: DistsURI
-           distsuri = review distsURI (over uriPathLens (</> "dists") (view vendorURI venuri))
--}
-       -- review distsURI $ parentURI $ view releaseURI reluri
+repoSources locs opts venpath =
+    do --qPutStrLn ("repoSources - venpath=" <> show venpath <> " at " <> prettyShow ($here : locs))
        dirs <- liftIO $ listDirectory (outsidePath venpath </> "dists")
-       ePutStrLn ("repoSources - dirs=" ++ show dirs ++ " at " <> prettyShow ($here : locs))
+       --ePutStrLn ("repoSources - dirs=" ++ show dirs ++ " at " <> prettyShow ($here : locs))
        let relpaths = fmap (\dir -> outsidePath venpath </> "dists" </> dir) dirs
-       ePutStrLn ("repoSources - relpaths=" ++ show relpaths ++ " at " <> prettyShow ($here : locs))
+       --ePutStrLn ("repoSources - relpaths=" ++ show relpaths ++ " at " <> prettyShow ($here : locs))
        (releaseFiles :: [Paragraph' Text]) <- catMaybes <$> mapM (readReleaseFromPath ($here : locs)) (fmap (</> "Release") relpaths)
-       ePutStrLn ("repoSources - releaseFiles=" ++ show releaseFiles ++ " at " <> prettyShow ($here : locs))
+       --ePutStrLn ("repoSources - releaseFiles=" ++ show releaseFiles ++ " at " <> prettyShow ($here : locs))
        let suites = map (maybe Nothing (zap (flip elem (fmap pack dirs)))) . map (fieldValue "Suite") $ releaseFiles
            codenames = map (maybe Nothing (zap (flip elem (fmap pack dirs)))) . map (fieldValue "Codename") $ releaseFiles
            sections = map (maybe Nothing (Just . map parseSection' . splitRegex (mkRegex "[ \t,]+") . unpack) . fieldValue "Components") $ releaseFiles
@@ -193,15 +188,15 @@ verifyDebSource ::
     -> DebSource
     -> m Slice
 verifyDebSource locs chroot line = do
-    ePutStrLn ("verifyDebSource - chroot=" ++ show chroot ++ " line=" ++ show line ++ " at " <> prettyShow ($here : locs))
+    --qPutStrLn ("verifyDebSource - chroot=" ++ show chroot ++ " line=" ++ show line ++ " at " <> prettyShow ($here : locs))
     case view (sourceUri . vendorURI . uriSchemeLens) line of
       "file:" -> do
         -- We have now split the uri into a chroot path and an inside path
         let (epath :: EnvPath) = toEnvPath chroot (view (sourceUri . vendorURI . uriPathLens) line)
             line' = set (sourceUri . vendorURI . uriPathLens) (_envPath epath) line
-        ePutStrLn ("verifyDebSource - epath=" ++ show epath)
+        --ePutStrLn ("verifyDebSource - epath=" ++ show epath)
         mrepo <- readLocalRepository ($here : locs) epath Nothing
-        ePutStrLn ("verifyDebSource - mrepo=" ++ show mrepo)
+        --ePutStrLn ("verifyDebSource - mrepo=" ++ show mrepo)
         maybe --(qPutStrLn ("No repository at " ++ show path ++ ", ignore and continue"))
               (throwError $ fromIOException ($here : locs) $ userError $ "No repository at " ++ show epath)
               (\repo' -> return $ Slice {sliceRepoKey = repoKey repo', sliceSource = line'})
@@ -256,7 +251,7 @@ updateCacheSources locs sourcesChangedAction baseSources = do
       case fileSources of
         Right s
           | s /= sliceList baseSources -> do
-             ePutStrLn ("updateCacheSources - s=" ++ show s ++ " sliceList baseSources=" ++ show (sliceList baseSources) ++ " for " <> show rel ++ " at " ++ prettyShow ($here : locs))
+             --qPutStrLn ("updateCacheSources - s=" ++ show s ++ " sliceList baseSources=" ++ show (sliceList baseSources) ++ " for " <> show rel ++ " at " ++ prettyShow ($here : locs))
              liftEIO ($here : locs) (doSourcesChangedAction ($here : locs) dir sources baseSources s sourcesChangedAction)
         _ -> return ()
     False -> do

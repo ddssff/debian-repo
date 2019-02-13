@@ -39,7 +39,7 @@ repairLocalRepository locs r = prepareLocalRepository ($here : locs) (view repoR
 
 createLocalRepository :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> EnvPath -> Maybe Layout -> m (Maybe Layout)
 createLocalRepository locs root layout = do
-  qPutStrLn ("createLocalRepository root=" <> show root <> " at " <> prettyShow ($here : locs))
+  --qPutStrLn ("createLocalRepository root=" <> show root <> " at " <> prettyShow ($here : locs))
   mapM_ (liftEIO locs . initDir)
             [(".", 0o40755),
              ("dists", 0o40755),
@@ -65,7 +65,7 @@ createLocalRepository locs root layout = do
 
 readLocalRepository :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> EnvPath -> Maybe Layout -> m (Maybe LocalRepository)
 readLocalRepository locs root layout =
-    qPutStrLn ("readLocalRepository root=" <> show root <> " at " <> prettyShow ($here : locs)) >>
+    --qPutStrLn ("readLocalRepository root=" <> show root <> " at " <> prettyShow ($here : locs)) >>
     createLocalRepository ($here : locs) root layout >>= readLocalRepo root
 
 -- | Create or verify the existance of the directories which will hold
@@ -73,7 +73,7 @@ readLocalRepository locs root layout =
 -- its existing releases.
 prepareLocalRepository :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> EnvPath -> Maybe Layout -> [Release] -> m LocalRepository
 prepareLocalRepository locs root layout releases =
-    qPutStrLn (prettyShow $here <> " - prepareLocalRepository root=" <> show root) >>
+    --qPutStrLn (prettyShow $here <> " - prepareLocalRepository root=" <> show root) >>
     readLocalRepository ($here : locs) root layout >>= maybe (return $ makeLocalRepo root layout releases) return
 
 prepareLocalRepository' :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> EnvPath -> Maybe Layout -> m LocalRepository
