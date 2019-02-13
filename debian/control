@@ -9,12 +9,16 @@ Build-Depends: debhelper (>= 9),
  ghc-prof,
  libghc-cabal-dev | ghc,
  libghc-cabal-prof | ghc-prof,
+ libghc-hunit-dev,
+ libghc-hunit-prof,
  libghc-haxml-dev,
  libghc-haxml-prof,
  libghc-listlike-dev (>= 4),
  libghc-listlike-prof (>= 4),
  libghc-mime-dev,
  libghc-mime-prof,
+ libghc-quickcheck2-dev,
+ libghc-quickcheck2-prof,
  libghc-sha-dev,
  libghc-sha-prof,
  libghc-unixutils-dev (>= 1.52.3),
@@ -49,6 +53,8 @@ Build-Depends: debhelper (>= 9),
  libghc-regex-tdfa-prof,
  libghc-syb-dev,
  libghc-syb-prof,
+ libghc-taggy-dev,
+ libghc-taggy-prof,
  libghc-transformers-compat-dev,
  libghc-transformers-compat-prof,
  libghc-utf8-string-dev,
@@ -59,9 +65,11 @@ Build-Depends: debhelper (>= 9),
  libghc-cabal-debian-prof,
 Build-Depends-Indep: ghc-doc,
  libghc-cabal-doc | ghc-doc,
+ libghc-hunit-doc,
  libghc-haxml-doc,
  libghc-listlike-doc,
  libghc-mime-doc,
+ libghc-quickcheck2-doc,
  libghc-sha-doc,
  libghc-unixutils-doc,
  libghc-applicative-extras-doc,
@@ -79,6 +87,7 @@ Build-Depends-Indep: ghc-doc,
  libghc-regex-compat-doc,
  libghc-regex-tdfa-doc,
  libghc-syb-doc,
+ libghc-taggy-doc,
  libghc-transformers-compat-doc,
  libghc-utf8-string-doc,
  libghc-zlib-doc,
@@ -89,53 +98,71 @@ X-Description: Modules for working with Debian repositories
  package repositories, local caches of remote debian repositories,
  and Debian build environments.
 
+Package: newdist
+Architecture: any
+Section: misc
+Depends: ${haskell:Depends},
+ ${misc:Depends},
+Recommends: ${haskell:Recommends},
+Suggests: ${haskell:Suggests},
+Conflicts: ${haskell:Conflicts},
+Provides: ${haskell:Provides},
+Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
+ ${haskell:LongDescription}
+ .
+ ${haskell:Blurb}
+
 Package: libghc-debian-repo-dev
 Architecture: any
-Depends: ${haskell:Depends}
-         , ${misc:Depends}
-         , ${shlibs:Depends}
-Recommends: ${haskell:Recommends}
-Suggests: ${haskell:Suggests}
-Conflicts: ${haskell:Conflicts}
-Provides: ${haskell:Provides}
+Depends: ${haskell:Depends},
+ ${misc:Depends},
+ ${shlibs:Depends},
+Recommends: ${haskell:Recommends},
+Suggests: ${haskell:Suggests},
+Conflicts: ${haskell:Conflicts},
+Provides: ${haskell:Provides},
 Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
-  ${haskell:LongDescription}
-  .
-  ${haskell:Blurb}
+ ${haskell:LongDescription}
+ .
+ ${haskell:Blurb}
 
 Package: libghc-debian-repo-prof
 Architecture: any
-Depends: ${haskell:Depends}
-         , ${misc:Depends}
-Recommends: ${haskell:Recommends}
-Suggests: ${haskell:Suggests}
-Conflicts: ${haskell:Conflicts}
-Provides: ${haskell:Provides}
+Depends: ${haskell:Depends},
+ ${misc:Depends},
+Recommends: ${haskell:Recommends},
+Suggests: ${haskell:Suggests},
+Conflicts: ${haskell:Conflicts},
+Provides: ${haskell:Provides},
 Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
-  ${haskell:LongDescription}
-  .
-  ${haskell:Blurb}
+ ${haskell:LongDescription}
+ .
+ ${haskell:Blurb}
 
 Package: libghc-debian-repo-doc
 Architecture: all
 Section: doc
-Depends: ${haskell:Depends}
-         , ${misc:Depends}
-Recommends: ${haskell:Recommends}
-Suggests: ${haskell:Suggests}
-Conflicts: ${haskell:Conflicts}
+Depends: ${haskell:Depends},
+ ${misc:Depends},
+Recommends: ${haskell:Recommends},
+Suggests: ${haskell:Suggests},
+Conflicts: ${haskell:Conflicts},
 Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
-  ${haskell:LongDescription}
-  .
-  ${haskell:Blurb}
+ ${haskell:LongDescription}
+ .
+ ${haskell:Blurb}
 
-Package: newdist
-Replaces: autobuilder-newdist
-Conflicts: autobuilder-newdist
-Section: devel
+Package: haskell-debian-repo-utils
 Architecture: any
-Depends: ${haskell:Depends}
-         , ${misc:Depends}
-         , dpkg-dev
-Suggests: seereason-keyring
-Description: Debian pool manager
+Section: misc
+Depends: ${haskell:Depends},
+ ${misc:Depends},
+ ${shlibs:Depends},
+Recommends: ${haskell:Recommends},
+Suggests: ${haskell:Suggests},
+Conflicts: ${haskell:Conflicts},
+Provides: ${haskell:Provides},
+Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
+ ${haskell:LongDescription}
+ .
+ ${haskell:Blurb}
