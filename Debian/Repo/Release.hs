@@ -125,9 +125,9 @@ parseArchitectures archList =
 -- one of its releases.
 getReleaseInfoRemote :: forall e m. (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> VendorURI -> m [Release]
 getReleaseInfoRemote locs uri = do
-  qPutStr (prettyShow ($here : locs) <> " (verifying remote vendorURI " ++ show uri ++ " .")
+  qPutStr ("getReleaseInfoRemote - uri=" <> show uri <> ") at " <> prettyShow ($here : locs))
   (dir :: [FilePath]) <- liftEIO ($here : locs) $ dirFromURI ($here : locs) (distsURI uri)
-  qPutStrLn (prettyShow ($here : locs) <> " - dir=" ++ show dir)
+  qPutStrLn ("getReleaseInfoRemote - dir=" <> show dir <> " at " <> prettyShow ($here : locs))
   (result :: [Release]) <- catMaybes <$> (verify . fmap parseCodename . filter (\x -> not (elem x [".", ".."]))) dir
   -- qPutStrLn (prettyShow $here <> " - result=" ++ show result)
   qPutStr (")\n code names: " <> show (fmap (codename . releaseName) result) <> "\n")
@@ -146,10 +146,10 @@ getReleaseInfoRemote locs uri = do
              --qPutStrLn (prettyShow $here <>  " - #releaseTriples=" ++ show (Prelude.length releaseTriples))
              return $ map (uncurry3 getReleaseInfo) releaseTriples
       releaseNameField releaseFile =
-          case T.fieldValue "Codename" releaseFile of
-            Just _ -> "Codename"
-            Nothing -> case T.fieldValue "Suite" releaseFile of
-                         Just _ -> "Suite"
+          case T.fieldValue "Suite" releaseFile of
+            Just _ -> "Suite"
+            Nothing -> case T.fieldValue "Codename" releaseFile of
+                         Just _ -> "Codename"
                          Nothing -> error (prettyShow $here <> " - no releaeNameField in " ++ show releaseFile)
       getReleaseInfo :: Text -> (File T.Paragraph) -> Codename -> Maybe Release
       getReleaseInfo dist _ relname | (parseCodename (T.unpack dist)) /= relname = Nothing

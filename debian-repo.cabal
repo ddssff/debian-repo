@@ -1,5 +1,5 @@
 Name:           debian-repo
-Version:        5.77.3
+Version:        5.78
 License:        BSD3
 License-File:	debian/copyright
 Author:         David Fox
@@ -60,6 +60,7 @@ Library
         exceptions >= 0.6,
         filepath,
         HaXml,
+        HUnit,
         lens,
         ListLike >= 4,
         MIME,
@@ -71,10 +72,12 @@ Library
         pretty >= 1.1.2,
         process,
         pureMD5,
+        QuickCheck,
         regex-compat,
         regex-tdfa,
         SHA,
         syb,
+        taggy,
         template-haskell,
         text,
         time,
@@ -143,8 +146,8 @@ Library
     Build-Depends: cabal-debian >= 4.24, debian >= 3.92
   else
     Hs-Source-Dirs: ../debian-haskell,../cabal-debian/src
-    Build-Depends: ansi-wl-pprint, data-default, Diff, hsemail, HUnit, memoize, newtype-generics,
-                   optparse-applicative, QuickCheck, set-extra, th-lift, th-orphans, taggy
+    Build-Depends: ansi-wl-pprint, data-default, Diff, hsemail, memoize, newtype-generics,
+                   optparse-applicative, set-extra, th-lift, th-orphans
     Exposed-Modules:
         Debian.Apt.Index
         Debian.Apt.Methods

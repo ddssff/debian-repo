@@ -12,9 +12,10 @@ module Debian.Repo.State.Repository
 
 import Control.Lens (review, view)
 import Control.Monad (filterM, when)
-import Control.Monad.Trans (liftIO, MonadIO)
+import Control.Monad.Except (MonadError, MonadIO)
 import Data.Maybe (catMaybes)
 import Debian.Codename (parseCodename)
+import Debian.Except (HasIOException, liftEIO)
 import Debian.Release (Section(Section))
 import Debian.Repo.EnvPath (EnvPath, EnvPath(EnvPath), EnvRoot(EnvRoot), outsidePath)
 import Debian.Repo.LocalRepository (Layout(..), LocalRepository(..), readLocalRepo, repoRoot, repoLayout, repoReleaseInfoLocal)
@@ -23,7 +24,7 @@ import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (getReleaseInfoRemote, parseArchitectures, Release(Release, releaseAliases, releaseArchitectures, releaseComponents, releaseName))
 import Debian.Repo.RemoteRepository (RemoteRepository, RemoteRepository(RemoteRepository))
 import Debian.Repo.Repo (RepoKey(..))
-import Debian.TH (here)
+import Debian.TH (here, Loc)
 import Debian.URI (fromURI', toURI', uriPathLens, uriSchemeLens)
 import Debian.VendorURI (VendorURI, vendorURI)
 import Distribution.Pretty (prettyShow)
@@ -33,22 +34,22 @@ import System.IO.Unsafe (unsafeInterleaveIO)
 import qualified System.Posix.Files as F (fileMode, getFileStatus, setFileMode)
 import Text.Regex (matchRegex, mkRegex)
 
-repairLocalRepository :: MonadIO m => LocalRepository -> m LocalRepository
-repairLocalRepository r = prepareLocalRepository (view repoRoot r) (view repoLayout r) (view repoReleaseInfoLocal r)
+repairLocalRepository :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> LocalRepository -> m LocalRepository
+repairLocalRepository locs r = prepareLocalRepository ($here : locs) (view repoRoot r) (view repoLayout r) (view repoReleaseInfoLocal r)
 
-createLocalRepository :: MonadIO m => EnvPath -> Maybe Layout -> m (Maybe Layout)
-createLocalRepository root layout = do
-  qPutStrLn (prettyShow $here <> " - createLocalRepository root=" <> show root)
-  mapM_ (liftIO . initDir)
+createLocalRepository :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> EnvPath -> Maybe Layout -> m (Maybe Layout)
+createLocalRepository locs root layout = do
+  qPutStrLn ("createLocalRepository root=" <> show root <> " at " <> prettyShow ($here : locs))
+  mapM_ (liftEIO locs . initDir)
             [(".", 0o40755),
              ("dists", 0o40755),
              ("incoming", 0o41755),
              ("removed", 0o40750),
              ("reject", 0o40750)]
   -- If repo exists compute its actual layout
-  layout' <- liftIO (computeLayout (outsidePath root)) >>= return . maybe layout Just
+  layout' <- liftEIO locs (computeLayout (outsidePath root)) >>= return . maybe layout Just
   -- >>= return . maybe (maybe (error "No layout specified for new repository") id layout) id
-  mapM_ (liftIO . initDir)
+  mapM_ (liftEIO locs . initDir)
             (case layout' of
                Just Pool -> [("pool", 0o40755), ("installed", 0o40755)]
                Just Flat -> []
@@ -62,22 +63,22 @@ createLocalRepository root layout = do
              actualMode <- F.getFileStatus path >>= return . F.fileMode
              when (mode /= actualMode) (F.setFileMode path mode)
 
-readLocalRepository :: MonadIO m => EnvPath -> Maybe Layout -> m (Maybe LocalRepository)
-readLocalRepository root layout =
-    qPutStrLn (prettyShow $here <> " - readLocalRepository root=" <> show root) >>
-    createLocalRepository root layout >>= readLocalRepo root
+readLocalRepository :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> EnvPath -> Maybe Layout -> m (Maybe LocalRepository)
+readLocalRepository locs root layout =
+    qPutStrLn ("readLocalRepository root=" <> show root <> " at " <> prettyShow ($here : locs)) >>
+    createLocalRepository ($here : locs) root layout >>= readLocalRepo root
 
 -- | Create or verify the existance of the directories which will hold
 -- a repository on the local machine.  Verify the index files for each of
 -- its existing releases.
-prepareLocalRepository :: MonadIO m => EnvPath -> Maybe Layout -> [Release] -> m LocalRepository
-prepareLocalRepository root layout releases =
+prepareLocalRepository :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> EnvPath -> Maybe Layout -> [Release] -> m LocalRepository
+prepareLocalRepository locs root layout releases =
     qPutStrLn (prettyShow $here <> " - prepareLocalRepository root=" <> show root) >>
-    readLocalRepository root layout >>= maybe (return $ makeLocalRepo root layout releases) return
+    readLocalRepository ($here : locs) root layout >>= maybe (return $ makeLocalRepo root layout releases) return
 
-prepareLocalRepository' :: MonadIO m => EnvPath -> Maybe Layout -> m LocalRepository
-prepareLocalRepository' root layout =
-    prepareLocalRepository root layout [Release { releaseName = parseCodename "precise-seereason"
+prepareLocalRepository' :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> EnvPath -> Maybe Layout -> m LocalRepository
+prepareLocalRepository' locs root layout =
+    prepareLocalRepository locs root layout [Release { releaseName = parseCodename "precise-seereason"
                                                 , releaseAliases = []
                                                 , releaseArchitectures = parseArchitectures "amd64, i386"
                                                 , releaseComponents = [Section "main"] }]
@@ -103,15 +104,15 @@ computeLayout root =
         (False, True) -> return (Just Pool)
         _ -> return Nothing
 
-prepareRemoteRepository :: (MonadIO m, MonadRepos s m) => VendorURI -> m RemoteRepository
-prepareRemoteRepository uri =
-    repoByURI (toURI' (view vendorURI uri)) >>= maybe (loadRemoteRepository uri) return
+prepareRemoteRepository :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => [Loc] -> VendorURI -> m RemoteRepository
+prepareRemoteRepository locs uri =
+    repoByURI (toURI' (view vendorURI uri)) >>= maybe (loadRemoteRepository ($here : locs) uri) return
 
 -- |To create a RemoteRepo we must query it to find out the
 -- names, sections, and supported architectures of its releases.
-loadRemoteRepository :: (MonadIO m, MonadRepos s m) => VendorURI -> m RemoteRepository
-loadRemoteRepository uri =
-    do releaseInfo <- liftIO $ unsafeInterleaveIO $ getReleaseInfoRemote [$here] uri
+loadRemoteRepository :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => [Loc] -> VendorURI -> m RemoteRepository
+loadRemoteRepository locs uri =
+    do releaseInfo <- liftEIO locs $ unsafeInterleaveIO $ getReleaseInfoRemote [$here] uri
        let repo = RemoteRepository (toURI' (view vendorURI uri)) releaseInfo
        putRepo (toURI' (view vendorURI uri)) repo
        return repo
@@ -126,12 +127,12 @@ loadRemoteRepository uri =
 --             "file:" -> prepareLocalRepository (EnvPath (EnvRoot "") (uriPath uri)) Nothing >>= f
 --             _ -> prepareRemoteRepository uri >>= f
 
-foldRepository :: (MonadIO m, MonadRepos s m) => (LocalRepository -> m a) -> (RemoteRepository -> m a) -> RepoKey -> m a
-foldRepository f g key =
+foldRepository :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => [Loc] -> (LocalRepository -> m a) -> (RemoteRepository -> m a) -> RepoKey -> m a
+foldRepository locs f g key =
     case key of
-      Local path -> readLocalRepository path Nothing >>= maybe (error $ "No repository at " ++ show path) f
+      Local path -> readLocalRepository ($here : locs) path Nothing >>= maybe (error $ "No repository at " ++ show path) f
       Remote uri' ->
           let uri = review vendorURI (fromURI' uri') in
           case view (vendorURI . uriSchemeLens) uri of
-            "file:" -> prepareLocalRepository' (EnvPath (EnvRoot "") (view (vendorURI . uriPathLens) uri)) Nothing >>= f
-            _ -> prepareRemoteRepository uri >>= g
+            "file:" -> prepareLocalRepository' ($here : locs) (EnvPath (EnvRoot "") (view (vendorURI . uriPathLens) uri)) Nothing >>= f
+            _ -> prepareRemoteRepository ($here : locs) uri >>= g

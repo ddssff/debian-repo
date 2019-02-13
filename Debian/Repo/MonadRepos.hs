@@ -230,7 +230,7 @@ loadRepoCache =
              cache <- readFile repoCache
              case maybeRead cache of
                Nothing -> do
-                   liftIO $ hPutStrLn stderr ("Removing invalid repoCache: " ++ show repoCache ++ " -> " ++ show cache)
+                   liftIO $ hPutStrLn stderr ("Removing invalid repoCache: " ++ show repoCache ++ " -> " ++ take 200 (show cache))
                    removeFile repoCache
                    return mempty
                Just pairs ->

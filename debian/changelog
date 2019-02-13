@@ -1,3 +1,9 @@
+haskell-debian-repo (5.78) unstable; urgency=medium
+
+  * Fix error handling and monad stack
+
+ -- David Fox <dsf@seereason.com>  Tue, 12 Feb 2019 16:47:34 -0800
+
 haskell-debian-repo (5.77.3) unstable; urgency=medium
 
   * Write repoCache file strictly.

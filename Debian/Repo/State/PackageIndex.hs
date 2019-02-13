@@ -7,7 +7,7 @@ module Debian.Repo.State.PackageIndex
 
 import Control.Exception (try)
 import Control.Lens (view)
-import Control.Monad.Trans (MonadIO(liftIO))
+import Control.Monad.Except (MonadIO(liftIO), MonadError)
 import Data.Either (partitionEithers)
 import Data.List (intercalate)
 import Data.List as List (map, partition)
@@ -17,6 +17,7 @@ import Debian.Arch (Arch, Arch(..), prettyArch)
 import Debian.Codename (Codename, codename)
 import Debian.Control (ControlFunctions(stripWS), formatParagraph)
 import qualified Debian.Control.Text as B (Control'(Control), ControlFunctions(lookupP), ControlFunctions(parseControlFromHandle), Field, Field'(Field), fieldValue, Paragraph)
+import Debian.Except (HasIOException)
 import Debian.Pretty (prettyShow)
 import qualified Debian.Relation.Text as B (ParseRelations(..), Relations)
 import Debian.Release (sectionName')
@@ -30,7 +31,8 @@ import Debian.Repo.Release (Release(releaseName))
 import Debian.Repo.Repo (Repo(repoKey, repoReleaseInfo), RepoKey, repoKeyURI)
 import Debian.Repo.Slice (binarySlices, Slice(sliceRepoKey, sliceSource), SliceList(slices), sourceSlices)
 import Debian.Repo.State.Repository (foldRepository)
-import Debian.Sources (DebSource(sourceDist, sourceType), SourceType(Deb, DebSrc))
+import Debian.Sources (DebSource(_sourceDist, _sourceType), SourceType(Deb, DebSrc))
+import Debian.TH (here)
 import Debian.URI (uriSchemeLens, uriToString', uriAuthorityLens, uriPathLens)
 import Debian.VendorURI (vendorURI)
 import Debian.Version (parseDebianVersion')
@@ -41,19 +43,19 @@ import qualified System.IO as IO (hClose, IOMode(ReadMode), openBinaryFile)
 
 -- |Return a list of the index files that contain the packages of a
 -- slice.
-sliceIndexes :: (MonadIO m, MonadRepos s m) => Arch -> Slice -> m [(RepoKey, Release, PackageIndex)]
+sliceIndexes :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => Arch -> Slice -> m [(RepoKey, Release, PackageIndex)]
 sliceIndexes arch slice =
-    foldRepository f f (sliceRepoKey slice)
+    foldRepository [$here] f f (sliceRepoKey slice)
     where
       f repo =
-          case (sourceDist (sliceSource slice)) of
+          case (_sourceDist (sliceSource slice)) of
             Left exact -> error $ "Can't handle exact path in sources.list: " ++ exact
             Right (release, sections) -> return $ map (makeIndex repo release) sections
       makeIndex repo release section =
           (repoKey repo,
            findReleaseInfo repo release,
            PackageIndex { packageIndexComponent = section
-                        , packageIndexArch = case (sourceType (sliceSource slice)) of
+                        , packageIndexArch = case (_sourceType (sliceSource slice)) of
                                                DebSrc -> Source
                                                Deb -> arch })
       findReleaseInfo repo release =
@@ -78,7 +80,7 @@ instance Show UpdateError where
     show Flushed = "Flushed"
 
 sourcePackagesFromSources ::
-    (MonadIO m, MonadRepos s m)
+    (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m)
     => EnvRoot
     -> Arch
     -> SliceList
@@ -172,7 +174,7 @@ parseSourceParagraph p =
                   , homepage = fmap stripWS $ B.fieldValue "Homepage" p })
       _x -> Left ["parseSourceParagraph - One or more required fields (Package, Maintainer, Standards-Version) missing: " ++ show p]
 
-binaryPackagesFromSources :: (MonadIO m, MonadRepos s m) => EnvRoot -> Arch -> SliceList -> m [BinaryPackage]
+binaryPackagesFromSources :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => EnvRoot -> Arch -> SliceList -> m [BinaryPackage]
 binaryPackagesFromSources root arch sources = do
   indexes <- mapM (sliceIndexes arch) (slices . binarySlices $ sources) >>= return . concat
   concat <$> (mapM (\ (repo, rel, index) -> either (const []) id <$> (binaryPackagesOfIndex root arch repo rel index)) indexes)

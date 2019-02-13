@@ -36,7 +36,7 @@ import Debian.Repo.OSImage as OS (OSImage(..), osRoot, osLocalMaster, osLocalCop
 import Debian.Repo.OSKey (OSKey(..), HasOSKey(..))
 import qualified Debian.Repo.OSImage as OS (buildEssential)
 import Debian.Repo.Prelude.Process (runV2{-, showCommandAndResult-})
-import Debian.Repo.Prelude.Verbosity (qPutStrLn)
+import Debian.Repo.Prelude.Verbosity (quieter, qPutStrLn)
 import Debian.Repo.Rsync (HasRsyncError)
 import Debian.Repo.Top (MonadTop)
 import Debian.TH (here)
@@ -140,7 +140,7 @@ updateLists = do
       update :: ExceptT e m (ExitCode, ByteString, ByteString)
       update = do
         -- root <- view (osRoot . to _root . rootPath) <$> getOS
-        output <- useOS [$here] (runV2 [$here] (proc "apt-get" ["update"]) L.empty)
+        output <- useOS [$here] (quieter 1 (runV2 [$here] (proc "apt-get" ["update"]) L.empty))
         --qPutStrLn (prettyShow [$here] <> " - output: " ++ show output)
         return output
       aptinstall :: ExceptT e m (ExitCode, ByteString, ByteString)

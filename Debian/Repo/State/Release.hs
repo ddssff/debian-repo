@@ -11,6 +11,7 @@ module Debian.Repo.State.Release
     ) where
 
 import Control.Lens (view)
+import Control.Monad.Except (MonadError)
 import Control.Monad.State (filterM, liftM, MonadIO(..))
 import qualified Data.ByteString.Lazy.Char8 as L (empty, readFile)
 import Data.Digest.Pure.MD5 (md5)
@@ -24,6 +25,7 @@ import Data.Time (getCurrentTime)
 import Debian.Arch (Arch(..), prettyArch)
 import Debian.Codename (Codename, codename)
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile), Field'(Field), fieldValue, Paragraph'(..))
+import Debian.Except (HasIOException)
 import Debian.Pretty (ppShow, prettyShow)
 import Debian.Release (Section, sectionName')
 import Debian.Repo.EnvPath (outsidePath)
@@ -45,22 +47,22 @@ import System.Unix.Directory (removeRecursiveSafely)
 
 -- | Remove all the packages from the repository and then re-create
 -- the empty releases.
-flushLocalRepository :: (MonadIO m, MonadRepos s m) => LocalRepository -> m LocalRepository
+flushLocalRepository :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => LocalRepository -> m LocalRepository
 flushLocalRepository r =
     do liftIO $ removeRecursiveSafely (outsidePath (view repoRoot r))
-       r' <- repairLocalRepository r
+       r' <- repairLocalRepository [$here] r
        mapM_ (prepareRelease' r') releases
-       repairLocalRepository r'
+       repairLocalRepository [$here] r'
     where
       releases = view repoReleaseInfoLocal r
 
 -- The return value might not be the same as the input due to cached
 -- values in the monad.
-prepareRelease' :: (MonadIO m, MonadRepos s m) => LocalRepository -> Release -> m Release
+prepareRelease' :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => LocalRepository -> Release -> m Release
 prepareRelease' repo rel = prepareRelease repo (releaseName rel) (releaseAliases rel) (releaseComponents rel) (releaseArchitectures rel)
 
 -- | Find or create a (local) release.
-prepareRelease :: forall s m. (MonadIO m, MonadRepos s m) => LocalRepository -> Codename -> [Codename] -> [Section] -> Set Arch -> m Release
+prepareRelease :: forall s e m. (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => LocalRepository -> Codename -> [Codename] -> [Section] -> Set Arch -> m Release
 prepareRelease repo dist aliases sections archSet = do
     qPutStrLn ("prepareRelease repo=" ++ show repo ++ " dist=" ++ show dist ++ " aliases=" ++ show aliases ++ " sections " ++ show sections)
     findRelease repo dist >>= maybe prepare (const prepare) -- return -- JAS - otherwise --create-section does not do anything
@@ -78,7 +80,7 @@ prepareRelease repo dist aliases sections archSet = do
              _ <- liftIO (writeRelease repo release)
              -- This ought to be identical to repo, but the layout should be
              -- something rather than Nothing.
-             repo' <- repairLocalRepository repo
+             repo' <- repairLocalRepository [$here] repo
              --vPutStrLn 0 $ "prepareRelease: prepareLocalRepository -> " ++ show repo'
              _ <- putRelease repo' release
              return release

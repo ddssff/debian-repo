@@ -26,7 +26,7 @@ main = do
 
 main' :: forall s e m. (MonadIO m, e ~ DebError, MonadError e m, MonadRepos s m) => m ()
 main' =
-    foldRepository f g (Remote (fromJust (readURI' uri)))
+    foldRepository [$here] f g (Remote (fromJust (readURI' uri)))
     where
       f :: LocalRepository -> m ()
       f repo =

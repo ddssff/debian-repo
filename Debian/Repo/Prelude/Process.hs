@@ -299,10 +299,12 @@ runV3 ::
 runV3 locs p input =
     run2 locs (StartMessage showCommand3' <> OverOutput putIndented <> FinishMessage showCommandAndResult) p input
 
+{-
 runVE3 ::
     (Eq c, IsString a, ListLikeProcessIO a c, MonadApt r m, MonadError e m, MonadIO m, MonadCatch m)
     => [Loc] -> CreateProcess -> a -> m (Either IOException (ExitCode, a, a))
 runVE3 locs p input = try $ runV3 locs p input
+-}
 
 runQ3 ::
     (ListLikeProcessIO a c, MonadApt r m, MonadError e m, MonadIO m, MonadCatch m)

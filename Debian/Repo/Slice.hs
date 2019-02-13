@@ -22,7 +22,7 @@ module Debian.Repo.Slice
     ) where
 
 import Control.Exception (Exception)
-import Control.Lens (view)
+import Control.Lens (over, view)
 import Data.Data (Data)
 import Data.List (intersperse)
 #if !MIN_VERSION_base(4,8,0)
@@ -32,12 +32,13 @@ import Data.Text (Text)
 import Data.Text.IO as Text (putStr, hPutStr)
 import Data.Typeable (Typeable)
 import Debian.Codename (Codename, codename)
+import Debian.Repo.EnvPath (EnvPath(EnvPath, _envRoot), EnvRoot(EnvRoot))
 import Debian.Repo.Prelude (replaceFile)
 import Debian.Repo.Prelude.Verbosity (ePutStr, ePutStrLn)
-import Debian.Repo.Repo (RepoKey(Remote))
-import Debian.Sources (DebSource(..), SourceType(..), parseSourcesList)
-import Debian.TH (here)
-import Debian.URI (toURI')
+import Debian.Repo.Repo (RepoKey(Remote, Local))
+import Debian.Sources (DebSource(..), SourceType(Deb, DebSrc), parseSourcesList, sourceDist, sourceUri, sourceType)
+import Debian.TH (here, Loc)
+import Debian.URI (toURI', uriPathLens)
 import Debian.VendorURI (vendorURI)
 import System.Directory (createDirectoryIfMissing, removeFile)
 import System.Exit (ExitCode)
@@ -53,6 +54,7 @@ import Distribution.Pretty
 data Slice = Slice {sliceRepoKey :: RepoKey, sliceSource :: DebSource} deriving (Eq, Ord, Show)
 
 instance Pretty Slice where
+    pretty x@(Slice {sliceRepoKey = Local (EnvPath {_envRoot = EnvRoot root})}) = pretty $ over (sourceUri . vendorURI . uriPathLens) (root ++) (sliceSource x)
     pretty x@(Slice {}) = pretty $ sliceSource $ x
 
 data PPASlice = PersonalPackageArchive {ppaUser :: String, ppaName :: String} deriving (Eq, Ord, Show)
@@ -75,17 +77,17 @@ instance Pretty NamedSliceList where
     pretty = pretty . sliceList
 
 sourceSlices :: SliceList -> SliceList
-sourceSlices = SliceList . filter ((== DebSrc) . sourceType . sliceSource) . slices
+sourceSlices = SliceList . filter ((== DebSrc) . view sourceType . sliceSource) . slices
 
 binarySlices :: SliceList -> SliceList
-binarySlices = SliceList . filter ((== Deb) . sourceType . sliceSource) . slices
+binarySlices = SliceList . filter ((== Deb) . view sourceType . sliceSource) . slices
 
 inexactPathSlices :: SliceList -> SliceList
-inexactPathSlices = SliceList . filter (either (const False) (const True) . sourceDist . sliceSource) . slices
+inexactPathSlices = SliceList . filter (either (const False) (const True) . view sourceDist . sliceSource) . slices
 
 releaseSlices :: Codename -> SliceList -> SliceList
 releaseSlices release list =
-    SliceList . filter (isRelease . sourceDist . sliceSource) $ (slices list)
+    SliceList . filter (isRelease . view sourceDist . sliceSource) $ (slices list)
     where isRelease = either (const False) (\ (x, _) -> x == release)
 
 appendSliceLists :: [SliceList] -> SliceList
@@ -136,16 +138,16 @@ data SourcesChangedAction =
     RemoveRelease
     deriving (Eq, Show, Data, Typeable)
 
-doSourcesChangedAction :: FilePath -> FilePath -> NamedSliceList -> SliceList -> SourcesChangedAction -> IO ()
-doSourcesChangedAction dir sources baseSources fileSources SourcesChangedError = do
+doSourcesChangedAction :: [Loc] -> FilePath -> FilePath -> NamedSliceList -> SliceList -> SourcesChangedAction -> IO ()
+doSourcesChangedAction locs dir sources baseSources fileSources SourcesChangedError = do
   ePutStrLn ("The sources.list in the existing '" ++ (codename . sliceListName $ baseSources) ++ "' in " ++ dir ++
              " apt-get environment doesn't match the parameters passed to the autobuilder" ++ ":\n\n" ++
              sources ++ ":\n\n" ++
              prettyShow fileSources ++
-             "\nRun-time parameters:\n\n" ++
-             prettyShow baseSources ++ "\n" ++
-             "It is likely that the build environment in\n" ++
-             dir ++ " is invalid and should be rebuilt.")
+             "\n\nRun-time parameters:\n\n" ++
+             prettyShow baseSources ++
+             "\nIt is likely that the build environment in\n" ++
+             dir ++ " is invalid and should be rebuilt.\n\n at " <> prettyShow ($here : locs))
   ePutStr $ "Remove it and continue (or exit)?  [y/n]: "
   result <- hGetLine stdin
   case result of
@@ -155,13 +157,13 @@ doSourcesChangedAction dir sources baseSources fileSources SourcesChangedError =
            replaceFile sources (prettyShow baseSources)
     _ -> error ("Please remove " ++ dir ++ " and restart.")
 
-doSourcesChangedAction dir sources baseSources _fileSources RemoveRelease = do
+doSourcesChangedAction _locs dir sources baseSources _fileSources RemoveRelease = do
   ePutStrLn $ "Removing suspect environment: " ++ dir
   removeRecursiveSafely dir
   createDirectoryIfMissing True dir
   replaceFile sources (prettyShow baseSources)
 
-doSourcesChangedAction dir sources baseSources _fileSources UpdateSources = do
+doSourcesChangedAction _locs dir sources baseSources _fileSources UpdateSources = do
   -- The sources.list has changed, but it should be
   -- safe to update it.
   ePutStrLn $ "Updating environment with new sources.list: " ++ dir
@@ -192,4 +194,4 @@ expandPPASlices baseRepo ppaslices = mapM (expandPPASlice baseRepo) ppaslices >>
 expandPPASlice :: Codename -> PPASlice -> IO [Slice]
 expandPPASlice baseRepo x@(PersonalPackageArchive {}) = do
   debSources <- readFile ("/etc/apt/sources.list.d" </> ppaUser x ++ "-" ++ ppaName x ++ "-" ++ codename baseRepo ++ ".list") >>= return . parseSourcesList [$here]
-  return $ map (\ ds -> Slice {sliceRepoKey = Remote (toURI' (view vendorURI (sourceUri ds))), sliceSource = ds}) debSources
+  return $ map (\ ds -> Slice {sliceRepoKey = Remote (toURI' (view (sourceUri . vendorURI) ds)), sliceSource = ds}) debSources

@@ -24,7 +24,7 @@ import Data.Text.Lazy as LT (pack, Text)
 import Debian.Except (HasIOException(fromIOException), liftEIO)
 import Debian.Repo.EnvPath (EnvRoot, _rootPath)
 import Debian.Repo.Prelude.Process (run')
-import Debian.Repo.Prelude.Verbosity (qPutStrLn)
+--import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.TH (here)
 import Distribution.Pretty (prettyShow)
 import Language.Haskell.TH (ExpQ)
@@ -56,11 +56,11 @@ fileFromURI locs chroot uri = fileFromURIStrict locs chroot uri
 fileFromURIStrict :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> Maybe EnvRoot -> URI -> m L.ByteString
 fileFromURIStrict locs chroot uri = do
     let chroot' = maybe "" _rootPath chroot
-    qPutStrLn (prettyShow $here <> " - fileFromURIStrict chroot=" <> show chroot <> " uri=" ++ show uri)
+    -- qPutStrLn ("fileFromURIStrict chroot=" <> show chroot <> " uri=" ++ show uri ++ " at " <> prettyShow ($here : locs))
     case (uriScheme uri, uriAuthority uri) of
       ("file:", Nothing) -> liftEIO ($here : locs) $ L.readFile (chroot' </> uriPath uri)
       -- This happens - not sure why
-      ("file:", Just (URIAuth "" "" "")) -> liftEIO ($here : locs) $ L.readFile (uriPath uri)
+      ("file:", Just (URIAuth "" "" "")) -> liftEIO ($here : locs) $ L.readFile (chroot' </> uriPath uri)
       -- ("ssh:", Just auth) -> cmdOutputStrict ("ssh " ++ uriUserInfo auth ++ uriRegName auth ++ uriPort auth ++ " cat " ++ show (uriPath uri))
       ("ssh:", Just auth) ->
           run' ($here : locs) (proc "ssh" [uriUserInfo auth ++ uriRegName auth ++ uriPort auth, "cat", uriPath uri])

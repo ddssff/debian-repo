@@ -468,7 +468,7 @@ markReleaseModified = modifyInstall . over modified . Set.insert
 -- | Hard link the files of each package into the repository pool,
 -- but don't unlink the files in incoming in case of subsequent
 -- failure.
-installFiles :: forall s m. (MonadIO m, MonadRepos s m, MonadInstall s m) => Bool -> [InstallResult] -> ChangesFile -> m [InstallResult]
+installFiles :: forall s e m. (MonadIO m, MonadRepos s m, MonadInstall s m, HasIOException e, MonadError e m) => Bool -> [InstallResult] -> ChangesFile -> m [InstallResult]
 installFiles createSections results changes = do
   mrel <- findOrCreateRelease (changeRelease changes)
   maybe (return (Failed [NoSuchRelease (changeRelease changes)] : results)) (installFiles' createSections changes results) mrel
@@ -487,7 +487,7 @@ installFiles createSections results changes = do
                                 return (Just newRelease)
                          Just release -> return (Just release)
 
-installFiles' :: (MonadIO m, MonadRepos s m, MonadInstall s m) => Bool -> ChangesFile -> [InstallResult] -> Release -> m [InstallResult]
+installFiles' :: (MonadIO m, MonadRepos s m, MonadInstall s m, HasIOException e, MonadError e m) => Bool -> ChangesFile -> [InstallResult] -> Release -> m [InstallResult]
 installFiles' createSections changes results release =
                 let sections = nub' . List.map (section . changedFileSection) . changeFiles $ changes in
                 case (createSections, listDiff sections (releaseComponents release)) of

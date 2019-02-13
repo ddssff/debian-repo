@@ -22,7 +22,7 @@ import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import Debian.Codename (codename)
 import Debian.Debianize (EnvSet(cleanOS, dependOS))
 import qualified Debian.Debianize (EnvSet(buildOS))
-import Debian.Except (HasIOException)
+import Debian.Except (HasIOException, liftEIO)
 import Debian.Pretty (ppShow, prettyShow)
 --import Debian.Process (liftEIO)
 import Debian.Relation (BinPkgName)
@@ -45,9 +45,9 @@ import Debian.Repo.Slice (NamedSliceList(sliceListName), Slice(sliceSource), Sli
 import Debian.Repo.State.PackageIndex (binaryPackagesFromSources, sourcePackagesFromSources)
 import Debian.Repo.State.Slice (verifySourcesList)
 import Debian.Repo.Top (toTop, distDir, MonadTop, sourcesPath, TopDir(TopDir))
-import Debian.Sources (DebSource(sourceUri), parseSourcesList)
+import Debian.Sources (DebSource(_sourceUri), parseSourcesList, sourceUri)
 import Debian.TH (here)
-import Debian.URI (URI(uriScheme))
+import Debian.URI (URI(uriScheme), uriSchemeLens)
 import Debian.VendorURI (vendorURI)
 import System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.Environment (getEnv)
@@ -231,23 +231,28 @@ buildOS root distro extra repo include exclude components =
     do os <- debootstrap root distro extra repo include exclude components
        putOSImage os
        evalMonadOS' updateOS root
-       liftIO $ neuterEnv os
+       liftEIO [$here] $ neuterEnv os
        return os
 
 -- | Try to update an existing build environment: run apt-get update
 -- and dist-upgrade.
 updateOS :: (MonadIO m, MonadMask m, Show e, HasIOException e, HasRsyncError e, MonadError e m, MonadOS r s m) => m ()
 updateOS = quieter 1 $ do
-  root <- view (osRoot . to _root . rootPath) <$> getOS
-  liftIO $ createDirectoryIfMissing True (root </> "etc")
-  liftIO $ readFile "/etc/resolv.conf" >>= writeFile (root </> "etc/resolv.conf")
-  liftIO $ prepareDevs root
+  rpath <- view (osRoot . to _root . rootPath) <$> getOS
+  liftEIO [$here] $ createDirectoryIfMissing True (rpath </> "etc")
+  liftEIO [$here] $ readFile "/etc/resolv.conf" >>= writeFile (rpath </> "etc/resolv.conf")
+  liftEIO [$here] $ prepareDevs rpath
   syncLocalPool
+  ePutStrLn ("updateOS - " ++ prettyShow $here)
   verifySources
+  ePutStrLn ("updateOS - " ++ prettyShow $here)
   -- Disable the starting of services in the changeroot
-  _ <- liftIO $ useEnv root (return . force) $ readProcessWithExitCode "dpkg-divert" ["--local", "--rename", "--add", "/sbin/initctl"] ""
-  _ <- liftIO $ useEnv root (return . force) $ readProcessWithExitCode "ln" ["-s", "/bin/true", "/sbin/initctl"] ""
-  code <- liftIO $ sshCopy root
+  _ <- liftEIO [$here] $ useEnv rpath (return . force) $ readProcessWithExitCode "dpkg-divert" ["--local", "--rename", "--add", "/sbin/initctl"] ""
+  ePutStrLn ("updateOS - " ++ prettyShow $here)
+  _ <- liftEIO [$here] $ useEnv rpath (return . force) $ readProcessWithExitCode "ln" ["-s", "/bin/true", "/sbin/initctl"] ""
+  ePutStrLn ("updateOS - " ++ prettyShow $here)
+  code <- liftEIO [$here] $ sshCopy rpath
+  ePutStrLn ("updateOS - " ++ prettyShow $here)
   case code of
     ExitSuccess -> return ()
     _ -> error $ "sshCopy -> " ++ show code
@@ -255,15 +260,21 @@ updateOS = quieter 1 $ do
       -- verifySources :: (MonadIO m, MonadOS r s m, MonadError e m) => m ()
       verifySources =
           do root <- view (osRoot . to _root) <$> getOS
+             ePutStrLn ("updateOS - root=" ++ show root ++ " at " ++ prettyShow $here)
              computed <- remoteOnly <$> osFullDistro <$> getOS
+             ePutStrLn ("updateOS - computed=" ++ show computed ++ " at " ++ prettyShow $here)
              let sourcesPath' = (view rootPath root </> "etc/apt/sources.list")
+             ePutStrLn ("updateOS - sourcesPath'=" ++ show sourcesPath' ++ " at " ++ prettyShow $here)
              let sourcesD = (view rootPath root </> "etc/apt/sources.list.d")
+             ePutStrLn ("updateOS - sourcesD=" ++ show sourcesD ++ " at " ++ prettyShow $here)
              sourcesDPaths <- liftIO $ (map (sourcesD </>) . filter (isSuffixOf ".list")) <$> getDirectoryContents sourcesD
+             ePutStrLn ("updateOS - sourcesDPaths=" ++ show sourcesDPaths ++ " at " ++ prettyShow $here)
              (errors, sourcesText) <- liftIO $ partitionEithers <$> mapM (try . readFile) (sourcesPath' : sourcesDPaths)
+             ePutStrLn ("updateOS - sourcesText=" ++ show sourcesText ++ " at " ++ prettyShow $here)
              -- text <- liftIO (try $ readFile sourcesPath')
              installed <-
                  case (errors :: [IOException]) of
-                   [] -> verifySourcesList (Just root) (parseSourcesList [$here] (unlines sourcesText)) >>= return . Just . remoteOnly
+                   [] -> Just <$> verifySourcesList [$here] (Just root) (remoteOnly' (parseSourcesList [$here] (unlines sourcesText)))
                    exns -> error $  unlines (("Failure verifying sources in " ++ show root ++ ":") : map show exns)
 {-
                  case text of
@@ -277,7 +288,9 @@ updateOS = quieter 1 $ do
                        (view osBaseDistro <$> getOS) >>= \ sources -> throw $ Changed (sliceListName sources) sourcesPath' computed installed'
                _ -> return ()
       remoteOnly :: SliceList -> SliceList
-      remoteOnly x = x {slices = filter r (slices x)} where r y = (uriScheme . view vendorURI . sourceUri . sliceSource $ y) /= "file:"
+      remoteOnly x = x {slices = filter r (slices x)} where r y = (uriScheme . view vendorURI . _sourceUri . sliceSource $ y) /= "file:"
+      remoteOnly' :: [DebSource] -> [DebSource]
+      remoteOnly' xs = filter (\x -> view (sourceUri . vendorURI . uriSchemeLens) x /= "file:") xs
 {-
     get >>= updateOS' >>= either throw put
     where
@@ -313,7 +326,7 @@ updateOS = quieter 1 $ do
                        return $ Left $ Changed (sliceListName (getL osBaseDistro os)) sourcesPath' computed installed'
                _ -> return $ Right os
       remoteOnly :: SliceList -> SliceList
-      remoteOnly x = x {slices = filter r (slices x)} where r y = (uriScheme . sourceUri . sliceSource $ y) /= "file:"
+      remoteOnly x = x {slices = filter r (slices x)} where r y = (uriScheme . _sourceUri . sliceSource $ y) /= "file:"
 -}
 
 -- |Prepare a minimal \/dev directory

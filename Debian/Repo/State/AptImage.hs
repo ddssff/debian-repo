@@ -20,6 +20,7 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.List (sort)
 import Data.Maybe (listToMaybe)
 import Debian.Changes (ChangeLogEntry(logVersion))
+import Debian.Except (HasIOException)
 import Debian.Pretty (prettyShow)
 import Debian.Relation (SrcPkgName(unSrcPkgName))
 import Debian.Repo.AptImage (aptDir, aptGetSource, aptGetUpdate)
@@ -31,13 +32,14 @@ import Debian.Repo.MonadApt (aptImageArch, aptImageRoot, aptImageSources,
 import Debian.Repo.MonadRepos (aptImageMap, getApt, modifyApt, MonadRepos, putAptImage, reposState)
 import Debian.Repo.PackageID (PackageID(packageName), PackageID(packageVersion))
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage(sourcePackageID))
-import Debian.Repo.Prelude (symbol)
-import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn)
+--import Debian.Repo.Prelude (symbol)
+import Debian.Repo.Prelude.Verbosity (ePutStrLn, qPutStr, qPutStrLn)
 import Debian.Repo.Slice (NamedSliceList(sliceList, sliceListName), SourcesChangedAction)
 import Debian.Repo.SourceTree (DebianBuildTree(debTree'), DebianSourceTree(tree'), HasChangeLog(entry), findDebianBuildTrees, SourceTree(dir'))
 import Debian.Repo.State.PackageIndex (binaryPackagesFromSources, sourcePackagesFromSources)
 import Debian.Repo.State.Slice (updateCacheSources)
 import Debian.Repo.Top (MonadTop)
+import Debian.TH (here, Loc)
 import Debian.Version (DebianVersion)
 import System.Directory (createDirectoryIfMissing)
 import System.Unix.Directory (removeRecursiveSafely)
@@ -54,28 +56,34 @@ instance MonadRepos s m => MonadRepos (StateT AptImage m) where
 #endif
 
 withAptImage ::
-    (MonadIO m, MonadCatch m, MonadRepos s m, MonadTop r m, MonadError e m)
-    => SourcesChangedAction
+    (MonadIO m, MonadCatch m, MonadRepos s m, MonadTop r m, HasIOException e, MonadError e m)
+    => [Loc]
+    -> SourcesChangedAction
     -> NamedSliceList
     -> ReaderT (r, AptKey) m a
     -> m a
-withAptImage sourcesChangedAction sources action = prepareAptImage sourcesChangedAction sources >>= evalMonadApt action
+withAptImage locs sourcesChangedAction sources action = prepareAptImage ($here : locs) sourcesChangedAction sources >>= evalMonadApt action
 
 -- |Create a skeletal enviroment sufficient to run apt-get.
-prepareAptImage :: forall r s e m. (MonadIO m, MonadCatch m, MonadTop r m, MonadRepos s m, MonadError e m) =>
-                 SourcesChangedAction   -- What to do if environment already exists and sources.list is different
-              -> NamedSliceList         -- The sources.list
-              -> m AptKey               -- The resulting environment
-prepareAptImage sourcesChangedAction sources = do
+prepareAptImage ::
+    forall r s e m. (MonadIO m, MonadCatch m, MonadTop r m, MonadRepos s m, HasIOException e, MonadError e m)
+    => [Loc]
+    -> SourcesChangedAction   -- What to do if environment already exists and sources.list is different
+    -> NamedSliceList         -- The sources.list
+    -> m AptKey               -- The resulting environment
+prepareAptImage locs sourcesChangedAction sources = do
+  ePutStrLn ("prepareAptImage - sourcesChangedAction=" ++ show sourcesChangedAction ++ " sources=" ++ show sources ++ " at " <> prettyShow ($here : locs))
   key <- {-getAptKey =<<-} AptKey <$> cacheRootDir (sliceListName sources)
   mimg <- use (reposState . aptImageMap . at key)
   case mimg of
-    Nothing -> prepareAptImage' sourcesChangedAction sources
+    Nothing -> prepareAptImage' ($here : locs) sourcesChangedAction sources
     Just _ -> return key
 
 -- | Create a new AptImage and insert it into the ReposState.
-prepareAptImage' :: forall r s e m. (MonadIO m, MonadCatch m, MonadTop r m, MonadRepos s m, MonadError e m) => SourcesChangedAction -> NamedSliceList -> m AptKey
-prepareAptImage' sourcesChangedAction sources = do
+prepareAptImage' ::
+    forall r s e m. (MonadIO m, MonadCatch m, MonadTop r m, MonadRepos s m, HasIOException e, MonadError e m)
+    => [Loc] -> SourcesChangedAction -> NamedSliceList -> m AptKey
+prepareAptImage' locs sourcesChangedAction sources = do
   key <- {-getAptKey =<<-} AptKey <$> cacheRootDir (sliceListName sources)
   mimg <- use (reposState . aptImageMap . at key)
   case mimg of
@@ -88,9 +96,9 @@ prepareAptImage' sourcesChangedAction sources = do
         removeAptImage
         prepareAptImage''
       prepareAptImage'' = do
-        qPutStrLn ($(symbol 'prepareAptImage) ++ ": " ++ (prettyShow . sliceListName $ sources))
+        qPutStrLn ("prepareAptImage' - sources=" ++ show sources <> " at " <> prettyShow ($here : locs))
         (key :: AptKey) <- putAptImage =<< createAptImage sources
-        evalMonadApt (updateCacheSources sourcesChangedAction sources >> aptGetUpdate) key
+        evalMonadApt (updateCacheSources ($here : locs) sourcesChangedAction sources >> aptGetUpdate) key
         return key
       removeAptImage = cacheRootDir (sliceListName sources) >>= liftIO . removeRecursiveSafely . view rootPath
 
@@ -105,7 +113,7 @@ evalMonadApt task key = do
 -- updateAptEnv :: (MonadRepos s m, MonadApt m) => m ()
 -- updateAptEnv = aptGetUpdate
 
-aptSourcePackages :: (MonadIO m, MonadRepos s m, MonadApt r m) => m [SourcePackage]
+aptSourcePackages :: (MonadIO m, MonadRepos s m, MonadApt r m, HasIOException e, MonadError e m) => m [SourcePackage]
 aptSourcePackages = do
   mpkgs <- view aptSourcePackageCache <$> getApt
   maybe aptSourcePackages' return mpkgs
@@ -119,7 +127,7 @@ aptSourcePackages = do
         modifyApt (set aptSourcePackageCache (Just pkgs))
         return pkgs
 
-aptBinaryPackages :: (MonadIO m, MonadRepos s m, MonadApt r m) => m [BinaryPackage]
+aptBinaryPackages :: (MonadIO m, MonadRepos s m, MonadApt r m, HasIOException e, MonadError e m) => m [BinaryPackage]
 aptBinaryPackages = do
   mpkgs <- view aptBinaryPackageCache <$> getApt
   maybe aptBinaryPackages' return mpkgs
@@ -134,7 +142,7 @@ aptBinaryPackages = do
         return pkgs
 
 -- |Retrieve a source package via apt-get.
-prepareSource :: (MonadIO m, MonadCatch m, MonadRepos s m, MonadApt r m, MonadTop r m, MonadError e m) =>
+prepareSource :: (MonadIO m, MonadCatch m, MonadRepos s m, MonadApt r m, MonadTop r m, HasIOException e, MonadError e m) =>
                  SrcPkgName                     -- The name of the package
               -> Maybe DebianVersion            -- The desired version, if Nothing get newest
               -> m DebianBuildTree              -- The resulting source tree
@@ -167,7 +175,7 @@ prepareSource package version =
                   _ -> fail $ "apt-get source failed (2): trees=" ++ show (map (dir' . tree' . debTree') trees)
 
 -- | Find the most recent version of a source package.
-latestVersion :: (MonadIO m, MonadRepos s m, MonadApt r m) => SrcPkgName -> Maybe DebianVersion -> m (Maybe DebianVersion)
+latestVersion :: (MonadIO m, MonadRepos s m, MonadApt r m, HasIOException e, MonadError e m) => SrcPkgName -> Maybe DebianVersion -> m (Maybe DebianVersion)
 latestVersion package exact = do
   pkgs <- aptSourcePackages
   let versions = map (packageVersion . sourcePackageID) $ filter ((== package) . packageName . sourcePackageID) $ pkgs

@@ -30,6 +30,7 @@ import Debian.Repo.Release (Release(..), parseArchitectures, parseComponents, re
 import Debian.Repo.State.Package (scanIncoming, deleteSourcePackages, deleteTrumped, deleteBinaryOrphans, deleteGarbage, InstallResult(Ok), explainError, resultToProblems, showErrors, MonadInstall, evalInstall)
 import Debian.Repo.State.Release (findReleases, prepareRelease, writeRelease, signRepo, mergeReleases)
 import Debian.Repo.State.Repository (readLocalRepository, prepareLocalRepository)
+import Debian.TH (here)
 import Debian.URI (HasParseError)
 import Debian.Version (parseDebianVersion', prettyDebianVersion)
 import Prelude hiding (putStr, putStrLn, putChar)
@@ -71,7 +72,7 @@ main =
 runFlags :: (MonadIO m, Show e, HasIOException e, HasParseError e, MonadError e m, MonadRepos s m) => Params -> m ()
 runFlags flags =
     do createReleases flags
-       repo <- readLocalRepository (root flags) (Just . layout $ flags) >>= maybe (error $ "Invalid repository location: " ++ show (outsidePath (root flags))) return
+       repo <- readLocalRepository [$here] (root flags) (Just . layout $ flags) >>= maybe (error $ "Invalid repository location: " ++ show (outsidePath (root flags))) return
        evalInstall (do rels <- findReleases repo
                        _ <- deletePackages (dryRun flags) rels flags keyname
                        liftIO $ setRepositoryCompatibility repo
@@ -114,16 +115,16 @@ runFlags flags =
 
 -- | Make sure the debian releases which are referenced by the command
 -- line flags exist.
-createReleases :: (MonadIO m, MonadRepos s m) => Params -> m ()
+createReleases :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => Params -> m ()
 createReleases flags =
     do let defaultReleases = map (\ name -> Release { releaseName = parseCodename name
                                                     , releaseAliases = []
                                                     , releaseArchitectures = archSet flags
                                                     , releaseComponents = defaultComponents }) (releases flags)
        repo <- case defaultReleases of
-                 [] -> readLocalRepository (root flags) (Just . layout $ flags) >>=
+                 [] -> readLocalRepository [$here] (root flags) (Just . layout $ flags) >>=
                        maybe (error $ "Invalid repository location: " ++ show (outsidePath (root flags))) return
-                 _ -> prepareLocalRepository (root flags) (Just . layout $ flags) defaultReleases
+                 _ -> prepareLocalRepository [$here] (root flags) (Just . layout $ flags) defaultReleases
        rels <- findReleases repo
        -- This might already be done
        mapM_ (createRelease repo (archSet flags)) (map parseCodename . releases $ flags)
@@ -139,7 +140,7 @@ createReleases flags =
                   _ -> error "Internal error 1"
             _ ->
                 error $ "Invalid argument to --create-section: " ++ arg
-      createSection :: (MonadIO m, MonadRepos s m) => LocalRepository -> Release -> Section -> m Release
+      createSection :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => LocalRepository -> Release -> Section -> m Release
       createSection repo release section' =
           case filter ((==) section') (releaseComponents release) of
             [] -> prepareRelease repo (releaseName release) (releaseAliases release)
@@ -158,7 +159,7 @@ defaultArchitectures = fromList [Binary (ArchOS "linux") (ArchCPU "i386"), Binar
 defaultComponents :: [Section]
 defaultComponents = parseComponents "main"
 
-createRelease :: (MonadIO m, MonadRepos s m) => LocalRepository -> Set Arch -> Codename -> m Release
+createRelease :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => LocalRepository -> Set Arch -> Codename -> m Release
 createRelease repo archList' name =
     do rels <- findReleases repo
        case filter (\ release -> elem name (releaseName release : releaseAliases release)) rels of
@@ -166,7 +167,7 @@ createRelease repo archList' name =
          [release] -> return release
          _ -> error "Internal error 2"
 
-createAlias :: (MonadIO m, MonadRepos s m) => LocalRepository -> String -> m Release
+createAlias :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => LocalRepository -> String -> m Release
 createAlias repo arg =
     case break (== '=') arg of
       (rel, ('=' : alias)) ->
@@ -191,9 +192,9 @@ exitOnError _ = return ()
 -- |Return the list of releases in the repository at root, creating
 -- the ones in the dists list with the given components and
 -- architectures.
-getReleases :: (MonadIO m, MonadRepos s m) => EnvPath -> Maybe Layout -> [Codename] -> [Section] -> Set Arch -> m Release
+getReleases :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => EnvPath -> Maybe Layout -> [Codename] -> [Section] -> Set Arch -> m Release
 getReleases root' layout' dists section' archSet' =
-    do repo <- readLocalRepository root' layout' >>= maybe (error $ "Invalid repository location: " ++ show (outsidePath root')) return
+    do (repo :: LocalRepository) <- readLocalRepository [$here] root' layout' >>= maybe (error $ "Invalid repository location: " ++ show (outsidePath root')) return
        existingReleases <- findReleases repo
        requiredReleases <- mapM (\ dist -> prepareRelease repo dist [] section' archSet') dists
        return $ mergeReleases repo (existingReleases ++ requiredReleases)

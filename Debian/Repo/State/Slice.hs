@@ -10,38 +10,38 @@ module Debian.Repo.State.Slice
     , updateCacheSources
     ) where
 
-import Control.Lens (over, review, view)
-import Control.Monad (when)
-import Control.Monad.Trans (liftIO)
+import Control.Lens (over, review, set, view)
+--import Control.Monad (when)
+import Control.Monad.Except (catchError, liftEither, liftIO, runExcept)
 import qualified Data.ByteString.Char8 as B (concat)
-import qualified Data.ByteString.Lazy.Char8 as L (toChunks)
-import Data.List (nubBy)
-import Data.Maybe (catMaybes, fromMaybe)
+import qualified Data.ByteString.Lazy.Char8 as L (readFile, toChunks)
+import Data.List (nub, nubBy)
+import Data.Maybe (catMaybes, fromJust, mapMaybe)
 import Data.Monoid ((<>))
 import Data.Text as T (pack, Text, unpack)
 import Debian.Control (Control'(Control), ControlFunctions(parseControl), fieldValue, Paragraph')
 import Debian.Control.Text (decodeParagraph)
 import Debian.Codename (parseCodename)
 import Debian.Pretty (prettyShow)
-import Debian.Except (HasIOException, liftEIO, MonadIO, MonadError)
+import Debian.Except (HasIOException(fromIOException), liftEIO, MonadIO, MonadError, throwError)
 import Debian.Release (parseSection')
-import Debian.Releases (DistsURI, distsURI, ReleaseTree, ReleaseURI, releaseURI)
-import Debian.Repo.EnvPath (EnvPath(..), EnvRoot(..), outsidePath, rootPath)
+import Debian.Releases (ReleaseTree, ReleaseURI, releaseURI)
+import Debian.Repo.EnvPath (EnvPath(..), EnvRoot(..), outsidePath)
 import Debian.Repo.MonadRepos (MonadRepos)
-import Debian.Repo.Prelude (replaceFile, symbol)
-import Debian.Repo.Prelude.Verbosity (qPutStrLn)
-import Debian.Repo.Repo (repoKey)
+import Debian.Repo.Prelude (replaceFile)
+import Debian.Repo.Prelude.Verbosity (ePutStrLn, qPutStrLn)
+import Debian.Repo.Repo (RepoKey(Local), repoKey)
 import Debian.Repo.Slice (NamedSliceList(sliceList, sliceListName), Slice(..), SliceList(..), SourcesChangedAction, doSourcesChangedAction)
 import Debian.Repo.State.Repository (readLocalRepository, prepareRemoteRepository)
 import Debian.Repo.Top (MonadTop, distDir, sourcesPath)
-import Debian.Repo.URI (dirFromURI, fileFromURI)
-import Debian.Sources (DebSource(..), SourceOption(..), SourceType(Deb, DebSrc), parseSourcesList)
+import Debian.Repo.URI (fileFromURI)
+import Debian.Sources (DebSource(..), parseSourcesList, SourceOption(..), SourceType(Deb, DebSrc), sourceUri)
 import Debian.TH (here)
-import Debian.URI (parentURI, uriPathLens, uriSchemeLens)
+import Debian.URI (parentURI, parseURI, uriPathLens, uriSchemeLens)
 import Debian.VendorURI (VendorURI, vendorURI)
 import Language.Haskell.TH.Syntax (Loc)
-import System.Directory (createDirectoryIfMissing, doesFileExist)
-import System.FilePath ((</>))
+import System.Directory (createDirectoryIfMissing, doesFileExist, listDirectory)
+import System.FilePath ((</>), dropDrive, makeRelative)
 import Text.Regex (mkRegex, splitRegex)
 
 -- | Examine the repository whose root is at the given URI and return a
@@ -50,23 +50,31 @@ import Text.Regex (mkRegex, splitRegex)
 -- the repository.
 repoSources ::
     (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m)
-    => [Loc] -> Maybe EnvRoot -> [SourceOption] -> VendorURI -> m SliceList
-repoSources locs chroot opts venuri =
-    do let distsuri :: DistsURI
+    => [Loc] -> [SourceOption] -> EnvPath -> m SliceList
+repoSources locs opts venpath {-chroot venuri-} =
+    do qPutStrLn ("repoSources - venpath=" <> show venpath <> " at " <> prettyShow ($here : locs))
+{-
+       let distsuri :: DistsURI
            distsuri = review distsURI (over uriPathLens (</> "dists") (view vendorURI venuri))
+-}
        -- review distsURI $ parentURI $ view releaseURI reluri
-       dirs <- liftIO $ uriSubdirs ($here : locs) chroot distsuri
-       let reluris = fmap (\dir -> review releaseURI (over uriPathLens (</> (unpack dir <> "/")) (view distsURI distsuri))) dirs
-       releaseFiles <- catMaybes <$> mapM (readRelease ($here : locs) chroot) reluris
-       let codenames = map (maybe Nothing (zap (flip elem dirs))) . map (fieldValue "Codename") $ releaseFiles
+       dirs <- liftIO $ listDirectory (outsidePath venpath </> "dists")
+       ePutStrLn ("repoSources - dirs=" ++ show dirs ++ " at " <> prettyShow ($here : locs))
+       let relpaths = fmap (\dir -> outsidePath venpath </> "dists" </> dir) dirs
+       ePutStrLn ("repoSources - relpaths=" ++ show relpaths ++ " at " <> prettyShow ($here : locs))
+       (releaseFiles :: [Paragraph' Text]) <- catMaybes <$> mapM (readReleaseFromPath ($here : locs)) (fmap (</> "Release") relpaths)
+       ePutStrLn ("repoSources - releaseFiles=" ++ show releaseFiles ++ " at " <> prettyShow ($here : locs))
+       let suites = map (maybe Nothing (zap (flip elem (fmap pack dirs)))) . map (fieldValue "Suite") $ releaseFiles
+           codenames = map (maybe Nothing (zap (flip elem (fmap pack dirs)))) . map (fieldValue "Codename") $ releaseFiles
            sections = map (maybe Nothing (Just . map parseSection' . splitRegex (mkRegex "[ \t,]+") . unpack) . fieldValue "Components") $ releaseFiles
-           result = concat $ map sources . nubBy (\ (a, _) (b, _) -> a == b) . zip codenames $ sections
-       mapM (verifyDebSource Nothing) result >>= (\ list -> return $ SliceList { slices = list })
+           result = concat $ map sources . nubBy (\ (a, _) (b, _) -> a == b) . zip {-codenames-} suites $ sections
+       mapM (verifyDebSource ($here : locs) (Just (_envRoot venpath))) result >>= (\ list -> return $ SliceList { slices = list })
     where
-      -- venuri = review vendorURI $ parentURI $ parentURI $ view releaseURI reluri
+      venuri :: VendorURI
+      venuri = review vendorURI (fromJust (parseURI ("file://" <> _envPath venpath))) -- review vendorURI $ parentURI $ parentURI $ view releaseURI reluri
       sources (Just codename, Just components@(_ : _)) =
-          [DebSource {sourceType = Deb, sourceOptions = opts, sourceUri = venuri, sourceDist = Right (parseCodename (unpack codename), components)},
-           DebSource {sourceType = DebSrc, sourceOptions = opts, sourceUri = venuri, sourceDist = Right (parseCodename (unpack codename), components)}]
+          [DebSource {_sourceType = Deb, _sourceOptions = opts, _sourceUri = venuri, _sourceDist = Right (parseCodename (unpack codename), components)},
+           DebSource {_sourceType = DebSrc, _sourceOptions = opts, _sourceUri = venuri, _sourceDist = Right (parseCodename (unpack codename), components)}]
       sources _ = []
       -- Compute the list of sections for each dist on a remote server.
       zap p x = if p x then Just x else Nothing
@@ -80,15 +88,15 @@ releaseSources locs chroot opts reluri =
            let codename = fieldValue "Codename" releaseFile
                section = maybe Nothing (Just . map parseSection' . splitRegex (mkRegex "[ \t,]+") . unpack) . fieldValue "Components" $ releaseFile
                result = sources (codename, section)
-           mapM (verifyDebSource Nothing) result >>= (\ list -> return $ SliceList { slices = list })
+           mapM (verifyDebSource ($here : locs) Nothing) result >>= (\ list -> return $ SliceList { slices = list })
     where
       venuri = (review vendorURI . parentURI . parentURI) (view releaseURI reluri)
       sources (Just codename, Just components@(_ : _)) =
-          [DebSource {sourceType = Deb, sourceOptions = opts, sourceUri = venuri, sourceDist = Right (parseCodename (unpack codename), components)},
-           DebSource {sourceType = DebSrc, sourceOptions = opts, sourceUri = venuri, sourceDist = Right (parseCodename (unpack codename), components)}]
+          [DebSource {_sourceType = Deb, _sourceOptions = opts, _sourceUri = venuri, _sourceDist = Right (parseCodename (unpack codename), components)},
+           DebSource {_sourceType = DebSrc, _sourceOptions = opts, _sourceUri = venuri, _sourceDist = Right (parseCodename (unpack codename), components)}]
       sources _ = []
       -- Compute the list of sections for each dist on a remote server.
-      zap p x = if p x then Just x else Nothing
+      --zap p x = if p x then Just x else Nothing
 
 repoSources' ::
     (MonadIO m, MonadRepos s m, Show e, HasIOException e, MonadError e m)
@@ -103,6 +111,7 @@ repoSources' locs myUploadURI chroot opts r = do
     Right uri -> releaseSources ($here : locs) chroot opts uri
     Left e -> error ("repoSources' " ++ show e)
 
+#if 0
 -- |Return the list of releases in a repository, which is the
 -- list of directories in the dists subdirectory.  Currently
 -- this is only known to work with Apache.  Note that some of
@@ -115,6 +124,7 @@ uriSubdirs locs root uri = do
       uri' = case view (distsURI . uriSchemeLens) uri of
                "file:" -> over (distsURI . uriPathLens) (maybe "" (view rootPath) root ++) uri
                _ -> uri
+#endif
 
 readRelease ::
     (HasIOException e, MonadIO m, MonadError e m)
@@ -131,6 +141,19 @@ readRelease locs chroot uri =
                 _ -> return Nothing
     where
       uri' = over uriPathLens (</> "Release") (view releaseURI uri)
+
+readReleaseFromPath ::
+    (HasIOException e, MonadIO m, MonadError e m)
+    => [Loc]
+    -> FilePath
+    -> m (Maybe (Paragraph' Text))
+readReleaseFromPath locs path =
+    do output <- liftEIO ($here : locs) $ L.readFile path
+       case output of
+         s -> case parseControl path (B.concat . L.toChunks $ s) of
+                Right (Control [paragraph]) -> return (Just (decodeParagraph paragraph))
+                _ -> return Nothing
+      -- where uri' = over uriPathLens (</> "Release") (view releaseURI uri)
 
 #if 0
 readRelease' :: ReleaseTree -> Text -> IO (Maybe (Paragraph' Text))
@@ -149,34 +172,97 @@ readRelease' r name =
 
 -- | Make sure all the required local and remote repository objects
 -- used by a sources.list file are in our cache.
-verifySourcesList :: (MonadIO m, MonadRepos s m) => Maybe EnvRoot -> [DebSource] -> m SliceList
-verifySourcesList chroot list =
-    mapM (verifyDebSource chroot) list >>=
+verifySourcesList ::
+    (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m)
+    => [Loc]
+    -> Maybe EnvRoot
+    -- ^ If the url in any Slice is local and has this envroot as
+    -- prefix split it out into the RepoKey.
+    -> [DebSource]
+    -> m SliceList
+verifySourcesList locs chroot list =
+    mapM (verifyDebSource ($here : locs) chroot) list >>=
     (\ xs -> return $ SliceList { slices = xs })
 
-verifyDebSource :: (MonadIO m, MonadRepos s m) => Maybe EnvRoot -> DebSource -> m Slice
-verifyDebSource chroot line =
-    case view (vendorURI . uriSchemeLens) (sourceUri line) of
-      "file:" -> let path = EnvPath chroot' (view (vendorURI . uriPathLens) (sourceUri line)) in readLocalRepository path Nothing >>= maybe (error $ "No repository at " ++ show (outsidePath path)) (\ repo' -> return $ Slice {sliceRepoKey = repoKey repo', sliceSource = line})
-      _ -> prepareRemoteRepository (sourceUri line) >>= \ repo' -> return $ Slice {sliceRepoKey = repoKey repo', sliceSource = line}
-    where
-      chroot' = fromMaybe (EnvRoot "") chroot
+-- | If the url in line is a file: url try to split the chroot prefix
+-- out of it and use it to build the EnvPath in sliceRepoKey.
+verifyDebSource ::
+    (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m)
+    => [Loc]
+    -> Maybe EnvRoot
+    -> DebSource
+    -> m Slice
+verifyDebSource locs chroot line = do
+    ePutStrLn ("verifyDebSource - chroot=" ++ show chroot ++ " line=" ++ show line ++ " at " <> prettyShow ($here : locs))
+    case view (sourceUri . vendorURI . uriSchemeLens) line of
+      "file:" -> do
+        -- We have now split the uri into a chroot path and an inside path
+        let (epath :: EnvPath) = toEnvPath chroot (view (sourceUri . vendorURI . uriPathLens) line)
+            line' = set (sourceUri . vendorURI . uriPathLens) (_envPath epath) line
+        ePutStrLn ("verifyDebSource - epath=" ++ show epath)
+        mrepo <- readLocalRepository ($here : locs) epath Nothing
+        ePutStrLn ("verifyDebSource - mrepo=" ++ show mrepo)
+        maybe --(qPutStrLn ("No repository at " ++ show path ++ ", ignore and continue"))
+              (throwError $ fromIOException ($here : locs) $ userError $ "No repository at " ++ show epath)
+              (\repo' -> return $ Slice {sliceRepoKey = repoKey repo', sliceSource = line'})
+              mrepo
+      _ -> prepareRemoteRepository ($here : locs) (_sourceUri line) >>= \ repo' -> return $ Slice {sliceRepoKey = repoKey repo', sliceSource = line}
+    --where
+      --chroot' :: EnvRoot
+      --chroot' = fromMaybe (EnvRoot "") chroot
+
+-- toEnvPath (Just (EnvRoot "/")) path -> path
+-- toEnvPath (Just (EnvRoot "/srv/dists/bionic/clean")) "/srv/dists/bionic/clean/work/localpool"
+--   -> EnvPath (EnvRoot "/srv/dists/bionic/clean") "/work/localpool"
+toEnvPath :: Maybe EnvRoot -> FilePath -> EnvPath
+toEnvPath Nothing path = EnvPath (EnvRoot "/") path
+toEnvPath (Just (root@(EnvRoot pref))) path =
+    EnvPath root path'
+    -- We need this to start with exactly one /, this seems to do it.
+    where path' = "/" <> dropDrive (makeRelative pref path)
 
 -- |Change the sources.list of an AptCache object, subject to the
 -- value of sourcesChangedAction.  (FIXME: Does this really work for MonadOS?)
-updateCacheSources :: (MonadIO m, MonadRepos s m, MonadTop r m) => SourcesChangedAction -> NamedSliceList -> m ()
-updateCacheSources sourcesChangedAction baseSources = do
+
+-- data NamedSliceList = NamedSliceList { sliceList :: SliceList, sliceListName :: Codename }
+-- data SliceList = SliceList {slices :: [Slice]} deriving (Eq, Ord, Show)
+-- data Slice = Slice {sliceRepoKey :: RepoKey, sliceSource :: DebSource} deriving (Eq, Ord, Show)
+-- data RepoKey = Remote URI' | Local EnvPath
+
+-- | Find and return the 'EnvRoot' of the 'Local' lines of a
+-- 'NamedSliceList'.
+findEnvRoot :: forall e m. (HasIOException e, MonadError e m) => [Loc] -> NamedSliceList -> m (Maybe EnvRoot)
+findEnvRoot locs nsl =
+    case nub (mapMaybe (repoKeyPath . sliceRepoKey) (slices (sliceList nsl))) of
+      [] -> return Nothing
+      [r] -> return $ Just r
+      rs -> throwError (fromIOException ($here : locs) (userError ("Multiple distinct roots in local sources: " ++ show rs ++ " at " ++ prettyShow ($here : locs))))
+    where repoKeyPath (Local p) = Just (_envRoot p)
+          repoKeyPath _ = Nothing
+
+updateCacheSources ::
+    (MonadIO m, MonadRepos s m, MonadTop r m, HasIOException e, MonadError e m)
+    => [Loc] -> SourcesChangedAction -> NamedSliceList -> m ()
+updateCacheSources locs sourcesChangedAction baseSources = do
   let rel = sliceListName baseSources
+  chroot <- liftEither $ runExcept $ findEnvRoot ($here : locs) baseSources
   dir <- distDir rel
   sources <- sourcesPath rel
+  qPutStrLn ("updateCacheSources - sources=" ++ show sources ++ " chroot=" ++ show chroot ++ " at " <> prettyShow ($here : locs))
   distExists <- liftIO $ doesFileExist sources
   case distExists of
     True -> do
-      fileSources <- liftIO (readFile sources) >>= verifySourcesList Nothing . parseSourcesList [$here]
-      when (fileSources /= sliceList baseSources)
-           (qPutStrLn ($(symbol 'updateCacheSources) ++ " for " <> show rel) >>
-            liftIO (doSourcesChangedAction dir sources baseSources fileSources sourcesChangedAction))
+      (fileSources :: Either e SliceList) <- tryError (liftEIO ($here : locs) (readFile sources) >>= verifySourcesList ($here : locs) chroot . parseSourcesList [$here])
+      case fileSources of
+        Right s
+          | s /= sliceList baseSources -> do
+             ePutStrLn ("updateCacheSources - s=" ++ show s ++ " sliceList baseSources=" ++ show (sliceList baseSources) ++ " for " <> show rel ++ " at " ++ prettyShow ($here : locs))
+             liftEIO ($here : locs) (doSourcesChangedAction ($here : locs) dir sources baseSources s sourcesChangedAction)
+        _ -> return ()
     False -> do
-      liftIO $ createDirectoryIfMissing True dir
-      liftIO $ replaceFile sources (prettyShow baseSources)
+      liftEIO ($here : locs) $ createDirectoryIfMissing True dir
+      liftEIO ($here : locs) $ replaceFile sources (prettyShow baseSources)
   return ()
+
+tryError :: MonadError e m => m a -> m (Either e a)
+tryError action = (Right <$> action) `catchError` (return . Left)
