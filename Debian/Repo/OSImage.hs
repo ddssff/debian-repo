@@ -40,7 +40,6 @@ import Data.List (intercalate)
 import Data.Typeable (Typeable)
 import Debian.Arch (Arch)
 import Debian.Codename (Codename, codename, parseCodename)
-import Debian.Except (HasIOException, liftEIO)
 import Debian.Pretty (prettyShow)
 import Debian.Relation (BinPkgName(..), ParseRelations(parseRelations), Relations)
 import Debian.Release (parseSection')
@@ -59,6 +58,7 @@ import Debian.Sources (DebSource(..), sourceDist, sourceUri, SourceOption(..), S
 import Debian.TH (here)
 import Debian.URI (uriToString')
 import Debian.VendorURI (vendorURI)
+import Extra.Except -- (HasIOException, HasLoc(withLoc), liftIOError, MonadIOError)
 import System.Directory (createDirectoryIfMissing, doesFileExist, removeFile, renameFile)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>))
@@ -123,7 +123,7 @@ createOSImage (OSKey root) distro extra repo =
        -- the underlying system.  We can support multiple
        -- distributions, but if the hardware is an amd64 the packages
        -- produced will be amd64.
-       arch <- liftEIO [$here] buildArchOfRoot
+       arch <- liftIOError buildArchOfRoot
        let os = OS { _osRoot = OSKey root
                    , _osBaseDistro = distro
                    , _osArch = arch
@@ -142,9 +142,7 @@ createOSImage (OSKey root) distro extra repo =
 -- | Create the OSImage record for a copy of an existing OSImage at a
 -- different location.
 cloneOSImage ::
-    forall e m. (MonadIO m, MonadCatch m,
-                 --HasOSKey r, MonadReader r m,
-                 HasRsyncError e, HasIOException e, MonadError e m)
+    forall e m. (MonadIO m, MonadCatch m, HasLoc e, HasRsyncError e, MonadIOError e m)
     => OSImage -> OSKey -> m OSImage
 cloneOSImage src dst = do
   copy <- action'
@@ -203,9 +201,7 @@ instance Show UpdateError where
     show Flushed = "Flushed"
 
 syncOS' ::
-    forall e m. (MonadIO m, MonadCatch m,
-                 -- HasOSKey r, MonadReader r m,
-                 HasRsyncError e, HasIOException e, MonadError e m)
+    forall e m. (MonadCatch m, HasLoc e, HasRsyncError e, MonadIOError e m)
     => OSImage -> OSKey -> m OSImage
 syncOS' src dst = do
   liftIO mkdir

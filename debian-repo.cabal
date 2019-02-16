@@ -76,6 +76,7 @@ Library
         regex-compat,
         regex-tdfa,
         SHA,
+        sr-extra >= 1.53,
         syb,
         taggy,
         template-haskell,
@@ -215,7 +216,7 @@ Library
 
 Executable debian-versions
   Hs-Source-Dirs: demos
-  Build-Depends: base, mtl, debian-repo
+  Build-Depends: base, mtl, debian-repo, sr-extra >= 1.53
   Buildable: True
   Main-is: Versions.hs
   ghc-options: -O2 -threaded -Wall
@@ -224,7 +225,7 @@ Executable debian-versions
 
 Executable newdist
   Hs-Source-Dirs: Debian/NewDist
-  Build-Depends: base, debian-repo, containers, directory, filepath, MIME, mtl, regex-compat, template-haskell, text
+  Build-Depends: base, debian-repo, containers, directory, filepath, MIME, mtl, regex-compat, sr-extra >= 1.53, template-haskell, text
   Buildable: True
   Main-is: Main.hs
   ghc-options: -O2 -threaded -Wall -rtsopts

@@ -10,18 +10,16 @@ module Debian.Repo.Repo
     , compatibilityFile
     ) where
 
-import Control.Exception (IOException)
 import Control.Lens (review, view)
 import Data.Char (isDigit)
 import Data.Maybe (fromJust)
 import Data.Set (Set, unions)
 import Data.Text (unpack)
 import Debian.Arch (Arch)
-import Debian.Except (MonadIO, MonadError)
+import Extra.Except -- (HasLoc, MonadIOError)
 import Debian.Repo.EnvPath (EnvPath, envPath)
 import Debian.Repo.Release (Release(releaseArchitectures))
 import Debian.Repo.URI (fileFromURI)
-import Debian.TH (here)
 import Debian.URI (fromURI', URI')
 import qualified Debian.UTF8 as Deb (decode)
 import Debian.VendorURI (VendorURI, vendorURI)
@@ -35,9 +33,9 @@ data RepoKey
 
 class (Ord t, Eq t) => Repo t where
     repoKey :: t -> RepoKey
-    repositoryCompatibilityLevel :: (MonadIO m, MonadError IOException m) => t -> m (Maybe Int)
+    repositoryCompatibilityLevel :: (HasLoc e, MonadIOError e m) => t -> m (Maybe Int)
     repositoryCompatibilityLevel r =
-        (parse . unpack . Deb.decode) <$> fileFromURI [$here] Nothing uri'
+        (parse . unpack . Deb.decode) <$> liftIOError (fileFromURI Nothing uri')
         where
           uri' = uri {uriPath = uriPath uri </> compatibilityFile}
           uri = case repoKey r of
@@ -51,7 +49,7 @@ class (Ord t, Eq t) => Repo t where
     -- repository.  This can be used to identify all of the files
     -- in the repository that are not garbage.
     repoReleaseInfo :: t -> [Release]
-    checkCompatibility :: t -> IO ()
+    checkCompatibility :: (HasLoc e, MonadIOError e m) => t -> m ()
     checkCompatibility repo =
         do level <- repositoryCompatibilityLevel repo
            case level of

@@ -14,7 +14,7 @@ import Control.Monad.Reader (MonadReader)
 import Data.ByteString.Lazy (ByteString)
 import Data.Function (on)
 import Data.Typeable (Typeable)
-import Debian.Except (HasIOException(fromIOException))
+import Extra.Except (HasIOException(fromIOException), HasLoc(withLoc))
 --import Debian.Repo.OSKey (HasOSKey)
 import Debian.Repo.Prelude.Process (runV2)
 import Debian.TH (here)
@@ -63,8 +63,9 @@ data RsyncError
     | TheMaxDeleteLimitStoppedDeletions
     | TimeoutInDataSendReceive
     | TimeoutWaitingForDaemonConnection
-    | RsyncIOException [Loc] IOException
+    | RsyncIOException IOException
     | RsyncUnexpected Int
+    | RsyncErrorLoc Loc RsyncError
     deriving (Typeable, Show, Eq, Ord)
 
 instance Ord IOException where
@@ -108,7 +109,8 @@ rsyncErrorInfo n = (RsyncUnexpected n, "Unexpected rsync error: " ++ show n)
 class HasRsyncError e where fromRsyncError :: RsyncError -> e
 instance HasRsyncError RsyncError where fromRsyncError = id
 
-instance HasIOException RsyncError where fromIOException locs = RsyncIOException locs
+instance HasIOException RsyncError where fromIOException = RsyncIOException
+instance HasLoc RsyncError where withLoc = RsyncErrorLoc
 --instance HasWrappedIOException RsyncError where wrapIOException = RsyncIOException $here
 
 -- | For backwards compatibility

@@ -7,7 +7,7 @@ module Debian.Repo.State.PackageIndex
 
 import Control.Exception (try)
 import Control.Lens (view)
-import Control.Monad.Except (MonadIO(liftIO), MonadError)
+import Control.Monad.Except (MonadIO(liftIO))
 import Data.Either (partitionEithers)
 import Data.List (intercalate)
 import Data.List as List (map, partition)
@@ -17,7 +17,6 @@ import Debian.Arch (Arch, Arch(..), prettyArch)
 import Debian.Codename (Codename, codename)
 import Debian.Control (ControlFunctions(stripWS), formatParagraph)
 import qualified Debian.Control.Text as B (Control'(Control), ControlFunctions(lookupP), ControlFunctions(parseControlFromHandle), Field, Field'(Field), fieldValue, Paragraph)
-import Debian.Except (HasIOException)
 import Debian.Pretty (prettyShow)
 import qualified Debian.Relation.Text as B (ParseRelations(..), Relations)
 import Debian.Release (sectionName')
@@ -36,6 +35,7 @@ import Debian.TH (here)
 import Debian.URI (uriSchemeLens, uriToString', uriAuthorityLens, uriPathLens)
 import Debian.VendorURI (vendorURI)
 import Debian.Version (parseDebianVersion')
+import Extra.Except -- (HasIOException)
 import Network.URI (escapeURIString, URIAuth(uriPort, uriRegName, uriUserInfo))
 import qualified System.IO as IO (hClose, IOMode(ReadMode), openBinaryFile)
 --import System.IO.Unsafe (unsafeInterleaveIO)
@@ -43,7 +43,7 @@ import qualified System.IO as IO (hClose, IOMode(ReadMode), openBinaryFile)
 
 -- |Return a list of the index files that contain the packages of a
 -- slice.
-sliceIndexes :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => Arch -> Slice -> m [(RepoKey, Release, PackageIndex)]
+sliceIndexes :: (MonadRepos s m, MonadIOError e m, HasLoc e) => Arch -> Slice -> m [(RepoKey, Release, PackageIndex)]
 sliceIndexes arch slice =
     foldRepository [$here] f f (sliceRepoKey slice)
     where
@@ -80,7 +80,7 @@ instance Show UpdateError where
     show Flushed = "Flushed"
 
 sourcePackagesFromSources ::
-    (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m)
+    (MonadRepos s m, MonadIOError e m, HasLoc e)
     => EnvRoot
     -> Arch
     -> SliceList
@@ -174,7 +174,7 @@ parseSourceParagraph p =
                   , homepage = fmap stripWS $ B.fieldValue "Homepage" p })
       _x -> Left ["parseSourceParagraph - One or more required fields (Package, Maintainer, Standards-Version) missing: " ++ show p]
 
-binaryPackagesFromSources :: (MonadIO m, MonadRepos s m, HasIOException e, MonadError e m) => EnvRoot -> Arch -> SliceList -> m [BinaryPackage]
+binaryPackagesFromSources :: (MonadRepos s m, MonadIOError e m, HasLoc e) => EnvRoot -> Arch -> SliceList -> m [BinaryPackage]
 binaryPackagesFromSources root arch sources = do
   indexes <- mapM (sliceIndexes arch) (slices . binarySlices $ sources) >>= return . concat
   concat <$> (mapM (\ (repo, rel, index) -> either (const []) id <$> (binaryPackagesOfIndex root arch repo rel index)) indexes)

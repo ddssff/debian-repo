@@ -16,7 +16,7 @@ import Control.Monad
 import Control.Monad.Except (MonadError)
 --import Data.ByteString.Lazy.Char8 (empty)
 import Data.List
-import Debian.Except (HasIOException, liftEIO)
+import Extra.Except -- (HasIOException, liftIOError, tryError{-, withLoc, withError-}, throwError)
 import System.Directory
 --import System.Exit
 import System.IO (readFile, hPutStrLn, stderr)
@@ -31,7 +31,7 @@ import Control.Monad.Trans (liftIO, MonadIO)
 import Data.ByteString.Lazy as L (ByteString, empty)
 import Debian.TH (here)
 import GHC.IO.Exception (IOErrorType(OtherError))
-import Language.Haskell.TH.Syntax (Loc)
+--import Language.Haskell.TH.Syntax (Loc)
 import System.Directory (createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitFailure, ExitSuccess))
 import System.FilePath ((</>))
@@ -153,21 +153,21 @@ readProcess p input = do
 -- | Do an IO task with a file system remounted using mount --bind.
 -- This was written to set up a build environment.
 withMount ::
-    (MonadIO m, HasIOException e, MonadError e m, MonadMask m)
-    => [Loc] -> FilePath -> FilePath -> m a -> m a
-withMount locs directory mountpoint task =
+    (MonadIO m, HasLoc e, HasIOException e, MonadError e m, MonadMask m)
+    => FilePath -> FilePath -> m a -> m a
+withMount directory mountpoint task =
     bracket pre (\ _ -> post) (\ _ -> task)
     where
       mount = proc "mount" ["--bind", directory, mountpoint]
       umount' = proc "umount" [mountpoint]
       umountLazy = proc "umount" ["-l", mountpoint]
 
-      pre = liftEIO ($here : locs) $ do
+      pre = withError (withLoc $here) $ liftIOError $ do
               -- hPutStrLn stderr $ "mounting /proc at " ++ show mountpoint
               createDirectoryIfMissing True mountpoint
               readProcess mount L.empty
 
-      post = liftEIO ($here : locs) $ do
+      post = withError (withLoc $here) $ liftIOError $ do
                -- hPutStrLn stderr $ "unmounting /proc at " ++ show mountpoint
                readProcess umount' L.empty
                  `catch` (\ (e :: IOError) -> do
@@ -178,15 +178,15 @@ withMount locs directory mountpoint task =
 -- task.  Typically, the task would start with a chroot into the build
 -- root.  If the build root given is "/" it is assumed that the file
 -- systems are already mounted, no mounting or unmounting is done.
-withProcAndSys :: (MonadIO m, HasIOException e, MonadError e m, MonadMask m) => [Loc] -> FilePath -> m a -> m a
-withProcAndSys _ "/" task = task
-withProcAndSys locs root task = do
+withProcAndSys :: (MonadIO m, HasLoc e, HasIOException e, MonadError e m, MonadMask m) => FilePath -> m a -> m a
+withProcAndSys "/" task = task
+withProcAndSys root task = do
   exists <- liftIO $ doesDirectoryExist root
   case exists of
-    True -> withMount ($here : locs) "/proc" (root </> "proc") $ withMount ($here : locs) "/sys" (root </> "sys") $ task
-    False -> liftEIO ($here : locs) $ ioError $ mkIOError doesNotExistErrorType "chroot directory does not exist" Nothing (Just root)
+    True -> withMount "/proc" (root </> "proc") $ withMount "/sys" (root </> "sys") $ task
+    False -> withError (withLoc $here) $ liftIOError $ ioError $ mkIOError doesNotExistErrorType "chroot directory does not exist" Nothing (Just root)
 
 -- | Do an IO task with /tmp remounted.  This could be used
 -- to share /tmp with a build root.
-withTmp :: (HasIOException e, MonadError e m, MonadIO m, MonadMask m) => FilePath -> m a -> m a
-withTmp root task = withMount [$here] "/tmp" (root </> "tmp") task
+withTmp :: (HasLoc e, HasIOException e, MonadError e m, MonadIO m, MonadMask m) => FilePath -> m a -> m a
+withTmp root task = withMount "/tmp" (root </> "tmp") task

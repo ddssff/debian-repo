@@ -48,7 +48,7 @@ import Control.Monad.State (MonadIO(..), MonadState, StateT(runStateT))
 import Data.Map as Map (empty, fromList, insert, lookup, Map, toList, union)
 import Data.Maybe (fromJust, fromMaybe)
 import Debian.Codename (Codename)
-import Debian.Except (HasIOException, MonadError)
+import Extra.Except (HasLoc, MonadError, MonadIOError)
 import Debian.Repo.AptKey (AptKey(AptKey), HasAptKey(aptKey), MonadApt)
 import Debian.Repo.EnvPath (EnvRoot)
 import Debian.Repo.OSImage (OSImage(..), osRoot, syncOS')
@@ -257,10 +257,9 @@ saveRepoCache =
                 return . Map.fromList . fromMaybe [] . maybeRead
 
 syncOS ::
-    forall e s m. (MonadIO m, MonadCatch m,
-                   --MonadTop r m, HasOSKey r, {-MonadReader r m,-}
+    forall e s m. (MonadCatch m,
                    HasReposState s, MonadState s m,
-                   HasIOException e, HasRsyncError e, MonadError e m)
+                   HasRsyncError e, HasLoc e, MonadIOError e m)
     => OSImage -> OSKey -> m OSImage
 syncOS srcOS dstRoot = do
   dstOS <- syncOS' srcOS dstRoot

@@ -1,6 +1,6 @@
 -- | A release is a named collection of package indexes, e.g. sid.
 {-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, PackageImports, ScopedTypeVariables,
-             StandaloneDeriving, TemplateHaskell, TypeSynonymInstances #-}
+             StandaloneDeriving, TemplateHaskell, TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Debian.Repo.Release
     ( Release(Release, releaseName, releaseAliases, releaseArchitectures, releaseComponents)
@@ -28,8 +28,8 @@ import qualified Data.Text.IO as T (readFile)
 import Debian.Arch (Arch(..), parseArch)
 import Debian.Codename (Codename, codename, parseCodename)
 import qualified Debian.Control.Text as T (Control'(Control), fieldValue, Paragraph, Paragraph', parseControl)
-import Debian.Except (HasIOException(fromIOException), liftEIO, MonadError, MonadIO)
-import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn)
+import Extra.Except -- (HasLoc(withLoc), HasIOException(fromIOException), MonadIO, MonadIOError, withError)
+import Debian.Repo.Prelude.Verbosity (qPutStr)
 import Debian.Repo.URI (dirFromURI, fileFromURI)
 import Debian.Release (parseSection', Section(..))
 import Debian.TH (here)
@@ -123,20 +123,20 @@ parseArchitectures archList =
 
 -- |Get the list of releases of a remote repository given the url for
 -- one of its releases.
-getReleaseInfoRemote :: forall e m. (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> VendorURI -> m [Release]
+getReleaseInfoRemote :: [Loc] -> VendorURI -> IO [Release]
 getReleaseInfoRemote locs uri = do
-  qPutStr ("getReleaseInfoRemote - uri=" <> show uri <> ") at " <> prettyShow ($here : locs))
-  (dir :: [FilePath]) <- liftEIO ($here : locs) $ dirFromURI ($here : locs) (distsURI uri)
-  qPutStrLn ("getReleaseInfoRemote - dir=" <> show dir <> " at " <> prettyShow ($here : locs))
+  --qPutStr ("getReleaseInfoRemote - uri=" <> show uri <> ") at " <> prettyShow ($here : locs))
+  (dir :: [String]) <- dirFromURI (distsURI uri)
+  --qPutStrLn ("getReleaseInfoRemote - dir=" <> show dir <> " at " <> prettyShow ($here : locs))
   (result :: [Release]) <- catMaybes <$> (verify . fmap parseCodename . filter (\x -> not (elem x [".", ".."]))) dir
   -- qPutStrLn (prettyShow $here <> " - result=" ++ show result)
-  qPutStr (")\n code names: " <> show (fmap (codename . releaseName) result) <> "\n")
+  --qPutStr (")\n code names: " <> show (fmap (codename . releaseName) result) <> "\n")
   return result
     where
       distsURI :: VendorURI -> URI
       distsURI = over uriPathLens (</> "dists/") . view vendorURI
       -- Verify by reading and parsing the Release file
-      verify :: [Codename] -> m [Maybe Release]
+      verify :: [Codename] -> IO [Maybe Release]
       verify names =
           do --qPutStrLn (prettyShow $here <>  " - names=" ++ show (fmap codename names))
              (releaseFiles :: [File (T.Paragraph' Text)]) <- mapM getReleaseFile names
@@ -154,16 +154,16 @@ getReleaseInfoRemote locs uri = do
       getReleaseInfo :: Text -> (File T.Paragraph) -> Codename -> Maybe Release
       getReleaseInfo dist _ relname | (parseCodename (T.unpack dist)) /= relname = Nothing
       getReleaseInfo dist info _ = Just $ makeReleaseInfo info (parseCodename (T.unpack dist)) []
-      getSuite :: File (T.Paragraph' Text) -> m Text
+      getSuite :: File (T.Paragraph' Text) -> IO Text
       getSuite (File {text = Success releaseFile}) =
           case T.fieldValue (releaseNameField releaseFile) releaseFile of
-            Nothing -> throwError (fromIOException ($here : locs) (userError "no release name field"))
+            Nothing -> throwError (userError "no release name field")
             Just x -> return x
-      getSuite (File {text = Failure msgs}) = throwError (fromIOException ($here : locs) (userError (intercalate "\n" msgs)))
-      getReleaseFile :: Codename -> m (File (T.Paragraph' Text))
+      getSuite (File {text = Failure msgs}) = throwError (userError (intercalate "\n" msgs))
+      getReleaseFile :: Codename -> IO (File (T.Paragraph' Text))
       getReleaseFile dist =
           do qPutStr "."
-             release <- fileFromURI ($here : locs) Nothing relURI :: m L.ByteString
+             release <- fileFromURI Nothing relURI :: IO L.ByteString
              let control = (either (Left . userError . show) Right . T.parseControl (show relURI) . Deb.decode) release
              case control of
                Right (T.Control [info :: T.Paragraph' Text]) -> do

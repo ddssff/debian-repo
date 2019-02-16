@@ -20,13 +20,12 @@ import Control.Monad.Catch (MonadCatch, MonadMask {-mask_-}, try)
 import Control.Monad.Except (ExceptT, lift, MonadError, runExceptT, throwError)
 import Control.Monad.Reader (ask, MonadReader, ReaderT, runReaderT)
 import Control.Monad.State (MonadState)
-import Control.Monad.Trans (liftIO, MonadIO)
+import Control.Monad.Trans (liftIO)
 import Control.Monad.Trans.Except () -- instances
 import Data.ByteString.Lazy as L (ByteString, empty)
 --import Data.String (IsString)
 --import Data.Traversable
 import Debian.Pretty (ppShow)
-import Debian.Except (HasIOException(fromIOException), liftEIO)
 import Debian.Relation (PkgName, Relations)
 import Debian.Repo.EnvPath (EnvPath(..), rootPath)
 import Debian.Repo.LocalRepository (copyLocalRepo)
@@ -41,6 +40,7 @@ import Debian.Repo.Rsync (HasRsyncError)
 import Debian.Repo.Top (MonadTop)
 import Debian.TH (here)
 import Debian.Version (DebianVersion, prettyDebianVersion)
+import Extra.Except -- (HasIOException(fromIOException), liftIOError)
 import Language.Haskell.TH.Syntax (Loc)
 import Prelude hiding (mapM, sequence)
 import System.Exit (ExitCode(ExitSuccess))
@@ -57,20 +57,20 @@ import System.Unix.Chroot (useEnv)
 type MonadOS r s m = (HasOSKey r, MonadReader r m, MonadRepos s m)
 
 getOS ::
-    (MonadIO m, HasIOException e, MonadError e m,
+    (MonadIOError e m, HasLoc e,
      HasOSKey r, MonadReader r m,
      HasReposState s, MonadState s m)
     => m OSImage
 getOS = do
   key <- view osKey
   repo <- use (reposState . osImageMap . at key)
-  maybe (throwError (fromIOException [$here] (userError "getOS"))) return repo
+  maybe (withError (withLoc $here) $ throwError (fromIOException (userError "getOS"))) return repo
 
 putOS :: (HasReposState s, MonadState s m) => OSImage -> m ()
 putOS = putOSImage
 
 modifyOS ::
-    (MonadIO m, HasIOException e, MonadError e m,
+    (MonadIOError e m, HasLoc e,
      HasOSKey r, MonadReader r m,
      HasReposState s, MonadState s m)
     => (OSImage -> OSImage) -> m ()
@@ -78,15 +78,14 @@ modifyOS f = getOS >>= putOS . f
 
 -- | Perform a task in the changeroot of an OS.
 useOS ::
-    forall r s e m a. (MonadIO m, MonadMask m,
-                       HasIOException e, MonadError e m,
+    forall r s e m a. (MonadIOError e m, HasLoc e, MonadMask m,
                        HasOSKey r, MonadReader r m,
                        HasReposState s, MonadState s m)
     => [Loc] -> m a -> m a
 useOS locs action =
   do root <- view (osRoot . to _root . rootPath) <$> getOS
-     result <- try (withProcAndSys [$here] root (useEnv root (liftIO . evaluate) action))
-     either (throwError . fromIOException ($here : locs)) return result
+     result <- try (withProcAndSys root (useEnv root (liftIO . evaluate) action))
+     either (withError (withLoc $here) . throwError . fromIOException) return result
 
 -- useEnv :: (MonadIO m, MonadMask m) => FilePath -> (a -> m a) -> m a -> m a
 
@@ -103,9 +102,9 @@ tryExceptT = lift . runExceptT
 -- | Run @apt-get update@ and @apt-get dist-upgrade@.  If @update@
 -- fails, run @dpkg --configure -a@ before running @dist-upgrade@.
 updateLists ::
-    forall r s e m. (MonadIO m, MonadMask m, HasReposState s, MonadState s m,
-                     HasOSKey r, MonadReader r m,
-                     HasIOException e, MonadError e m, Show e) => ExceptT e m ()
+    forall r s e m. (MonadIOError e m, HasLoc e, Show e, MonadMask m,
+                     HasReposState s, MonadState s m,
+                     HasOSKey r, MonadReader r m) => ExceptT e m ()
 updateLists = do
   r1 <- tryExceptT (ecode_ update)
   case r1 of
@@ -132,7 +131,7 @@ updateLists = do
         output <- cmd
         case output of
           (ExitSuccess, _, _) -> return output
-          _ -> throwError (fromIOException [$here] (userError (show output)))
+          _ -> withError (withLoc $here) $ throwError (fromIOException (userError (show output)))
       -- Like ecode but discard the output
       ecode_ :: ExceptT e m (ExitCode, ByteString, ByteString) -> ExceptT e m ()
       ecode_ = void . ecode
@@ -153,10 +152,10 @@ updateLists = do
 -- | Run an apt-get command in a particular directory with a
 -- particular list of packages.  Note that apt-get source works for
 -- binary or source package names.
-aptGetInstall :: (MonadIO m, MonadMask m, MonadOS r s m, PkgName n, HasIOException e, MonadError e m) => [(n, Maybe DebianVersion)] -> m ()
+aptGetInstall :: (MonadOS r s m, PkgName n, MonadIOError e m, HasLoc e, MonadMask m) => [(n, Maybe DebianVersion)] -> m ()
 aptGetInstall packages =
     do root <- view (osRoot . to _root . rootPath) <$> getOS
-       withProcAndSys [$here] root $ useEnv root (return . force) $ do
+       withProcAndSys root $ useEnv root (return . force) $ do
          _ <- runV2 [$here] p L.empty
          return ()
     where
@@ -176,10 +175,9 @@ forceList output = evaluate (length output) >> return output
 -- environment where apt can see and install the packages.  On the
 -- assumption that we are doing this because the pool changed, we also
 -- flush the cached package lists.
-syncLocalPool :: forall s r e m. (MonadIO m, MonadMask m,
+syncLocalPool :: forall s r e m. (MonadIOError e m, HasLoc e, HasRsyncError e, Show e, MonadMask m,
                                   HasOSKey r, MonadReader r m,
-                                  HasReposState s, MonadState s m,
-                                  HasIOException e, HasRsyncError e, MonadError e m, Show e) => m ()
+                                  HasReposState s, MonadState s m) => m ()
 syncLocalPool =
     do os <- getOS
        repo' <- copyLocalRepo (EnvPath {_envRoot = view (osRoot . to _root) os, _envPath = "/work/localpool"}) (view osLocalMaster os)
@@ -190,7 +188,7 @@ syncLocalPool =
        -- that invalidates the OS package lists.
        osFlushPackageCache
 
-osFlushPackageCache :: (MonadIO m, HasOSKey r, MonadReader r m, HasReposState s, MonadState s m, HasIOException e, MonadError e m) => m ()
+osFlushPackageCache :: (MonadIOError e m, HasLoc e, HasOSKey r, MonadReader r m, HasReposState s, MonadState s m) => m ()
 osFlushPackageCache = modifyOS (\ os -> os {_osSourcePackageCache = Nothing, _osBinaryPackageCache = Nothing})
 
 -- | Get the version of the newest ghc available in a build environment.
@@ -199,10 +197,10 @@ osFlushPackageCache = modifyOS (\ os -> os {_osSourcePackageCache = Nothing, _os
 --   root <- rootPath . osRoot <$> get
 --   liftIO $ GHC.ghcNewestAvailableVersion root
 
-buildEssential :: (MonadIO m, MonadOS r s m, HasIOException e, MonadError e m) => m Relations
-buildEssential = getOS >>= liftEIO [$here] . OS.buildEssential
+buildEssential :: (MonadIOError e m, HasLoc e, MonadOS r s m) => m Relations
+buildEssential = getOS >>= withError (withLoc $here) . liftIOError . OS.buildEssential
 
-syncOS :: (MonadIO m, MonadCatch m, HasIOException e, HasRsyncError e, MonadError e m, HasOSKey r, MonadTop r m, HasReposState s, MonadState s m) => OSKey -> m ()
+syncOS :: (MonadIOError e m, HasLoc e, MonadCatch m, HasRsyncError e, HasOSKey r, MonadTop r m, HasReposState s, MonadState s m) => OSKey -> m ()
 syncOS dstRoot =
     do srcOS <- getOS
        dstOS <- Debian.Repo.MonadRepos.syncOS srcOS dstRoot

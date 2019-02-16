@@ -12,7 +12,7 @@ module Debian.Repo.Prelude.Process
     , run
     , runV, runVE
     , runQ, runQE
-    , run'
+    , runIO
     , testExit
     , processException
     , insertProcessEnv
@@ -39,7 +39,7 @@ import Data.Text (unpack)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Time (diffUTCTime, getCurrentTime, NominalDiffTime)
 import Data.Typeable (typeOf)
-import Debian.Except (HasIOException(fromIOException), liftEIO, withException)
+import Extra.Except (HasIOException(fromIOException), liftIOError, MonadIOError, withError, withException, HasLoc(withLoc))
 import Debian.Repo.AptKey (MonadApt, aptKey)
 import Debian.Repo.Prelude.Verbosity (ePutStrLn)
 import Debian.TH (here)
@@ -92,14 +92,14 @@ putIndented chunks =
       echo c = return c
 
 run ::
-    forall a c e m. (HasIOException e, MonadError e m, {-Eq c, IsString a,-} ListLikeProcessIO a c, MonadIO m {-, MonadCatch m-})
+    forall a c e m. (HasLoc e, MonadIOError e m, ListLikeProcessIO a c)
     => RunOptions a m
     -> CreateProcess
     -> a
     -> m (ExitCode, a, a)
 run opts p input = do
   start " -> " p
-  (result :: (ExitCode, a, a)) <- liftEIO [$here] (readCreateProcessLazy p input) >>= overOutput >>= return . collectOutput
+  (result :: (ExitCode, a, a)) <- withError (withLoc $here) $ liftIOError (readCreateProcessLazy p input) >>= overOutput >>= return . collectOutput
   finish " <- " p result
   return result
     where
@@ -117,12 +117,12 @@ run opts p input = do
 --runVE p input = try $ runV p input
 
 runV ::
-    (Eq c, IsString a, ListLikeProcessIO a c, MonadIO m, HasIOException e, MonadError e m)
+    (Eq c, IsString a, ListLikeProcessIO a c, HasLoc e, MonadIOError e m)
     => CreateProcess -> a -> m (ExitCode, a, a)
 runV p input = run (StartMessage showCommand <> OverOutput putIndented <> FinishMessage showCommandAndResult) p input
 
 runVE ::
-    (Eq c, IsString a, ListLikeProcessIO a c, MonadCatch m, MonadIO m, HasIOException e, MonadError e m, Exception e)
+    (Eq c, IsString a, ListLikeProcessIO a c, MonadCatch m, HasLoc e, MonadIOError e m, Exception e)
     => CreateProcess -> a -> m (Either e (ExitCode, a, a))
 runVE p i = try $ runV p i
 
@@ -130,30 +130,25 @@ runVE p i = try $ runV p i
 --runQE p input = try $ runQ p input
 
 runQ ::
-    (ListLikeProcessIO a c, MonadIO m, HasIOException e, MonadError e m)
+    (ListLikeProcessIO a c, HasLoc e, MonadIOError e m)
     => CreateProcess -> a -> m (ExitCode, a, a)
 runQ p input = run (StartMessage showCommand <> FinishMessage showCommandAndResult) p input
 
 runQE ::
-    (ListLikeProcessIO a c, MonadCatch m, MonadIO m, HasIOException e, MonadError e m, Exception e)
+    (ListLikeProcessIO a c, MonadCatch m, HasLoc e, MonadIOError e m, Exception e)
     => CreateProcess -> a -> m (Either e (ExitCode, a, a))
 runQE p i = try $ runQ p i
 
-run' ::
-    (MonadIO m, HasIOException e, MonadError e m)
-    => [Loc]
-    -> CreateProcess
-    -> m L.ByteString
-run' locs cp = do
-  (code, out, err) <- liftEIO ($here : locs) $ readCreateProcessWithExitCode cp L.empty
+runIO :: CreateProcess -> IO L.ByteString
+runIO cp = do
+  (code, out, err) <- readCreateProcessWithExitCode cp L.empty
   case code of
     ExitSuccess -> return out
-    ExitFailure _ -> throwError $ fromIOException locs $ userError $ unlines $
+    ExitFailure _ -> throwError $ userError $ unlines $
                                        [ show code
                                        , " command: " ++ showCreateProcessForUser cp
                                        , " stderr: " ++ unpack (decodeUtf8 (L.toStrict err))
-                                       , " stdout: " ++ unpack (decodeUtf8 (L.toStrict out))
-                                       , " stack: " ++ prettyShow locs ]
+                                       , " stdout: " ++ unpack (decodeUtf8 (L.toStrict out)) ]
 
 -- | Pure function to indent the text of a chunk list.
 indentChunks :: forall a c. (ListLikeProcessIO a c, Eq c, IsString a) => String -> String -> [Chunk a] -> [Chunk a]

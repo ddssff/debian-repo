@@ -51,7 +51,7 @@ import Debian.Control (ControlFunctions(stripWS), formatControl, formatParagraph
 import qualified Debian.Control.Text as B (appendFields, Control, Control'(Control), ControlFunctions(lookupP{-, parseControlFromHandle-}), parseControl, Field, Field'(Field), fieldValue, modifyField, Paragraph, raiseFields, renameField)
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile))
 import Debian.Pretty (PP(..), ppPrint, ppShow)
-import Debian.Except (HasIOException, MonadError)
+import Extra.Except -- (HasIOException, MonadError)
 import Debian.Relation (BinPkgName, PkgName)
 import qualified Debian.Relation.Text as B (ParseRelations(..), Relations)
 import Debian.Release (parseSection', Section(..), sectionName, sectionName', SubSection(section))
@@ -69,7 +69,7 @@ import Debian.Repo.Repo ({-Repo,-} repoArchList, repoKey, repoKeyURI)
 import Debian.Repo.Release (Release(releaseAliases, releaseComponents, releaseName, releaseArchitectures))
 import Debian.Repo.State.Release (findReleases, prepareRelease, writeRelease, signRepo)
 import Debian.Repo.URI (fileFromURIStrict)
-import Debian.TH (here)
+--import Debian.TH (here)
 import Debian.URI (fromParseError, HasParseError, uriPathLens)
 import Debian.VendorURI (vendorURI)
 import Debian.Version (DebianVersion, parseDebianVersion', prettyDebianVersion)
@@ -1091,12 +1091,12 @@ sourcePackageBinaryIDs_ package =
       info = sourceParagraph package
 
 -- | Get the contents of a package index
-getPackages_ :: forall s e m. (MonadIO m, MonadInstall s m, HasIOException e, HasParseError e, MonadError e m) => Release -> PackageIndex -> m (Either e [BinaryPackage])
-getPackages_ release index =
-  (do repo <- view repository <$> getInstall
-      let repoURI = repoKeyURI . repoKey $ repo
-          packageIndexURI = over uriPathLens (\path -> path </> packageIndexPath release index) (view vendorURI repoURI)
-      fileFromURIStrict [$here] Nothing packageIndexURI >>= readControl packageIndexURI) `catchError` (\e -> return $ Left e)
+getPackages_ :: forall s e m. (MonadInstall s m, MonadIOError e m, HasParseError e) => Release -> PackageIndex -> m (Either e [BinaryPackage])
+getPackages_ release index = do
+  repo <- view repository <$> getInstall
+  let repoURI = repoKeyURI . repoKey $ repo
+      packageIndexURI = over uriPathLens (\path -> path </> packageIndexPath release index) (view vendorURI repoURI)
+  liftIOError (fileFromURIStrict Nothing packageIndexURI) >>= readControl packageIndexURI
     where
       readControl :: URI -> L.ByteString -> m (Either e [BinaryPackage])
       readControl uri s =

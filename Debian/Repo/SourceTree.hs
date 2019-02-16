@@ -36,7 +36,6 @@ import Data.List (intercalate, nubBy, sortBy)
 import Data.Time (NominalDiffTime)
 import Debian.Changes (ChangeLogEntry(..), ChangesFile(..), parseEntries)
 import Debian.Control.Policy (HasDebianControl(debianControl), DebianControl, parseDebianControlFromFile)
-import Debian.Except (HasIOException)
 import Debian.Pretty (ppShow)
 import Debian.Relation (BinPkgName(..))
 import Debian.Repo.Changes (findChangesFiles)
@@ -52,6 +51,7 @@ import Debian.Repo.Prelude.Verbosity (noisier)
 import Debian.Repo.Rsync (HasRsyncError, RsyncError, rsyncOld')
 import Debian.TH (here)
 import qualified Debian.Version as V (version)
+import Extra.Except -- (HasIOException)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist)
 import System.Environment (getEnv)
 import System.Exit (ExitCode(ExitSuccess))
@@ -129,8 +129,7 @@ instance Show BuildDecision where
     show (Error reason) = "Error - " ++ reason
 
 -- | Run dpkg-buildpackage in a build tree.
-buildDebs :: forall e r s m. (MonadIO m, MonadMask m,
-                              Exception e, HasIOException e, MonadError e m,
+buildDebs :: forall e r s m. (MonadIOError e m, HasLoc e, MonadMask m, Exception e,
                               HasOSKey r, MonadReader r m,
                               HasReposState s, MonadState s m) => Bool -> [(String, Maybe String)] -> DebianBuildTree -> BuildDecision -> m NominalDiffTime
 buildDebs noClean setEnv buildTree decision =

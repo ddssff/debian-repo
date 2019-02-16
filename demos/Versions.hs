@@ -9,13 +9,13 @@ import Data.Maybe (fromJust)
 import Debian.Arch (Arch(Binary), ArchCPU(..), ArchOS(..))
 import Debian.Repo.LocalRepository (LocalRepository)
 import Debian.Repo.MonadRepos (MonadRepos, runReposT, putRelease)
-import Debian.Except (liftEIO)
 import Debian.Repo.RemoteRepository (RemoteRepository)
 import Debian.Repo.Repo (RepoKey(Remote), repoReleaseInfo)
 import Debian.Repo.State.Repository (foldRepository)
 import Debian.Repo.DebError (DebError)
 import Debian.TH (here)
 import Debian.URI (readURI')
+import Extra.Except
 
 main :: IO ()
 main = do
@@ -31,11 +31,11 @@ main' =
       f :: LocalRepository -> m ()
       f repo =
           do releases <- mapM (putRelease repo) (repoReleaseInfo repo)
-             liftEIO [$here] (putStrLn ("\n" ++ show releases))
+             withError (withLoc $here) $ liftIOError (putStrLn ("\n" ++ show releases))
       g :: RemoteRepository -> m ()
       g repo =
           do releases <- mapM (putRelease repo) (repoReleaseInfo repo)
-             liftEIO [$here] (putStrLn ("\n" ++ show releases))
+             withError (withLoc $here) $ liftIOError (putStrLn ("\n" ++ show releases))
 {-
     do repo <- prepareRepository (Remote (fromJust (readURI' uri)))
        releases <- mapM (insertRelease repo) (repoReleaseInfo repo)

@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, OverloadedStrings, StandaloneDeriving, TemplateHaskell #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, OverloadedStrings, RankNTypes,
+             ScopedTypeVariables, StandaloneDeriving, TemplateHaskell #-}
 
 module Debian.Repo.URI
     ( fileFromURI
@@ -6,7 +7,7 @@ module Debian.Repo.URI
     , dirFromURI
     ) where
 
---import Control.Exception (catch, IOException, throw)
+--import Control.Exception (try)
 import Control.Lens (ix, makePrisms, makeLensesFor, preview)
 import Control.Monad.Except (MonadError, MonadPlus, throwError)
 import Control.Monad.Trans (MonadIO)
@@ -21,14 +22,14 @@ import Data.Monoid ((<>))
 import Data.Text as T (init, last, pack, Text, unpack)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Text.Lazy as LT (pack, Text)
-import Debian.Except (HasIOException(fromIOException), liftEIO)
+import Extra.Except (HasIOException(fromIOException), liftIOError, withError, HasLoc(withLoc), MonadIOError)
 import Debian.Repo.EnvPath (EnvRoot, _rootPath)
-import Debian.Repo.Prelude.Process (run')
+import Debian.Repo.Prelude.Process (runIO)
 --import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.TH (here)
 import Distribution.Pretty (prettyShow)
-import Language.Haskell.TH (ExpQ)
-import Language.Haskell.TH.Syntax (Loc)
+--import Language.Haskell.TH (ExpQ)
+--import Language.Haskell.TH.Syntax (Loc)
 import Network.URI (URI(..), URIAuth(..), uriToString {-nullURI, parseURIReference, parseURI, parseAbsoluteURI, parseRelativeReference-})
 import System.Directory (getDirectoryContents)
 import System.Exit (ExitCode(..))
@@ -50,25 +51,25 @@ $(makeLensesFor [("eltName", "eltNameLens"),
                  ("eltAttrs", "eltAttrsLens"),
                  ("eltChildren", "eltChildrenLens")] ''Element)
 
-fileFromURI :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> Maybe EnvRoot -> URI -> m L.ByteString
-fileFromURI locs chroot uri = fileFromURIStrict locs chroot uri
+fileFromURI :: {-(MonadIO m, HasLoc e, HasIOException e, MonadError e m) =>-} Maybe EnvRoot -> URI -> IO L.ByteString
+fileFromURI chroot uri = fileFromURIStrict chroot uri
 
-fileFromURIStrict :: (MonadIO m, HasIOException e, MonadError e m) => [Loc] -> Maybe EnvRoot -> URI -> m L.ByteString
-fileFromURIStrict locs chroot uri = do
+fileFromURIStrict :: {-(MonadIO m, HasIOException e, MonadError e m) =>-} Maybe EnvRoot -> URI -> IO L.ByteString
+fileFromURIStrict chroot uri = do
     let chroot' = maybe "" _rootPath chroot
     -- qPutStrLn ("fileFromURIStrict chroot=" <> show chroot <> " uri=" ++ show uri ++ " at " <> prettyShow ($here : locs))
     case (uriScheme uri, uriAuthority uri) of
-      ("file:", Nothing) -> liftEIO ($here : locs) $ L.readFile (chroot' </> uriPath uri)
+      ("file:", Nothing) -> {-withError (withLoc $here) $ liftIOError $-} L.readFile (chroot' </> uriPath uri)
       -- This happens - not sure why
-      ("file:", Just (URIAuth "" "" "")) -> liftEIO ($here : locs) $ L.readFile (chroot' </> uriPath uri)
+      ("file:", Just (URIAuth "" "" "")) -> {-withError (withLoc $here) $ liftIOError $-} L.readFile (chroot' </> uriPath uri)
       -- ("ssh:", Just auth) -> cmdOutputStrict ("ssh " ++ uriUserInfo auth ++ uriRegName auth ++ uriPort auth ++ " cat " ++ show (uriPath uri))
       ("ssh:", Just auth) ->
-          run' ($here : locs) (proc "ssh" [uriUserInfo auth ++ uriRegName auth ++ uriPort auth, "cat", uriPath uri])
+          {-withError (withLoc $here) $-} runIO (proc "ssh" [uriUserInfo auth ++ uriRegName auth ++ uriPort auth, "cat", uriPath uri])
       _ ->
-          run' ($here : locs) (proc "curl" ["-s", "-g", "-l", uriToString' uri])
+          {-withError (withLoc $here) $-} runIO (proc "curl" ["-s", "-g", "-l", uriToString' uri])
 
 textFromHttpURI :: T.Text -> IO LT.Text
-textFromHttpURI uri = (LT.pack . L.toString) <$> run' [$here] (proc "curl" ["-s", "-g", T.unpack uri])
+textFromHttpURI uri = (LT.pack . L.toString) <$> runIO (proc "curl" ["-s", "-g", T.unpack uri])
 
 domFromHttpURI :: T.Text -> IO [Node]
 domFromHttpURI uri = parseDOM True <$> textFromHttpURI uri
@@ -105,14 +106,14 @@ filesFromHttpURI uri = domFromHttpURI uri >>= files1
                     if T.last path1 == '/' && Just path1 == path2 then Just (T.unpack (T.init path1)) else Nothing
       testNode node = Nothing
 
-dirFromURI :: [Loc] -> URI -> IO [String]
-dirFromURI locs uri = do
+dirFromURI :: URI -> IO [String]
+dirFromURI uri = do
     case (uriScheme uri, uriAuthority uri) of
       ("file:", Nothing) -> getDirectoryContents (uriPath uri)
       ("file:", Just (URIAuth "" "" "")) -> getDirectoryContents (uriPath uri)
       ("ssh:", Just auth) ->
           (Prelude.lines . L.toString) <$>
-            run' ($here : locs) (proc "ssh" [uriUserInfo auth ++ uriRegName auth ++ uriPort auth, "ls", "-1", uriPath uri])
+            ({-withError (withLoc $here) $-} runIO (proc "ssh" [uriUserInfo auth ++ uriRegName auth ++ uriPort auth, "ls", "-1", uriPath uri]))
       ("http:", _) ->
           maybe (error ("Could not get files from " ++ show uri)) id <$> filesFromHttpURI (T.pack (uriToString' uri))
       (scheme, _) -> error (prettyShow $here <> " - unexpected URI scheme: " <> show scheme)
@@ -120,24 +121,19 @@ dirFromURI locs uri = do
 uriToString' :: URI -> String
 uriToString' uri = uriToString id uri ""
 
-run :: ExpQ
-run = [|runCreateProcess $here|]
-
-runCreateProcess ::
-    (MonadIO m, HasIOException e, MonadError e m)
-    => [Loc]
-    -> CreateProcess
+run ::
+    (HasLoc e, MonadIOError e m)
+    => CreateProcess
     -> m L.ByteString
-runCreateProcess locs cp = do
-  (code, out, err) <- liftEIO ($here : locs) $ readCreateProcessWithExitCode cp L.empty
+run cp = do
+  (code, out, err) <- withError (withLoc $here) $ liftIOError $ readCreateProcessWithExitCode cp L.empty
   case code of
     ExitSuccess -> return out
-    ExitFailure _ -> throwError $ fromIOException ($here : locs) $ userError $ unlines $
+    ExitFailure _ -> throwError $ withLoc $here $ fromIOException $ userError $ unlines $
                                        [ show code
                                        , " command: " ++ showCreateProcessForUser cp
                                        , " stderr: " ++ unpack (decodeUtf8 (L.toStrict err))
-                                       , " stdout: " ++ unpack (decodeUtf8 (L.toStrict out))
-                                       , " stack: " ++ show locs ]
+                                       , " stdout: " ++ unpack (decodeUtf8 (L.toStrict out)) ]
 
 gFind :: (MonadPlus m, Data a, Typeable b) => a -> m b
 gFind = msum . map return . listify (const True)

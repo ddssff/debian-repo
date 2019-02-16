@@ -34,7 +34,7 @@ import Debian.Changes (ChangedFileSpec(changedFileName, changedFileSection), Cha
 import Debian.Codename (Codename, codename, parseCodename)
 import qualified Debian.Control.Text as S (Control'(Control), ControlFunctions(parseControlFromFile), fieldValue)
 import qualified Debian.Control.Text as T (fieldValue)
-import Debian.Except (HasIOException, liftEIO)
+import Extra.Except (liftIOError, withError, HasLoc(withLoc), MonadIOError)
 import Debian.Pretty (PP(..))
 import Debian.Release (Section(..), sectionName', SubSection(section))
 import Debian.Releases (ReleaseURI, vendorFromReleaseURI)
@@ -144,12 +144,10 @@ isSymLink path = F.getSymbolicLinkStatus path >>= return . F.isSymbolicLink
 -- repoCD path repo = repo { repoRoot_ = path }
 
 copyLocalRepo ::
-    forall e m. (MonadIO m, MonadCatch m,
-                 --HasOSKey r, MonadReader r m,
-                 HasRsyncError e, HasIOException e, MonadError e m)
+    forall e m. (MonadCatch m, HasRsyncError e, HasLoc e, MonadIOError e m)
     => EnvPath -> LocalRepository -> m LocalRepository
 copyLocalRepo dest repo =
-    do liftEIO [$here] $ createDirectoryIfMissing True (outsidePath dest)
+    do withError (withLoc $here) $ liftIOError $ createDirectoryIfMissing True (outsidePath dest)
        (result :: (Either IOException ExitCode, String, String)) <- action'
        case result of
          (Right ExitSuccess, _, _) -> return $ repo {_repoRoot = dest}
@@ -218,9 +216,7 @@ uriDest uri =
 -- | Upload all the packages in a local repository to a the incoming
 -- directory of a remote repository (using dupload.)
 uploadRemote ::
-    forall e m. (MonadIO m, MonadCatch m,
-                 --HasOSKey r, MonadReader r m,
-                 HasIOException e, Show e, MonadError e m)
+    forall e m. (MonadIO m, MonadCatch m, Show e, HasLoc e, MonadIOError e m)
              => LocalRepository         -- ^ Local repository holding the packages.
              -> VendorURI               -- ^ URI of upload repository
              -> m [Failing (ExitCode, L.ByteString, L.ByteString)]
@@ -233,11 +229,12 @@ uploadRemote repo uri =
        uploaded <- (Set.fromList .
                     map (\ [_, name', version, arch] -> (name', parseDebianVersion' version, parseArch arch)) .
                     catMaybes .
-                    map (matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.upload$"))) <$> (liftEIO [$here] (getDirectoryContents dir) :: m [FilePath] {-(MonadError WrappedIOException m' => m' [FilePath])-})
+                    map (matchRegex (mkRegex "^(.*/)?([^_]*)_(.*)_([^.]*)\\.upload$")))
+          <$> (withError (withLoc  $here) $ liftIOError (getDirectoryContents dir) :: m [FilePath] {-(MonadError WrappedIOException m' => m' [FilePath])-})
        let (readyChangesFiles, _uploadedChangesFiles) = partition (\ f -> not . Set.member (changeKey f) $ uploaded) newestChangesFiles
        -- hPutStrLn stderr $ "Uploaded: " ++ show uploadedChangesFiles
        -- hPutStrLn stderr $ "Ready: " ++ show readyChangesFiles
-       validChangesFiles <- mapM (liftEIO [$here] . validRevision') readyChangesFiles
+       validChangesFiles <- mapM (withError (withLoc $here) . liftIOError . validRevision') readyChangesFiles
        -- hPutStrLn stderr $ "Valid: " ++ show validChangesFiles
        mapM dupload' validChangesFiles
     where
