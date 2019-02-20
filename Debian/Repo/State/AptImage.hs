@@ -31,7 +31,7 @@ import Debian.Repo.MonadRepos (aptImageMap, getApt, modifyApt, MonadRepos, putAp
 import Debian.Repo.PackageID (PackageID(packageName), PackageID(packageVersion))
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage(sourcePackageID))
 --import Debian.Repo.Prelude (symbol)
-import Debian.Repo.Prelude.Verbosity (ePutStrLn, qPutStr, qPutStrLn)
+import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn)
 import Debian.Repo.Slice (NamedSliceList(sliceList, sliceListName), SourcesChangedAction)
 import Debian.Repo.SourceTree (DebianBuildTree(debTree'), DebianSourceTree(tree'), HasChangeLog(entry), findDebianBuildTrees, SourceTree(dir'))
 import Debian.Repo.State.PackageIndex (binaryPackagesFromSources, sourcePackagesFromSources)
@@ -71,7 +71,6 @@ prepareAptImage ::
     -> NamedSliceList         -- The sources.list
     -> m AptKey               -- The resulting environment
 prepareAptImage locs sourcesChangedAction sources = do
-  ePutStrLn ("prepareAptImage - sourcesChangedAction=" ++ show sourcesChangedAction ++ " sources=" ++ show sources ++ " at " <> prettyShow ($here : locs))
   key <- {-getAptKey =<<-} AptKey <$> cacheRootDir (sliceListName sources)
   mimg <- use (reposState . aptImageMap . at key)
   case mimg of
