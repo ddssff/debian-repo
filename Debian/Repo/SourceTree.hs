@@ -33,6 +33,7 @@ import Control.Monad.State (MonadState, StateT)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.ByteString as B
 import Data.List (intercalate, nubBy, sortBy)
+import Data.Maybe (fromJust)
 import Data.Time (NominalDiffTime)
 import Debian.Changes (ChangeLogEntry(..), ChangesFile(..), parseEntries)
 import Debian.Control.Policy (HasDebianControl(debianControl), DebianControl, parseDebianControlFromFile)
@@ -133,7 +134,9 @@ buildDebs :: forall e r s m. (MonadIOError e m, HasLoc e, MonadMask m, Exception
                               HasOSKey r, MonadReader r m,
                               HasReposState s, MonadState s m) => Bool -> [(String, Maybe String)] -> DebianBuildTree -> BuildDecision -> m NominalDiffTime
 buildDebs noClean setEnv buildTree decision =
-    do
+   do root <- view (osRoot . to _root . rootPath) <$> getOS
+      let path = debdir buildTree
+          path' = fromJust (dropPrefix root path)
       root <- view (osRoot . to _root . rootPath) <$> getOS
       noSecretKey <- liftIO $ getEnv "HOME" >>= return . (++ "/.gnupg") >>= doesDirectoryExist >>= return . not
       -- env0 <- liftIO getEnvironment
@@ -144,7 +147,7 @@ buildDebs noClean setEnv buildTree decision =
              do cmd' <- modifyProcessEnv (("LOGNAME", Just "root") : setEnv) cmd
                 let cmd'' = cmd' {cwd = dropPrefix root path}
                 timeTask $ useEnv root return $ runVE2 [$here] cmd'' ("" :: String)
-      _ <- run (proc "chmod" ["ugo+x", "debian/rules"])
+      _ <- run ((proc "chmod" ["ugo+x", "debian/rules"]) {cwd = Just path'})
       let buildCmd = proc "dpkg-buildpackage" (concat [["-sa"],
                                                        case decision of Arch _ -> ["-B"]; _ -> [],
                                                        if noSecretKey then ["-us", "-uc"] else [],

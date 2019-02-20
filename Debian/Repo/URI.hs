@@ -9,8 +9,8 @@ module Debian.Repo.URI
 
 --import Control.Exception (try)
 import Control.Lens (ix, makePrisms, makeLensesFor, preview)
-import Control.Monad.Except (MonadError, MonadPlus, throwError)
-import Control.Monad.Trans (MonadIO)
+import Control.Monad.Except (MonadPlus, throwError)
+--import Control.Monad.Trans (MonadIO)
 import Data.ByteString.Lazy.UTF8 as L hiding (fromString)
 import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Foldable (msum)

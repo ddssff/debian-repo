@@ -4,6 +4,7 @@
 -- the @installed/@ subdirectory of the repository.
 {-# LANGUAGE CPP, PackageImports, OverloadedStrings, TemplateHaskell #-}
 {-# OPTIONS -fno-warn-name-shadowing -fno-warn-missing-signatures #-}
+
 module Debian.Repo.Changes
     ( findChangesFiles
     , saveChangesFile
@@ -33,7 +34,7 @@ import Debian.Repo.Prelude (replaceFile)
 import Debian.URI ()
 import Debian.Version (DebianVersion, parseDebianVersion', prettyDebianVersion)
 import System.Directory (getDirectoryContents)
-import Text.Regex (matchRegex, matchRegexAll, mkRegex)
+import "regex-compat-tdfa" Text.Regex (matchRegex, matchRegexAll, mkRegex)
 
 findChangesFiles :: FilePath -> IO [ChangesFile]
 findChangesFiles dir =

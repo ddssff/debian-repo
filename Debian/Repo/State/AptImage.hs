@@ -19,7 +19,7 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.List (sort)
 import Data.Maybe (listToMaybe)
 import Debian.Changes (ChangeLogEntry(logVersion))
-import Debian.Pretty (prettyShow)
+import Distribution.Pretty (prettyShow)
 import Debian.Relation (SrcPkgName(unSrcPkgName))
 import Debian.Repo.AptImage (aptDir, aptGetSource, aptGetUpdate)
 import Debian.Repo.AptKey (AptKey(AptKey), MonadApt)
@@ -121,7 +121,7 @@ aptSourcePackages = do
         root <- view aptImageRoot <$> getApt
         arch <- view aptImageArch <$> getApt
         sources <- view aptImageSources <$> getApt
-        -- qPutStrLn ($(symbol 'aptSourcePackages) ++ " " ++ show (pretty (sliceListName sources)))
+        -- qPutStrLn (prettyShow $here <> " aptSourcePackages (sliceListName sources)=" ++ prettyShow (sliceListName sources))
         pkgs <- sourcePackagesFromSources root arch (sliceList sources)
         modifyApt (set aptSourcePackageCache (Just pkgs))
         return pkgs

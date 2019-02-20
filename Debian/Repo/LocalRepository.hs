@@ -60,7 +60,7 @@ import System.FilePath ((</>), splitFileName)
 import qualified System.Posix.Files as F (createLink, getSymbolicLinkStatus, isSymbolicLink, readSymbolicLink, removeLink)
 import System.Process (readProcessWithExitCode, CreateProcess(cwd, cmdspec), showCommandForUser, proc)
 import System.Process.ListLike (showCmdSpecForUser)
-import Text.Regex (matchRegex, mkRegex)
+import "regex-compat-tdfa" Text.Regex (matchRegex, mkRegex)
 import Text.PrettyPrint.HughesPJClass (text)
 import Distribution.Pretty (Pretty(pretty))
 

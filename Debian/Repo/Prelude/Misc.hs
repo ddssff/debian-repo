@@ -1,3 +1,5 @@
+{-# LANGUAGE PackageImports #-}
+
 module Debian.Repo.Prelude.Misc
     (
     -- * String functions
@@ -38,7 +40,7 @@ import           System.Posix.Files
 import           System.Posix.User (getEffectiveUserID)
 import           System.Process (readProcessWithExitCode)
 -- import System.Process.Progress (keepStdout, keepStderr, keepResult)
-import           Text.Regex
+import "regex-compat-tdfa" Text.Regex
 
 mapSnd :: (b -> c) -> (a, b) -> (a, c)
 mapSnd f (a, b) = (a, f b)

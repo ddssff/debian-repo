@@ -1,4 +1,5 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE PackageImports, RecordWildCards #-}
+
 -- |This module contains functions governing the assignment of version
 -- numbers, patterned after Ubuntu version number policy:
 --
@@ -44,7 +45,7 @@ module Debian.VersionPolicy
 
 import Control.Applicative.Error (Failing(..))
 import Debian.Version ( buildDebianVersion, epoch, evr, revision, version, DebianVersion, prettyDebianVersion )
-import Text.Regex ( matchRegex, mkRegex )
+import "regex-compat-tdfa" Text.Regex ( matchRegex, mkRegex )
 import Data.List ( sortBy )
 import Data.Maybe ( catMaybes, fromMaybe, isJust, isNothing, listToMaybe )
 

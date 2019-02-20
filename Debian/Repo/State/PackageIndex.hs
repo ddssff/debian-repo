@@ -5,12 +5,11 @@ module Debian.Repo.State.PackageIndex
     , sourcePackagesFromSources
     ) where
 
-import Control.Exception (try)
+import Control.Exception (throw, try)
 import Control.Lens (view)
 import Control.Monad.Except (MonadIO(liftIO))
 import Data.Either (partitionEithers)
-import Data.List (intercalate)
-import Data.List as List (map, partition)
+import Data.List as List (intercalate, map, partition)
 import Data.Maybe (catMaybes)
 import qualified Data.Text as T (Text, unpack)
 import Debian.Arch (Arch, Arch(..), prettyArch)
@@ -25,8 +24,8 @@ import Debian.Repo.EnvPath (EnvRoot, rootPath)
 import Debian.Repo.MonadRepos (MonadRepos)
 import Debian.Repo.PackageID (makeBinaryPackageID, makeSourcePackageID)
 import Debian.Repo.PackageIndex (BinaryPackage, BinaryPackage(..), PackageIndex(..), PackageIndex(packageIndexArch, packageIndexComponent), packageIndexPath, SourceControl(..), SourceFileSpec(SourceFileSpec), SourcePackage(..), SourcePackage(sourcePackageID))
---import Debian.Repo.Prelude (symbol)
-import Debian.Repo.Release (Release(releaseName))
+import Debian.Repo.Prelude.Verbosity (qPutStrLn)
+import Debian.Repo.Release (Release(releaseName, releaseAliases))
 import Debian.Repo.Repo (Repo(repoKey, repoReleaseInfo), RepoKey, repoKeyURI)
 import Debian.Repo.Slice (binarySlices, Slice(sliceRepoKey, sliceSource), SliceList(slices), sourceSlices)
 import Debian.Repo.State.Repository (foldRepository)
@@ -37,7 +36,7 @@ import Debian.VendorURI (vendorURI)
 import Debian.Version (parseDebianVersion')
 import Extra.Except -- (HasIOException)
 import Network.URI (escapeURIString, URIAuth(uriPort, uriRegName, uriUserInfo))
-import qualified System.IO as IO (hClose, IOMode(ReadMode), openBinaryFile)
+import qualified System.IO as IO (Handle, hClose, IOMode(ReadMode), openBinaryFile)
 --import System.IO.Unsafe (unsafeInterleaveIO)
 --import System.Process.Progress (qBracket, quieter)
 
@@ -59,15 +58,18 @@ sliceIndexes arch slice =
                                                DebSrc -> Source
                                                Deb -> arch })
       findReleaseInfo repo release =
-          case filter ((==) release . releaseName) (repoReleaseInfo repo) of
-            [x] -> x
+          case filter (isReleaseName release) (repoReleaseInfo repo) of
+            (x : _) -> x
             [] -> error $ ("sliceIndexes: Invalid release name: " ++ codename release ++
                            "\n  You may need to remove ~/.autobuilder/repoCache." ++
                            "\n  Available: " ++ (show . map releaseName . repoReleaseInfo $ repo)) ++
                            "\n repoKey: " ++ show (repoKey repo) ++
                            "\n repoReleaseInfo: " ++ show (repoReleaseInfo repo) ++
                            "\n slice: " ++ show slice
-            xs -> error $ "Internal error 5 - multiple releases named " ++ codename release ++ "\n" ++ show xs
+            -- xs -> error $ "Internal error 5 - multiple releases named " ++ codename release ++ "\n" ++ show xs
+
+isReleaseName :: Codename -> Release -> Bool
+isReleaseName name release = elem name (releaseName release : releaseAliases release)
 
 data UpdateError
     = Changed Codename FilePath SliceList SliceList
@@ -106,20 +108,21 @@ sourcePackagesOfIndex ::
     -> RepoKey
     -> Release
     -> PackageIndex
-    -> m (Either (EnvRoot, Arch, RepoKey, Release, PackageIndex, IOError) [SourcePackage])
-sourcePackagesOfIndex root arch repo release index =
+    -> m (Either (EnvRoot, Arch, RepoKey, Release, PackageIndex, [IOError]) [SourcePackage])
+sourcePackagesOfIndex root arch repo release index = do
+    qPutStrLn (prettyShow $here ++ " sourcePackagesOfIndex paths=" ++ show paths)
     -- quieter 2 $ qBracket ($(symbol 'sourcePackagesOfIndex) ++ " " ++ path) $
     -- unsafeInterleaveIO makes the package index file reads
     -- asynchronous, not sure what the performance implications
     -- are.  Anyway, this is now only called on demand, so the
     -- unsafeInterleaveIO is probably moot.
     either (Left . makeLeft)
-           ((\paras -> Right (List.map (toSourcePackage index) paras))) <$> (liftIO (readParagraphs path))
+           ((\paras -> Right (List.map (toSourcePackage index) paras))) <$> (liftIO (readParagraphs paths))
     where
-      makeLeft :: IOError -> (EnvRoot, Arch, RepoKey, Release, PackageIndex, IOError)
-      makeLeft e = (root, arch, repo, release, index, e)
-      path = view rootPath root ++ suff
-      suff = indexCacheFile arch repo release index
+      makeLeft :: [IOError] -> (EnvRoot, Arch, RepoKey, Release, PackageIndex, [IOError])
+      makeLeft es = (root, arch, repo, release, index, es)
+      paths = fmap ((view rootPath root) ++) suffs
+      suffs = indexCacheFile arch repo release index
 
 toSourcePackage :: PackageIndex -> B.Paragraph -> SourcePackage
 toSourcePackage index package =
@@ -180,18 +183,17 @@ binaryPackagesFromSources root arch sources = do
   concat <$> (mapM (\ (repo, rel, index) -> either (const []) id <$> (binaryPackagesOfIndex root arch repo rel index)) indexes)
 
 -- FIXME: assuming the index is part of the cache
-binaryPackagesOfIndex :: (MonadIO m) => EnvRoot -> Arch -> RepoKey -> Release -> PackageIndex -> m (Either IOError [BinaryPackage])
+binaryPackagesOfIndex :: (MonadIO m) => EnvRoot -> Arch -> RepoKey -> Release -> PackageIndex -> m (Either [IOError] [BinaryPackage])
 binaryPackagesOfIndex root arch repo release index =
-    -- quieter 2 $ qBracket ($(symbol 'binaryPackagesOfIndex) ++ ": " ++ path) $
-    either Left ((\paras -> Right (List.map (toBinaryPackage release index) paras))) <$> (liftIO (readParagraphs path))
+    either Left ((\paras -> Right (List.map (toBinaryPackage release index) paras))) <$> (liftIO (readParagraphs paths))
 {-
     do paragraphs <- liftIO $ {-unsafeInterleaveIO-} (readParagraphs path)
        let packages = List.map (toBinaryPackage release index) paragraphs
        return packages
 -}
     where
-       suff = indexCacheFile arch repo release index
-       path = view rootPath root ++ suff
+       suffs = indexCacheFile arch repo release index
+       paths = fmap ((view rootPath root) ++) suffs
 
 toBinaryPackage :: Release -> PackageIndex -> B.Paragraph -> BinaryPackage
 toBinaryPackage release index p =
@@ -213,32 +215,41 @@ tryParseRel :: Maybe B.Field -> B.Relations
 tryParseRel (Just (B.Field (_, relStr))) = either (error . show) id (B.parseRelations relStr)
 tryParseRel _ = []
 
-readParagraphs :: FilePath -> IO (Either IOError [B.Paragraph])
-readParagraphs path =
-    try (IO.openBinaryFile path IO.ReadMode) >>= either (return . Left) go
+-- | Try each path until one works
+readParagraphs :: [FilePath] -> IO (Either [IOError] [B.Paragraph])
+readParagraphs paths = go [] paths
     where
-      go h = do
-        -- IO.hPutStrLn IO.stderr ("OSImage.paragraphsFromFile " ++ path)			-- Debugging output
-        B.Control paragraphs <- B.parseControlFromHandle path h >>= return . (either (error . show) id)
-        IO.hClose h
-        --IO.hPutStrLn IO.stderr ("OSImage.paragraphsFromFile " ++ path ++ " done.")	-- Debugging output
-        return $ Right paragraphs
+      go es (path : more) = readParagraphs' path >>= either (\e -> go (e : es) more) (return . Right)
+      go es  [] = return $ Left es
 
-indexCacheFile :: Arch -> RepoKey -> Release -> PackageIndex -> FilePath
+readParagraphs' :: FilePath -> IO (Either IOError [B.Paragraph])
+readParagraphs' path =
+    try (IO.openBinaryFile path IO.ReadMode >>= go)
+    where
+      go :: IO.Handle -> IO [B.Paragraph]
+      go h = do
+        B.Control paragraphs <- either (throw . userError . show) id <$> B.parseControlFromHandle path h
+        IO.hClose h
+        return paragraphs
+
+-- | Try all the release names
+indexCacheFile :: Arch -> RepoKey -> Release -> PackageIndex -> [FilePath]
 indexCacheFile arch repo release index =
     case (arch, packageIndexArch index) of
-      (Binary _ _, Source) -> indexPrefix repo release index ++ "_source_Sources"
-      (Binary _ _, indexArch@(Binary _ _)) -> indexPrefix repo release index ++ "_binary-" ++ show (prettyArch indexArch) ++ "_Packages"
+      (Binary _ _, Source) -> fmap (++ "_source_Sources") (indexPrefix repo release index)
+      (Binary _ _, indexArch@(Binary _ _)) -> fmap (++ ("_binary-" ++ show (prettyArch indexArch) ++ "_Packages")) (indexPrefix repo release index)
       (x, _) -> error $ "Invalid build architecture: " ++ show x
 
-indexPrefix :: RepoKey -> Release -> PackageIndex -> FilePath
+indexPrefix :: RepoKey -> Release -> PackageIndex -> [FilePath]
 indexPrefix repo release index =
-    (escapeURIString (/= '@') ("/var/lib/apt/lists/" ++ uriText +?+ "dists_") ++
-     codename distro ++ "_" ++ (sectionName' $ section))
+    fmap (\distro ->
+              (escapeURIString (/= '@') ("/var/lib/apt/lists/" ++ uriText +?+ "dists_") ++
+               codename distro ++ "_" ++ (sectionName' $ section))) distros
     where
       section = packageIndexComponent index
       uri = repoKeyURI repo
-      distro = releaseName $ release
+      distros :: [Codename]
+      distros = (releaseName release : releaseAliases release)
       scheme = view (vendorURI . uriSchemeLens) uri
       auth = view (vendorURI . uriAuthorityLens) uri
       path = view (vendorURI . uriPathLens) uri

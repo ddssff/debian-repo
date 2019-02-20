@@ -1,6 +1,7 @@
 -- | Relationships between debian source and binary packges.
 {-# LANGUAGE PackageImports, ScopedTypeVariables, TupleSections #-}
 {-# OPTIONS -fno-warn-name-shadowing #-}
+
 module Debian.Repo.Package
     ( binaryPackageSourceVersion
     , sourcePackageBinaryNames
@@ -15,7 +16,7 @@ import Debian.Repo.PackageID (PackageID(packageName, packageVersion))
 import Debian.Repo.PackageIndex (BinaryPackage(packageID, packageInfo), SourcePackage(sourceParagraph))
 import Debian.Version (DebianVersion, parseDebianVersion')
 import qualified Debian.Version as V (buildDebianVersion, epoch, revision, version)
-import Text.Regex (matchRegex, mkRegex, splitRegex)
+import "regex-compat-tdfa" Text.Regex (matchRegex, mkRegex, splitRegex)
 
 -- | Return the name and version number of the source package that
 -- generated this binary package.

@@ -32,7 +32,7 @@ import qualified Data.ByteString.Lazy.Char8 as L (ByteString, fromChunks, readFi
 --import Data.Digest.Pure.MD5 (md5)
 import Data.Digest.Pure.SHA ({-sha1,-} sha256)
 import Data.Either (partitionEithers, lefts, rights)
-import Data.List as List (filter, groupBy, intercalate, intersperse, isPrefixOf, isSuffixOf, map, partition, sortBy)
+import Data.List as List (filter, groupBy, intercalate, intersperse, isPrefixOf, isSuffixOf, map, nubBy, partition, sortBy)
 import Data.Map as Map (fromList, lookup)
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Monoid ((<>))
@@ -84,7 +84,7 @@ import qualified System.Posix.Files as F (createLink, fileSize, getFileStatus)
 import System.Posix.Types (FileOffset)
 import System.Process (proc, shell, readCreateProcess)
 import Text.Parsec (ParseError)
-import Text.Regex (matchRegex, mkRegex, splitRegex)
+import "regex-compat-tdfa" Text.Regex (matchRegex, mkRegex, splitRegex)
 import Text.PrettyPrint (Doc, text, hcat, punctuate)
 import Distribution.Pretty (Pretty(pretty))
 
@@ -457,7 +457,7 @@ findRelease :: [Release] -> Codename -> Maybe Release
 findRelease releases name =
     case filter (\ release -> elem name (releaseName release : releaseAliases release)) releases of
       [] -> Nothing
-      [x] -> Just x
+      (x : _) -> Just x
       _ -> error $ "Internal error 16 - multiple releases named " ++ codename name
 
 #if 0

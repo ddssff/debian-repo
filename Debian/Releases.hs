@@ -130,6 +130,8 @@ data UbuntuRelease
     | Zesty -- ^ 2017/04
     | Artful -- ^ 2017/10
     | Bionic -- ^ 2018/04
+    | Cosmic -- ^ 2018/10
+    | Disco -- ^ 2019/04
     deriving (Eq, Ord, Show, Enum, Bounded)
 
 debianReleases :: Set DebianRelease
@@ -199,6 +201,8 @@ baseReleaseList =
     , BaseRelease Ubuntu (Codename "zesty") -- 2017/04
     , BaseRelease Ubuntu (Codename "artful") -- 2017/10
     , BaseRelease Ubuntu (Codename "bionic") -- 2018/04
+    , BaseRelease Ubuntu (Codename "cosmic") -- 2018/10
+    , BaseRelease Ubuntu (Codename "disco") -- 2019/04
     ]
 #endif
 

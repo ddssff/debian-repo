@@ -27,7 +27,7 @@ module Debian.Repo.OSImage
 
 -- import Control.DeepSeq (force)
 import Control.Exception (IOException, SomeException)
-import Control.Lens (makeLenses, to, view)
+import Control.Lens (_2, makeLenses, preview, _Right, to, view)
 import Control.Monad.Catch (MonadCatch, try, MonadMask)
 import Control.Monad.Except (catchError, ExceptT, liftEither, liftIO, MonadError, MonadIO, runExceptT, withExceptT)
 --import Control.Monad.Reader (MonadReader)
@@ -36,13 +36,14 @@ import qualified Data.ByteString.Lazy as L
 import Data.Data (Data)
 import Data.Digest.Pure.MD5 (md5)
 import Data.Function (on)
-import Data.List (intercalate)
+import Data.List (intercalate, nub)
+import Data.Maybe (mapMaybe)
 import Data.Typeable (Typeable)
 import Debian.Arch (Arch)
 import Debian.Codename (Codename, codename, parseCodename)
 import Debian.Pretty (prettyShow)
 import Debian.Relation (BinPkgName(..), ParseRelations(parseRelations), Relations)
-import Debian.Release (parseSection')
+import Debian.Release (parseSection', Section)
 import Debian.Repo.EnvPath (EnvPath(..), rootPath, outsidePath)
 import Debian.Repo.IO (buildArchOfRoot)
 import Debian.Repo.LocalRepository (copyLocalRepo, LocalRepository)
@@ -68,7 +69,7 @@ import System.Process.ByteString ()
 import System.Unix.Chroot (useEnv)
 import System.Unix.Directory (removeRecursiveSafely)
 import System.Unix.Mount (umountBelow)
-import Text.Regex (matchRegex, mkRegex)
+import "regex-compat-tdfa" Text.Regex (matchRegex, mkRegex)
 
 instance Ord FileStatus where
     compare a b = compare (deviceID a, fileID a, modificationTime a) (deviceID b, fileID b, modificationTime b)
@@ -183,11 +184,15 @@ osFullDistro os =
     let base = view osBaseDistro os
         repo' = view osLocalCopy os
         name = codename (sliceListName base)
+        _slices :: [Slice]
+        _slices = view (to sliceList . to slices) base
+        sections :: [Section]
+        sections = nub (concat (mapMaybe (preview (to sliceSource . sourceDist . _Right . _2)) _slices))
         localSources :: SliceList
         localSources = SliceList {slices = [Slice {sliceRepoKey = repoKey repo', sliceSource = src},
                                             Slice {sliceRepoKey = repoKey repo', sliceSource = bin}]}
-        src = DebSource Deb [SourceOption "trusted" OpSet ["yes"]] (repoURI repo') (Right (parseCodename name, [parseSection' "main"]))
-        bin = DebSource DebSrc [SourceOption "trusted" OpSet ["yes"]] (repoURI repo') (Right (parseCodename name, [parseSection' "main"])) in
+        src = DebSource Deb [SourceOption "trusted" OpSet ["yes"]] (repoURI repo') (Right (parseCodename name, sections))
+        bin = DebSource DebSrc [SourceOption "trusted" OpSet ["yes"]] (repoURI repo') (Right (parseCodename name, sections)) in
     SliceList { slices = slices (sliceList base) ++ view osExtraRepos os ++ slices localSources }
 
 data UpdateError

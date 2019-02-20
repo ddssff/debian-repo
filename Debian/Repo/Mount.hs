@@ -1,4 +1,6 @@
-{-# LANGUAGE CPP, GeneralizedNewtypeDeriving, ScopedTypeVariables, TemplateHaskell #-}
+{-# LANGUAGE CPP, GeneralizedNewtypeDeriving, OverloadedStrings, ScopedTypeVariables, TemplateHaskell #-}
+{-# OPTIONS -Wall -Wredundant-constraints #-}
+
 -- |functions for mounting, umounting, parsing \/proc\/mounts, etc
 module Debian.Repo.Mount
     ( umountBelow       -- FilePath -> IO [(FilePath, (String, String, ExitCode))]
@@ -10,42 +12,26 @@ module Debian.Repo.Mount
     , withTmp
     ) where
 
--- Standard GHC modules
-
-import Control.Monad
-import Control.Monad.Except (MonadError)
---import Data.ByteString.Lazy.Char8 (empty)
-import Data.List
-import Extra.Except -- (HasIOException, liftIOError, tryError{-, withLoc, withError-}, throwError)
-import System.Directory
---import System.Exit
-import System.IO (readFile, hPutStrLn, stderr)
-import System.Posix.Files
-import System.Process (readProcessWithExitCode)
-
---import Control.Applicative (Applicative)
 import Control.Exception (catch)
 import Control.Monad.Catch (bracket, MonadMask)
-import Control.Monad.Trans (liftIO, MonadIO)
--- import Control.Monad.Trans.Except ({- ExceptT instances -})
-import Data.ByteString.Lazy as L (ByteString, empty)
+import Control.Monad.Except (liftIO, MonadIO)
+import Control.Monad.Extra (filterM, ifM)
+import Data.ByteString.Lazy as L ({-ByteString,-} empty)
+import Data.List (intercalate, isPrefixOf, tails)
 import Debian.TH (here)
-import GHC.IO.Exception (IOErrorType(OtherError))
---import Language.Haskell.TH.Syntax (Loc)
-import System.Directory (createDirectoryIfMissing)
+import Distribution.Pretty (prettyShow)
+import Extra.Misc (sameInode)
+import Language.Haskell.TH.Syntax (Loc)
+import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist)
 import System.Exit (ExitCode(ExitFailure, ExitSuccess))
 import System.FilePath ((</>))
---import System.IO (hPutStrLn, stderr)
-import System.IO.Error
-import System.Process (CreateProcess, proc)
-import System.Process.ListLike (readCreateProcess, showCreateProcessForUser)
+import System.IO (readFile, hPutStrLn, stderr)
+import System.IO.Error (doesNotExistErrorType, mkIOError)
+import System.Posix.Files (deviceID, getFileStatus)
+import System.Process (proc)
+import System.Process.ListLike (readCreateProcessWithExitCode{-, showCreateProcessForUser-})
 
--- Local Modules
-
--- In ghc610 readFile "/proc/mounts" hangs.  Use this instead.
--- rf path = lazyCommand ("cat '" ++ path ++ "'") empty >>= return . (\ (o, _, _) -> o) . collectOutputUnpacked
-
--- |'umountBelow' - unmounts all mount points below /belowPath/
+-- | 'umountBelow' - unmounts all mount points below /belowPath/
 -- \/proc\/mounts must be present and readable.  Because of the way
 -- linux handles changeroots, we can't trust everything we see in
 -- \/proc\/mounts.  However, we make the following assumptions:
@@ -120,7 +106,7 @@ escape (c:rest)    = c : (escape rest)
 -- NOTE: we don't use the umount system call because the system call
 -- is not smart enough to update \/etc\/mtab
 umount :: [String] -> IO (ExitCode, String, String)
-umount args = readProcessWithExitCode "umount" args ""
+umount args = readCreateProcessWithExitCode (proc "umount" args) mempty
 
 isMountPoint :: FilePath -> IO Bool
 -- This implements the functionality of mountpoint(1), deciding
@@ -143,50 +129,65 @@ isMountPoint path =
             -- Assume we are seeing some sort of mount point.
             return True
 
+#if 0
 readProcess :: CreateProcess -> L.ByteString -> IO L.ByteString
 readProcess p input = do
   (code, out, _err) <- readCreateProcess p input :: IO (ExitCode, L.ByteString, L.ByteString)
   case code of
     ExitFailure n -> ioError (mkIOError OtherError (showCreateProcessForUser p ++ " -> " ++ show n) Nothing Nothing)
     ExitSuccess -> return out
+#endif
 
 -- | Do an IO task with a file system remounted using mount --bind.
 -- This was written to set up a build environment.
 withMount ::
-    (MonadIO m, HasLoc e, HasIOException e, MonadError e m, MonadMask m)
-    => FilePath -> FilePath -> m a -> m a
-withMount directory mountpoint task =
-    bracket pre (\ _ -> post) (\ _ -> task)
+    forall m a. (MonadIO m, MonadMask m)
+    => [Loc] -> m Bool -> FilePath -> FilePath -> m a -> m a
+withMount locs mounted directory mountpoint task =
+    ifM mounted
+        ({-liftIO (hPutStrLn stderr ("not mounting: " ++ show mountpoint)) >>-} task)
+        (bracket pre (\ _ -> post) (\ _ -> task))
+    -- Control.Monad.Catch.bracket :: MonadMask m => m a -> (a -> m c) -> (a -> m b) -> m b
     where
       mount = proc "mount" ["--bind", directory, mountpoint]
       umount' = proc "umount" [mountpoint]
       umountLazy = proc "umount" ["-l", mountpoint]
 
-      pre = withError (withLoc $here) $ liftIOError $ do
-              -- hPutStrLn stderr $ "mounting /proc at " ++ show mountpoint
+      pre :: m ()
+      pre = liftIO $ do
+              --hPutStrLn stderr $ "mounting " ++ show directory ++ " at " ++ show mountpoint ++ " " ++ prettyShow locs
               createDirectoryIfMissing True mountpoint
-              readProcess mount L.empty
+              output <- liftIO $ readCreateProcessWithExitCode mount L.empty
+              return ()
+              --hPutStrLn stderr $ "mounted " ++ show directory ++ " at " ++ show mountpoint ++ " output=" ++ show output ++ " " ++ prettyShow locs
 
-      post = withError (withLoc $here) $ liftIOError $ do
-               -- hPutStrLn stderr $ "unmounting /proc at " ++ show mountpoint
-               readProcess umount' L.empty
+      post :: m ()
+      post = liftIO $ do
+               --hPutStrLn stderr $ "unmounting " ++ show directory ++ " at " ++ show mountpoint ++ " " ++ prettyShow locs
+               output <- readCreateProcessWithExitCode umount' L.empty
                  `catch` (\ (e :: IOError) -> do
                             hPutStrLn stderr ("Exception unmounting " ++ mountpoint ++ ", trying -l: " ++ show e)
-                            readProcess umountLazy L.empty)
+                            readCreateProcessWithExitCode umountLazy mempty)
+               return ()
+               --hPutStrLn stderr $ "unmounted " ++ show directory ++ " at " ++ show mountpoint ++ ", output=" ++ show output ++ " " ++ prettyShow locs
 
 -- | Mount /proc and /sys in the specified build root and execute a
 -- task.  Typically, the task would start with a chroot into the build
 -- root.  If the build root given is "/" it is assumed that the file
 -- systems are already mounted, no mounting or unmounting is done.
-withProcAndSys :: (MonadIO m, HasLoc e, HasIOException e, MonadError e m, MonadMask m) => FilePath -> m a -> m a
-withProcAndSys "/" task = task
-withProcAndSys root task = do
+withProcAndSys :: (MonadIO m, MonadMask m) => [Loc] -> FilePath -> m a -> m a
+withProcAndSys _ "/" task = task
+withProcAndSys locs root task = do
   exists <- liftIO $ doesDirectoryExist root
   case exists of
-    True -> withMount "/proc" (root </> "proc") $ withMount "/sys" (root </> "sys") $ task
-    False -> withError (withLoc $here) $ liftIOError $ ioError $ mkIOError doesNotExistErrorType "chroot directory does not exist" Nothing (Just root)
+    True -> withMount ($here : locs) (liftIO $ doesFileExist $ root </> "proc/uptime") "/proc" (root </> "proc") $
+              withMount ($here : locs) (liftIO $ doesDirectoryExist $ root </> "sys/kernel") "/sys" (root </> "sys") $ task
+    False -> liftIO $ ioError $ mkIOError doesNotExistErrorType "chroot directory does not exist" Nothing (Just root)
 
 -- | Do an IO task with /tmp remounted.  This could be used
 -- to share /tmp with a build root.
-withTmp :: (HasLoc e, HasIOException e, MonadError e m, MonadIO m, MonadMask m) => FilePath -> m a -> m a
-withTmp root task = withMount "/tmp" (root </> "tmp") task
+withTmp :: (MonadIO m, MonadMask m) => [Loc] -> FilePath -> m a -> m a
+withTmp locs root task =
+    withMount ($here : locs) (liftIO $ sameInode dir mtpt) dir mtpt task
+    where dir = "/tmp"
+          mtpt = root </> "tmp"

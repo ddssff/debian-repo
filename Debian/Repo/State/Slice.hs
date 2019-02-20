@@ -42,7 +42,7 @@ import Extra.Except -- (HasIOException(fromIOException), liftIOError, MonadIO, M
 import Language.Haskell.TH.Syntax (Loc)
 import System.Directory (createDirectoryIfMissing, doesFileExist, listDirectory)
 import System.FilePath ((</>), dropDrive, makeRelative)
-import Text.Regex (mkRegex, splitRegex)
+import "regex-compat-tdfa" Text.Regex (mkRegex, splitRegex)
 
 -- | Examine the repository whose root is at the given URI and return a
 -- set of sources that includes all of its releases.  This is used to

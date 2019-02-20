@@ -20,8 +20,9 @@ import Control.Monad.Except (throwError)
 import Control.Monad.Trans (liftIO)
 import qualified Data.ByteString.Lazy as L
 import Data.List (intercalate)
+import Data.Map as Map (fromList, Map)
 import Data.Maybe (catMaybes)
-import Data.Set (Set, fromList)
+import Data.Set as Set (Set, fromList)
 import Data.Text (Text, unpack)
 import qualified Data.Text as T (Text, unpack)
 import qualified Data.Text.IO as T (readFile)
@@ -42,7 +43,7 @@ import System.FilePath ((</>))
 --import Text.PrettyPrint.HughesPJClass as PP (Pretty(pPrint), prettyShow)
 import Distribution.Pretty
 import qualified Text.PrettyPrint.HughesPJClass as PP (text)
-import Text.Regex (mkRegex, splitRegex)
+import "regex-compat-tdfa" Text.Regex (mkRegex, splitRegex)
 --import Debug.Trace
 
 -- |A file whose contents have been read into memory.
@@ -117,7 +118,7 @@ makeReleaseInfo file@(File {text = Success info}) dist aliases =
 
 parseArchitectures :: Text -> Set Arch
 parseArchitectures archList =
-    fromList . map parseArch . splitRegex re . unpack $ archList
+    Set.fromList . map parseArch . splitRegex re . unpack $ archList
     where
       re = mkRegex "[ ,]+"
 
@@ -126,42 +127,47 @@ parseArchitectures archList =
 getReleaseInfoRemote :: [Loc] -> VendorURI -> IO [Release]
 getReleaseInfoRemote locs uri = do
   --qPutStr ("getReleaseInfoRemote - uri=" <> show uri <> ") at " <> prettyShow ($here : locs))
-  (dir :: [String]) <- dirFromURI (distsURI uri)
+  dir <- dirFromURI (distsURI uri)
+  let codenames = fmap parseCodename $ filter (\x -> not (elem x [".", ".."])) dir
   --qPutStrLn ("getReleaseInfoRemote - dir=" <> show dir <> " at " <> prettyShow ($here : locs))
-  (result :: [Release]) <- catMaybes <$> (verify . fmap parseCodename . filter (\x -> not (elem x [".", ".."]))) dir
+  mapM (verify locs uri) codenames
   -- qPutStrLn (prettyShow $here <> " - result=" ++ show result)
   --qPutStr (")\n code names: " <> show (fmap (codename . releaseName) result) <> "\n")
-  return result
+
+-- Verify by reading and parsing the Release file
+verify :: [Loc] -> VendorURI -> Codename -> IO Release
+verify locs uri cname = do
+  --qPutStrLn (prettyShow $here <>  " - names=" ++ show (fmap codename names))
+  (releaseFile :: File (T.Paragraph' Text)) <- getReleaseFile locs uri cname
+  let (suite :: Codename) = getSuite releaseFile
+  return $ makeReleaseInfo releaseFile cname [suite]
+{-
+  --qPutStrLn (prettyShow $here <>  " - #releaseFiles=" ++ show (Prelude.length releaseFiles))
+  releaseTriples <- mapM (\(rfile, cname) -> (\x -> (x,rfile,cname)) <$> getSuite rfile) (zip releaseFile names)
+  --let releasePairs = zip3 (map getSuite releaseFiles) (zip releaseFiles names)
+  --qPutStrLn (prettyShow $here <>  " - #releaseTriples=" ++ show (Prelude.length releaseTriples))
+  return $ map (uncurry3 getReleaseInfo) releaseTriples
+-}
+
+getReleaseInfo :: Codename -> (File T.Paragraph) -> Release
+getReleaseInfo dist info = makeReleaseInfo info dist []
+
+getSuite :: File (T.Paragraph' Text) -> Codename
+getSuite (File {text = Success releaseFile}) =
+    case T.fieldValue (releaseNameField releaseFile) releaseFile of
+      Nothing -> error "no release name field"
+      Just x -> parseCodename (unpack x)
     where
-      distsURI :: VendorURI -> URI
-      distsURI = over uriPathLens (</> "dists/") . view vendorURI
-      -- Verify by reading and parsing the Release file
-      verify :: [Codename] -> IO [Maybe Release]
-      verify names =
-          do --qPutStrLn (prettyShow $here <>  " - names=" ++ show (fmap codename names))
-             (releaseFiles :: [File (T.Paragraph' Text)]) <- mapM getReleaseFile names
-             --qPutStrLn (prettyShow $here <>  " - #releaseFiles=" ++ show (Prelude.length releaseFiles))
-             releaseTriples <- mapM (\(rfile, cname) -> (\x -> (x,rfile,cname)) <$> getSuite rfile) (zip releaseFiles names)
-             --let releasePairs = zip3 (map getSuite releaseFiles) (zip releaseFiles names)
-             --qPutStrLn (prettyShow $here <>  " - #releaseTriples=" ++ show (Prelude.length releaseTriples))
-             return $ map (uncurry3 getReleaseInfo) releaseTriples
       releaseNameField releaseFile =
           case T.fieldValue "Suite" releaseFile of
             Just _ -> "Suite"
             Nothing -> case T.fieldValue "Codename" releaseFile of
                          Just _ -> "Codename"
                          Nothing -> error (prettyShow $here <> " - no releaeNameField in " ++ show releaseFile)
-      getReleaseInfo :: Text -> (File T.Paragraph) -> Codename -> Maybe Release
-      getReleaseInfo dist _ relname | (parseCodename (T.unpack dist)) /= relname = Nothing
-      getReleaseInfo dist info _ = Just $ makeReleaseInfo info (parseCodename (T.unpack dist)) []
-      getSuite :: File (T.Paragraph' Text) -> IO Text
-      getSuite (File {text = Success releaseFile}) =
-          case T.fieldValue (releaseNameField releaseFile) releaseFile of
-            Nothing -> throwError (userError "no release name field")
-            Just x -> return x
-      getSuite (File {text = Failure msgs}) = throwError (userError (intercalate "\n" msgs))
-      getReleaseFile :: Codename -> IO (File (T.Paragraph' Text))
-      getReleaseFile dist =
+getSuite (File {text = Failure msgs}) = error $ intercalate "\n" msgs
+
+getReleaseFile :: [Loc] -> VendorURI -> Codename -> IO (File (T.Paragraph' Text))
+getReleaseFile locs uri dist =
           do qPutStr "."
              release <- fileFromURI Nothing relURI :: IO L.ByteString
              let control = (either (Left . userError . show) Right . T.parseControl (show relURI) . Deb.decode) release
@@ -181,5 +187,9 @@ getReleaseInfoRemote locs uri = do
           where
             relURI = distURI {uriPath = uriPath distURI </> "Release"}
             distURI = over uriPathLens (</> (codename dist <> "/")) (distsURI uri)
-      uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
-      uncurry3 f (a, b, c) =  f a b c
+
+uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
+uncurry3 f (a, b, c) =  f a b c
+
+distsURI :: VendorURI -> URI
+distsURI = over uriPathLens (</> "dists/") . view vendorURI

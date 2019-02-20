@@ -30,13 +30,13 @@ import System.Directory (createDirectoryIfMissing, doesDirectoryExist, getDirect
 import System.FilePath ((</>))
 import System.IO.Unsafe (unsafeInterleaveIO)
 import qualified System.Posix.Files as F (fileMode, getFileStatus, setFileMode)
-import Text.Regex (matchRegex, mkRegex)
+import "regex-compat-tdfa" Text.Regex (matchRegex, mkRegex)
 
 repairLocalRepository :: (MonadIOError e m) => [Loc] -> LocalRepository -> m LocalRepository
 repairLocalRepository locs r = prepareLocalRepository ($here : locs) (view repoRoot r) (view repoLayout r) (view repoReleaseInfoLocal r)
 
-createLocalRepository :: (MonadIOError e m) => [Loc] -> EnvPath -> Maybe Layout -> m (Maybe Layout)
-createLocalRepository locs root layout = do
+createLocalRepository :: (MonadIOError e m) => EnvPath -> Maybe Layout -> m (Maybe Layout)
+createLocalRepository root layout = do
   --qPutStrLn ("createLocalRepository root=" <> show root <> " at " <> prettyShow ($here : locs))
   mapM_ (liftIOError . initDir)
             [(".", 0o40755),
@@ -64,7 +64,7 @@ createLocalRepository locs root layout = do
 readLocalRepository :: (MonadIOError e m) => [Loc] -> EnvPath -> Maybe Layout -> m (Maybe LocalRepository)
 readLocalRepository locs root layout =
     --qPutStrLn ("readLocalRepository root=" <> show root <> " at " <> prettyShow ($here : locs)) >>
-    createLocalRepository ($here : locs) root layout >>= readLocalRepo root
+    createLocalRepository root layout >>= readLocalRepo root
 
 -- | Create or verify the existance of the directories which will hold
 -- a repository on the local machine.  Verify the index files for each of

@@ -84,7 +84,7 @@ useOS ::
     => [Loc] -> m a -> m a
 useOS locs action =
   do root <- view (osRoot . to _root . rootPath) <$> getOS
-     result <- try (withProcAndSys root (useEnv root (liftIO . evaluate) action))
+     result <- try (withProcAndSys ($here : locs) root (useEnv root (liftIO . evaluate) action))
      either (withError (withLoc $here) . throwError . fromIOException) return result
 
 -- useEnv :: (MonadIO m, MonadMask m) => FilePath -> (a -> m a) -> m a -> m a
@@ -155,7 +155,7 @@ updateLists = do
 aptGetInstall :: (MonadOS r s m, PkgName n, MonadIOError e m, HasLoc e, MonadMask m) => [(n, Maybe DebianVersion)] -> m ()
 aptGetInstall packages =
     do root <- view (osRoot . to _root . rootPath) <$> getOS
-       withProcAndSys root $ useEnv root (return . force) $ do
+       withProcAndSys [$here] root $ useEnv root (return . force) $ do
          _ <- runV2 [$here] p L.empty
          return ()
     where

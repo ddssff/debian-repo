@@ -4,6 +4,8 @@ module Debian.Repo.RemoteRepository
     ( RemoteRepository(..)
     ) where
 
+import Data.Map (Map)
+import Debian.Codename (Codename)
 import Debian.Pretty (PP(..), ppPrint)
 import Debian.Repo.Release (Release)
 import Debian.Repo.Repo (Repo(repoKey, repoReleaseInfo), RepoKey(Remote))
