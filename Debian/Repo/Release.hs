@@ -16,15 +16,12 @@ import Control.Applicative ((<$>), Applicative((<*>)))
 import Control.Applicative.Error (Failing(Success, Failure))
 import Control.Exception (IOException, try)
 import Control.Lens (over, view)
-import Control.Monad.Except (throwError)
 import Control.Monad.Trans (liftIO)
 import qualified Data.ByteString.Lazy as L
 import Data.List (intercalate)
-import Data.Map as Map (fromList, Map)
-import Data.Maybe (catMaybes)
 import Data.Set as Set (Set, fromList)
 import Data.Text (Text, unpack)
-import qualified Data.Text as T (Text, unpack)
+import qualified Data.Text as T (Text)
 import qualified Data.Text.IO as T (readFile)
 import Debian.Arch (Arch(..), parseArch)
 import Debian.Codename (Codename, codename, parseCodename)
@@ -149,16 +146,16 @@ verify locs uri cname = do
   return $ map (uncurry3 getReleaseInfo) releaseTriples
 -}
 
-getReleaseInfo :: Codename -> (File T.Paragraph) -> Release
-getReleaseInfo dist info = makeReleaseInfo info dist []
+--getReleaseInfo :: Codename -> (File T.Paragraph) -> Release
+--getReleaseInfo dist info = makeReleaseInfo info dist []
 
 getSuite :: File (T.Paragraph' Text) -> Codename
 getSuite (File {text = Success releaseFile}) =
-    case T.fieldValue (releaseNameField releaseFile) releaseFile of
+    case T.fieldValue releaseNameField releaseFile of
       Nothing -> error "no release name field"
       Just x -> parseCodename (unpack x)
     where
-      releaseNameField releaseFile =
+      releaseNameField =
           case T.fieldValue "Suite" releaseFile of
             Just _ -> "Suite"
             Nothing -> case T.fieldValue "Codename" releaseFile of
@@ -188,8 +185,8 @@ getReleaseFile locs uri dist =
             relURI = distURI {uriPath = uriPath distURI </> "Release"}
             distURI = over uriPathLens (</> (codename dist <> "/")) (distsURI uri)
 
-uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
-uncurry3 f (a, b, c) =  f a b c
+--uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
+--uncurry3 f (a, b, c) =  f a b c
 
 distsURI :: VendorURI -> URI
 distsURI = over uriPathLens (</> "dists/") . view vendorURI
