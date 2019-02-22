@@ -49,18 +49,18 @@ import Data.Map as Map (empty, fromList, insert, lookup, Map, toList, union)
 import Data.Maybe (fromJust, fromMaybe)
 import Debian.Codename (Codename)
 import Extra.Except (HasLoc, MonadError, MonadIOError)
-import Debian.Repo.AptKey (AptKey(AptKey), HasAptKey(aptKey), MonadApt)
-import Debian.Repo.EnvPath (EnvRoot)
+import Debian.Repo.AptKey ({-AptKey(AptKey), HasAptKey(aptKey),-} MonadApt)
 import Debian.Repo.OSImage (OSImage(..), osRoot, syncOS')
 import Debian.Repo.OSKey ({-HasOSKey,-} OSKey(..))
 import Debian.Repo.MonadApt (AptImage, aptImageRoot)
-import Debian.Repo.Prelude.Verbosity (qPutStrLn)
 import Debian.Repo.Release (Release(releaseName))
 import Debian.Repo.Rsync (HasRsyncError)
 import Debian.Repo.RemoteRepository (RemoteRepository)
 import Debian.Repo.Repo (Repo, repoKey, RepoKey(..))
 import Debian.Repo.Top (HasTop, MonadTop, sub)
 import Debian.URI (URI')
+import Extra.EnvPath (EnvRoot, HasEnvRoot(envRootLens))
+import Extra.Verbosity (qPutStrLn)
 import System.Directory (removeFile)
 import System.IO (hPutStrLn, stderr)
 import System.IO.Error (isDoesNotExistError)
@@ -73,7 +73,7 @@ data ReposState
     = ReposState
       { _repoMap :: Map.Map URI' RemoteRepository                -- ^ Map to look up known (remote) Repository objects
       , _releaseMap :: Map.Map ReleaseKey Release -- ^ Map to look up known Release objects
-      , _aptImageMap :: Map.Map AptKey AptImage  -- ^ Map to look up prepared AptImage objects
+      , _aptImageMap :: Map.Map EnvRoot AptImage  -- ^ Map to look up prepared AptImage objects
       , _osImageMap :: Map.Map OSKey OSImage   -- ^ Map to look up prepared OSImage objects
       }
 
@@ -170,14 +170,14 @@ putRepo uri repo = modifyRepos (\ s -> s {_repoMap = Map.insert uri repo (view r
 repoByURI :: MonadRepos s m => URI' -> m (Maybe RemoteRepository)
 repoByURI uri = Map.lookup uri . view repoMap <$> getRepos
 
-getApt :: (MonadRepos s m, MonadApt r m) => m AptImage
+getApt :: (HasEnvRoot r, MonadReader r m, MonadRepos s m) => m AptImage
 getApt = do
-  key <- view aptKey
+  key <- view envRootLens
   fromJust <$> use (reposState . aptImageMap . at key)
 
 putApt :: MonadRepos s m => AptImage -> m ()
 putApt img = do
-  (reposState . aptImageMap . at (AptKey key)) .= Just img
+  (reposState . aptImageMap . at key) .= Just img
     where key :: EnvRoot
           key = view aptImageRoot img
 
@@ -203,13 +203,13 @@ putRelease repo release = do
     modifyRepos (\ s -> s {_releaseMap = Map.insert key release (view releaseMap s)})
     return key
 
-putAptImage :: MonadRepos s m => AptImage -> m AptKey
+putAptImage :: MonadRepos s m => AptImage -> m EnvRoot
 putAptImage repo = do
-  let key = AptKey (view aptImageRoot repo)
+  let key = view aptImageRoot repo
   modifyRepos (\ s -> s {_aptImageMap = Map.insert key repo (view aptImageMap s)})
   return key
 
-evalMonadApt :: (MonadRepos s m, MonadReader r m) => ReaderT (AptKey, r) m a -> AptKey -> m a
+evalMonadApt :: (MonadRepos s m, MonadReader r m) => ReaderT (EnvRoot, r) m a -> EnvRoot -> m a
 evalMonadApt task key = do
   r <- ask
   runReaderT task (key, r)

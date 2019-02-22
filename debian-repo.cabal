@@ -97,7 +97,6 @@ Library
         Debian.Repo.Changes,
         Debian.Repo.DebError
         Debian.Repo.Dependencies,
-        Debian.Repo.EnvPath,
         Debian.Repo.Fingerprint,
         Debian.Repo.IO,
         Debian.Repo.LocalRepository,
@@ -116,10 +115,8 @@ Library
         Debian.Repo.Prelude.List,
         Debian.Repo.Prelude.Lock,
         Debian.Repo.Prelude.Misc,
-        Debian.Repo.Prelude.Process,
         Debian.Repo.Prelude.SSH,
         Debian.Repo.Prelude.Time,
-        Debian.Repo.Prelude.Verbosity,
         Debian.Repo.Release,
         Debian.Repo.RemoteRepository,
         Debian.Repo.Repo,

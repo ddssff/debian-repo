@@ -7,7 +7,7 @@ module Debian.Repo.OSKey
 
 import Control.Lens (_2, _3, Getter)
 --import Control.Monad.Reader (MonadReader)
-import Debian.Repo.EnvPath (EnvRoot)
+import Extra.EnvPath (EnvRoot)
 
 newtype OSKey = OSKey {_root :: EnvRoot} deriving (Eq, Ord, Show)
 

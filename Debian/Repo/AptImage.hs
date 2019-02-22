@@ -15,6 +15,7 @@ import Control.Category ((.))
 import Control.Lens (view)
 import Control.Monad.Catch (MonadCatch)
 import Control.Monad.Except (MonadError)
+import Control.Monad.Reader (MonadReader)
 import Control.Monad.Trans (liftIO, MonadIO)
 import qualified Data.ByteString as B
 import Data.Data (Data)
@@ -23,14 +24,14 @@ import Debian.Arch (Arch(..), ArchCPU(..), ArchOS(..))
 import Debian.Pretty (ppShow)
 import Debian.Relation (PkgName, SrcPkgName(unSrcPkgName))
 import Debian.Repo.AptKey (MonadApt)
-import Debian.Repo.EnvPath (rootPath)
 import Debian.Repo.MonadApt (aptImageRoot, aptImageSources)
 import Debian.Repo.MonadRepos (getApt, MonadRepos)
-import Debian.Repo.Prelude.Process (runV3, runQE3)
 import Debian.Repo.Slice (NamedSliceList(sliceListName))
 import Debian.Repo.Top (distDir, MonadTop)
 import Debian.TH (here)
 import Debian.Version (DebianVersion, prettyDebianVersion)
+import Extra.EnvPath (HasEnvRoot, rootPath)
+import Extra.Process (runV3, runQE3)
 import Prelude hiding ((.))
 import System.Directory (createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
@@ -73,7 +74,7 @@ data SourcesChangedAction =
 -- | Run an apt-get command in a particular directory with a
 -- particular list of packages.  Note that apt-get source works for
 -- binary or source package names.
-aptGetSource :: (MonadIO m, MonadCatch m, MonadRepos s m, MonadApt r m, PkgName n, MonadError e m) => FilePath -> [(n, Maybe DebianVersion)] -> m ()
+aptGetSource :: (MonadIO m, MonadCatch m, MonadRepos s m, HasEnvRoot r, MonadReader r m, PkgName n, MonadError e m) => FilePath -> [(n, Maybe DebianVersion)] -> m ()
 aptGetSource dir packages =
     do args <- aptOpts
        let p = (proc "apt-get" (args ++ ["source"] ++ map formatPackage packages)) {cwd = Just dir}
@@ -82,14 +83,14 @@ aptGetSource dir packages =
       formatPackage (name, Nothing) = ppShow name
       formatPackage (name, Just version) = ppShow name ++ "=" ++ show (prettyDebianVersion version)
 
-aptGetUpdate :: (MonadIO m, MonadCatch m, MonadRepos s m, MonadApt r m, MonadError e m) => m ()
+aptGetUpdate :: (MonadIO m, MonadCatch m, MonadRepos s m, HasEnvRoot r, MonadReader r m, MonadError e m) => m ()
 aptGetUpdate =
     do args <- aptOpts
        let p = (proc "apt-get" (args ++ ["update"]))
        _ <- runQE3 [$here] p B.empty
        return ()
 
-aptOpts :: (MonadRepos s m, MonadApt r m) => m [String]
+aptOpts :: (MonadRepos s m, HasEnvRoot r, MonadReader r m) => m [String]
 aptOpts =
     do root <- view (aptImageRoot . rootPath) <$> getApt
        return $ [ "-o=Dir::State::status=" ++ root ++ "/var/lib/dpkg/status"

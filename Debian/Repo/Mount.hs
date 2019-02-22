@@ -176,8 +176,8 @@ withMount locs mounted directory mountpoint task =
 -- root.  If the build root given is "/" it is assumed that the file
 -- systems are already mounted, no mounting or unmounting is done.
 withProcAndSys :: (MonadIO m, MonadMask m) => [Loc] -> FilePath -> m a -> m a
-withProcAndSys _ "/" task = task
-withProcAndSys locs root task = do
+withProcAndSys _ "/" task = task -- this should still do the mount if it needs to
+withProcAndSys locs root task = do -- Maybe we shouldn't have a root argument, we should already be chrooted here?
   exists <- liftIO $ doesDirectoryExist root
   case exists of
     True -> withMount ($here : locs) (liftIO $ doesFileExist $ root </> "proc/uptime") "/proc" (root </> "proc") $

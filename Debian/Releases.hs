@@ -41,8 +41,10 @@ import Data.Char (toLower)
 import Data.List (groupBy)
 import Data.Set as Set (fromList, map, Set)
 import Debian.Codename (Codename, codename, parseCodename)
+import Debian.TH (here)
 import Debian.URI (nullURI, parentURI, showURI, URI(..), uriPathLens)
 import Debian.VendorURI (VendorURI, vendorURI)
+import Distribution.Pretty (prettyShow)
 import System.FilePath((</>))
 import Test.HUnit
 import Test.QuickCheck (Arbitrary(arbitrary), elements, oneof)
@@ -378,7 +380,9 @@ parseReleaseTree c =
       parse ("zesty" : more) _ = parse more (UbuntuRelease Zesty)
       parse ("artful" : more) _ = parse more (UbuntuRelease Artful)
       parse ("bionic" : more) _ = parse more (UbuntuRelease Bionic)
-      parse (s : _more) _ = error ("Unknown base release: " ++ show s ++ " xs0=" ++ show xs0)
+      parse ("cosmic" : more) _ = parse more (UbuntuRelease Cosmic)
+      parse ("disco" : more) _ = parse more (UbuntuRelease Disco)
+      parse (s : _more) _ = error ("Unknown base release: " ++ show s ++ " xs0=" ++ show xs0 ++ prettyShow $here)
 
 isPrivateRelease :: ReleaseTree -> Bool
 isPrivateRelease (PrivateRelease _) = True

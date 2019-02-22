@@ -22,8 +22,7 @@ import Debian.Changes (ChangeLogEntry(logVersion))
 import Distribution.Pretty (prettyShow)
 import Debian.Relation (SrcPkgName(unSrcPkgName))
 import Debian.Repo.AptImage (aptDir, aptGetSource, aptGetUpdate)
-import Debian.Repo.AptKey (AptKey(AptKey), MonadApt)
-import Debian.Repo.EnvPath (rootPath)
+import Debian.Repo.AptKey (AptKey, MonadApt)
 import Debian.Repo.MonadApt (aptImageArch, aptImageRoot, aptImageSources,
                                  aptBinaryPackageCache, aptSourcePackageCache,
                                  cacheRootDir, createAptImage)
@@ -31,7 +30,6 @@ import Debian.Repo.MonadRepos (aptImageMap, getApt, modifyApt, MonadRepos, putAp
 import Debian.Repo.PackageID (PackageID(packageName), PackageID(packageVersion))
 import Debian.Repo.PackageIndex (BinaryPackage, SourcePackage(sourcePackageID))
 --import Debian.Repo.Prelude (symbol)
-import Debian.Repo.Prelude.Verbosity (qPutStr, qPutStrLn)
 import Debian.Repo.Slice (NamedSliceList(sliceList, sliceListName), SourcesChangedAction)
 import Debian.Repo.SourceTree (DebianBuildTree(debTree'), DebianSourceTree(tree'), HasChangeLog(entry), findDebianBuildTrees, SourceTree(dir'))
 import Debian.Repo.State.PackageIndex (binaryPackagesFromSources, sourcePackagesFromSources)
@@ -39,7 +37,9 @@ import Debian.Repo.State.Slice (updateCacheSources)
 import Debian.Repo.Top (MonadTop)
 import Debian.TH (here, Loc)
 import Debian.Version (DebianVersion)
+import Extra.EnvPath (rootPath)
 import Extra.Except -- (HasIOException)
+import Extra.Verbosity (qPutStr, qPutStrLn)
 import System.Directory (createDirectoryIfMissing)
 import System.Unix.Directory (removeRecursiveSafely)
 
@@ -71,7 +71,7 @@ prepareAptImage ::
     -> NamedSliceList         -- The sources.list
     -> m AptKey               -- The resulting environment
 prepareAptImage locs sourcesChangedAction sources = do
-  key <- {-getAptKey =<<-} AptKey <$> cacheRootDir (sliceListName sources)
+  key <- {-getAptKey =<<-} cacheRootDir (sliceListName sources)
   mimg <- use (reposState . aptImageMap . at key)
   case mimg of
     Nothing -> prepareAptImage' ($here : locs) sourcesChangedAction sources
@@ -82,7 +82,7 @@ prepareAptImage' ::
     forall r s e m. (MonadIOError e m, HasLoc e, MonadCatch m, MonadTop r m, MonadRepos s m)
     => [Loc] -> SourcesChangedAction -> NamedSliceList -> m AptKey
 prepareAptImage' locs sourcesChangedAction sources = do
-  key <- {-getAptKey =<<-} AptKey <$> cacheRootDir (sliceListName sources)
+  key <- {-getAptKey =<<-} cacheRootDir (sliceListName sources)
   mimg <- use (reposState . aptImageMap . at key)
   case mimg of
     Nothing -> prepareAptImage'' `catch` handle

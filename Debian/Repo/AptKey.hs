@@ -1,22 +1,22 @@
-{-# LANGUAGE ConstraintKinds, FlexibleInstances #-}
+{-# LANGUAGE ConstraintKinds, FlexibleInstances, RankNTypes #-}
 {-# OPTIONS -Wall #-}
 
 module Debian.Repo.AptKey
-    ( AptKey(AptKey)
-    , HasAptKey(aptKey)
+    ( AptKey
+    , aptKey
     , MonadApt
     ) where
 
-import Control.Lens (_2, Getter)
+import Control.Lens (_2, Lens', view)
 import Control.Monad.Reader (MonadReader)
-import Debian.Repo.EnvPath (EnvRoot)
+import Extra.EnvPath (EnvRoot, HasEnvRoot(envRootLens))
 
-newtype AptKey = AptKey EnvRoot deriving (Eq, Ord, Show)
+type AptKey = EnvRoot
 
-class HasAptKey r where aptKey :: Getter r AptKey
-instance HasAptKey AptKey where aptKey = id
+aptKey :: forall r. HasEnvRoot r => Lens' r AptKey
+aptKey = envRootLens
 
-instance HasAptKey (a, AptKey) where aptKey = _2
-instance HasAptKey (a, AptKey, b) where aptKey = _2
+instance HasEnvRoot (a, EnvRoot) where envRootLens = _2
+instance HasEnvRoot (a, EnvRoot, b) where envRootLens = _2
 
-type MonadApt r m = (HasAptKey r, MonadReader r m)
+type MonadApt r m = (HasEnvRoot r, MonadReader r m)
