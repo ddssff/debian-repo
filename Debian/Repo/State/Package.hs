@@ -32,7 +32,7 @@ import qualified Data.ByteString.Lazy.Char8 as L (ByteString, fromChunks, readFi
 --import Data.Digest.Pure.MD5 (md5)
 import Data.Digest.Pure.SHA ({-sha1,-} sha256)
 import Data.Either (partitionEithers, lefts, rights)
-import Data.List as List (filter, groupBy, intercalate, intersperse, isPrefixOf, isSuffixOf, map, nubBy, partition, sortBy)
+import Data.List as List (filter, groupBy, intercalate, intersperse, isPrefixOf, isSuffixOf, map, partition, sortBy)
 import Data.Map as Map (fromList, lookup)
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Monoid ((<>))
